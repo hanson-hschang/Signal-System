@@ -1,2 +1,1 @@
-# MPPI
-Model Predictive Path Integral control
+# Model Predictive Path Integral control
