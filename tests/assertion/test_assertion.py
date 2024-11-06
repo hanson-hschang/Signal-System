@@ -1,5 +1,6 @@
 from assertion import isPositiveInteger
 
+
 def test_isPositiveInteger():
     assert isPositiveInteger(1) == True
     assert isPositiveInteger(0) == False
