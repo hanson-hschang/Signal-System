@@ -31,4 +31,4 @@ def test_dynamic_system_initialization():
     assert np.all(system.state == np.array([1, 2]))
     with pytest.raises(AssertionError):
         system.state = [1, 2, 3]
-    system.forward()
+    system.update()
