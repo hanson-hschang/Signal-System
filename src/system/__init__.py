@@ -75,9 +75,9 @@ class DynamicSystem(System):
         self._time_step = time_step
         self.update_observation()
 
-    def forward(self) -> None:
+    def update(self) -> None:
         """
-        Update the system forward by one time step.
+        Update the system by one time step.
         """
         self.update_state()
         self.update_observation()
