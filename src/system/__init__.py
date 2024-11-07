@@ -3,7 +3,7 @@ from typing import Any, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from assertion import isPositiveInteger, isNonNegativeInteger
+from assertion import isNonNegativeInteger, isPositiveInteger
 from tool.matrix_descriptor import MatrixDescriptor
 
 
@@ -58,7 +58,7 @@ class System:
             The dimension of the observation vector.
         """
         return self._observation_dim
-    
+
     @property
     def control_dim(self) -> int:
         """
@@ -84,7 +84,7 @@ class System:
             The observation vector of systems. Shape of the array is `(number_of_systems, observation_dim)`.
         """
         return self._observation.squeeze()
-    
+
     control = MatrixDescriptor("number_of_systems", "control_dim")
 
 

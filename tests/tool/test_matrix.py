@@ -1,16 +1,18 @@
-import pytest
-import numpy as np
-from numpy.typing import NDArray
 from typing import Any
 
+import numpy as np
+import pytest
+from numpy.typing import NDArray
+
 from tool.matrix_descriptor import MatrixDescriptor
+
 
 class TestMatrixDescriptor:
     class MatrixClass:
         num_rows = 2
         num_cols = 3
         matrix = MatrixDescriptor("num_rows", "num_cols")
-        
+
         def __init__(self):
             self._matrix = np.zeros((self.num_rows, self.num_cols))
 
@@ -18,7 +20,7 @@ class TestMatrixDescriptor:
         num_rows = 1
         num_cols = 3
         vector = MatrixDescriptor("num_rows", "num_cols")
-        
+
         def __init__(self):
             self._vector = np.zeros((self.num_rows, self.num_cols))
 
@@ -41,7 +43,10 @@ class TestMatrixDescriptor:
     def test_matrix_wrong_shape(self):
         test_obj = self.MatrixClass()
         with pytest.raises(AssertionError):
-            test_obj.matrix = [[1, 2], [3, 4]]  # Wrong shape (2x2 instead of 2x3)
+            test_obj.matrix = [
+                [1, 2],
+                [3, 4],
+            ]  # Wrong shape (2x2 instead of 2x3)
 
     def test_private_attribute_exists(self):
         test_obj = self.MatrixClass()

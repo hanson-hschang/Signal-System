@@ -1,10 +1,10 @@
 from typing import Optional
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
 from numba import njit
+from numpy.typing import ArrayLike, NDArray
 
-from system import System, DynamicMixin
+from system import DynamicMixin, System
 
 
 class DiscreteTimeLinearSystem(DynamicMixin, System):
@@ -141,7 +141,8 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
             self._state_space_matrix_A,
             self._state_space_matrix_B,
             np.random.multivariate_normal(
-                np.zeros(self._state_dim), self._process_noise_covariance_Q,
+                np.zeros(self._state_dim),
+                self._process_noise_covariance_Q,
                 size=self._number_of_systems,
             ),
         )
@@ -172,12 +173,9 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
         noise: NDArray[np.float64],
     ) -> None:
         for i in range(state.shape[0]):
-            state[i, :] = (
-                state_space_matrix_A @ state[i, :]
-                + noise[i, :]
-            )
+            state[i, :] = state_space_matrix_A @ state[i, :] + noise[i, :]
 
-    @System.observation.getter
+    @System.observation.getter  # type: ignore
     def observation(self) -> NDArray[np.float64]:
         self._update_observation(
             self._state,
