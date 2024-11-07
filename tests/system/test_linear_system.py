@@ -73,5 +73,4 @@ class TestDiscreteTimeLinearSystem:
         assert np.all(self.control_system.observation == np.array([3, 6]))
 
         self.stochastic_system.state = np.array([1, 2])
-        self.stochastic_system.control = [1]
         self.stochastic_system.update()
