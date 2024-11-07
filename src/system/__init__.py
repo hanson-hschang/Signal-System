@@ -3,7 +3,7 @@ from typing import Any, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from assertion import isPositiveInteger
+from assertion import isPositiveInteger, isNonNegativeInteger
 from tool.matrix_descriptor import MatrixDescriptor
 
 
@@ -12,6 +12,7 @@ class System:
         self,
         state_dim: int,
         observation_dim: int,
+        control_dim: int = 0,
         number_of_systems: int = 1,
         **kwargs: Any,
     ) -> None:
@@ -21,18 +22,25 @@ class System:
         assert isPositiveInteger(
             observation_dim
         ), f"observation_dim {observation_dim} must be a positive integer"
+        assert isNonNegativeInteger(
+            control_dim
+        ), f"control_dim {control_dim} must be a non-negative integer"
         assert isPositiveInteger(
             number_of_systems
         ), f"number_of_systems {number_of_systems} must be a positive integer"
 
         self._state_dim = int(state_dim)
         self._observation_dim = int(observation_dim)
+        self._control_dim = int(control_dim)
         self._number_of_systems = int(number_of_systems)
         self._state = np.zeros(
-            (self._state_dim, self._number_of_systems), dtype=np.float64
+            (self._number_of_systems, self._state_dim), dtype=np.float64
         )
         self._observation = np.zeros(
-            (self._observation_dim, self._number_of_systems), dtype=np.float64
+            (self._number_of_systems, self._observation_dim), dtype=np.float64
+        )
+        self._control = np.zeros(
+            (self._number_of_systems, self._control_dim), dtype=np.float64
         )
 
     @property
@@ -50,6 +58,14 @@ class System:
             The dimension of the observation vector.
         """
         return self._observation_dim
+    
+    @property
+    def control_dim(self) -> int:
+        """
+        `control_dim: int`
+            The dimension of the control vector.
+        """
+        return self._control_dim
 
     @property
     def number_of_systems(self) -> int:
@@ -59,15 +75,17 @@ class System:
         """
         return self._number_of_systems
 
-    state = MatrixDescriptor("state_dim", "number_of_systems")
+    state = MatrixDescriptor("number_of_systems", "state_dim")
 
     @property
     def observation(self) -> NDArray[np.float64]:
         """
         `observation: ArrayLike[float]`
-            The observation vector of systems. Shape of the array is `(observation_dim, number_of_systems)`.
+            The observation vector of systems. Shape of the array is `(number_of_systems, observation_dim)`.
         """
-        return self._observation
+        return self._observation.squeeze()
+    
+    control = MatrixDescriptor("number_of_systems", "control_dim")
 
 
 class DynamicMixin:
@@ -95,34 +113,3 @@ class DynamicMixin:
         Update the state of each system by one time step.
         """
         pass
-
-
-class ControlSystem(System):
-    def __init__(
-        self,
-        state_dim: int,
-        control_dim: int,
-        observation_dim: int,
-        number_of_systems: int = 1,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(
-            state_dim, observation_dim, number_of_systems, **kwargs
-        )
-        assert isPositiveInteger(
-            control_dim
-        ), f"control_dim {control_dim} must be a positive integer"
-        self._control_dim = int(control_dim)
-        self._control = np.zeros(
-            (self._control_dim, self._number_of_systems), dtype=np.float64
-        )
-
-    @property
-    def control_dim(self) -> int:
-        """
-        `control_dim: int`
-            The dimension of the control vector.
-        """
-        return self._control_dim
-
-    control = MatrixDescriptor("control_dim", "number_of_systems")

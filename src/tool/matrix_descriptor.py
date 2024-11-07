@@ -15,19 +15,19 @@ class MatrixDescriptor:
 
     def __get__(self, obj: object, obj_type: type) -> NDArray[np.float64]:
         value: NDArray = getattr(obj, self.private_name)
-        if value.shape[1] == 1:
+        if value.shape[0] == 1:
             value = value.squeeze()
         return value
 
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value, dtype=np.float64)
         if len(value.shape) == 1:
-            value = value.reshape((-1, 1))
+            value = value.reshape((1, -1))
         shape = (
             getattr(obj, self.name_of_row_numbers),
             getattr(obj, self.name_of_column_numbers),
         )
         assert (
             value.shape == shape
-        ), f"{self.name} shape {value.shape} must be equal to {shape}."
+        ), f"input shape {value.shape} does not match with {self.name} shape {shape}."
         setattr(obj, self.private_name, value)

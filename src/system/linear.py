@@ -2,11 +2,12 @@ from typing import Optional
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from numba import njit
 
-from system import ControlSystem, DynamicMixin
+from system import System, DynamicMixin
 
 
-class DiscreteTimeLinearSystem(ControlSystem, DynamicMixin):
+class DiscreteTimeLinearSystem(DynamicMixin, System):
     def __init__(
         self,
         state_space_matrix_A: ArrayLike,
@@ -39,8 +40,10 @@ class DiscreteTimeLinearSystem(ControlSystem, DynamicMixin):
             assert (
                 state_space_matrix_A.shape[0] == state_space_matrix_B.shape[0]
             ), "state_space_matrix_A and state_space_matrix_B should have compatible shapes"
+            self._update_state = self._update_state_with_control
         else:
-            state_space_matrix_B = np.zeros((state_space_matrix_A.shape[0], 1))
+            state_space_matrix_B = np.zeros((state_space_matrix_A.shape[0], 0))
+            self._update_state = self._update_state_without_control
 
         if process_noise_covariance_Q is not None:
             process_noise_covariance_Q = np.array(
@@ -81,9 +84,9 @@ class DiscreteTimeLinearSystem(ControlSystem, DynamicMixin):
         self._observation_noise_covariance_R = observation_noise_covariance_R
 
         super().__init__(
-            state_space_matrix_A.shape[0],
-            state_space_matrix_B.shape[1],
-            state_space_matrix_C.shape[0],
+            state_dim=state_space_matrix_A.shape[0],
+            observation_dim=state_space_matrix_C.shape[0],
+            control_dim=state_space_matrix_B.shape[1],
             number_of_systems=number_of_systems,
             time_step=1,
         )
@@ -132,41 +135,69 @@ class DiscreteTimeLinearSystem(ControlSystem, DynamicMixin):
         """
         Update the state vector using the state space model by one time step.
         """
-        self._state[:] = (
-            self._state_space_matrix_A @ self._state
-            + self._state_space_matrix_B @ self._control
-            + np.random.multivariate_normal(
-                np.zeros(self._state_dim),
-                self._process_noise_covariance_Q,
+        self._update_state(
+            self._state,
+            self._control,
+            self._state_space_matrix_A,
+            self._state_space_matrix_B,
+            np.random.multivariate_normal(
+                np.zeros(self._state_dim), self._process_noise_covariance_Q,
                 size=self._number_of_systems,
-            )
+            ),
         )
 
-    def update_observation(self) -> None:
-        """
-        Update the observation vector using the state space model.
-        """
-        self._observation[:] = (
-            self._state_space_matrix_C @ self._state
-            + np.random.multivariate_normal(
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _update_state_with_control(
+        state: NDArray[np.float64],
+        control: NDArray[np.float64],
+        state_space_matrix_A: NDArray[np.float64],
+        state_space_matrix_B: NDArray[np.float64],
+        noise: NDArray[np.float64],
+    ) -> None:
+        for i in range(state.shape[0]):
+            state[i, :] = (
+                state_space_matrix_A @ state[i, :]
+                + state_space_matrix_B @ control[i, :]
+                + noise[i, :]
+            )
+
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _update_state_without_control(
+        state: NDArray[np.float64],
+        control: NDArray[np.float64],
+        state_space_matrix_A: NDArray[np.float64],
+        state_space_matrix_B: NDArray[np.float64],
+        noise: NDArray[np.float64],
+    ) -> None:
+        for i in range(state.shape[0]):
+            state[i, :] = (
+                state_space_matrix_A @ state[i, :]
+                + noise[i, :]
+            )
+
+    @System.observation.getter
+    def observation(self) -> NDArray[np.float64]:
+        self._update_observation(
+            self._state,
+            self._observation,
+            self._state_space_matrix_C,
+            np.random.multivariate_normal(
                 np.zeros(self._observation_dim),
                 self._observation_noise_covariance_R,
-            )
+                size=self._number_of_systems,
+            ),
         )
+        return self._observation.squeeze()
 
-
-def main() -> None:
-    matrix_A = np.array([[0.9, 0.1], [0.0, 1.0]])
-    matrix_C = np.array([[1.0, 0.0]])
-    linear_system = DiscreteTimeLinearSystem(matrix_A, matrix_C)
-    linear_system.state = np.array([0.0, 9.0])
-    print("initial_state = ", linear_system.state)
-    for k in range(10):
-        linear_system.update()
-        print("\n time step = ", k)
-        print("state = ", linear_system.state)
-        print("observation = ", linear_system.observation)
-
-
-if __name__ == "__main__":
-    main()
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _update_observation(
+        state: NDArray[np.float64],
+        observation: NDArray[np.float64],
+        state_space_matrix_C: NDArray[np.float64],
+        noise: NDArray[np.float64],
+    ) -> None:
+        for i in range(state.shape[0]):
+            observation[i, :] = state_space_matrix_C @ state[i, :] + noise[i, :]
