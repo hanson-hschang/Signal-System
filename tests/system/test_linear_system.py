@@ -1,6 +1,7 @@
 import numpy as np
+from scipy.linalg import expm
 
-from system.linear import DiscreteTimeLinearSystem
+from system.linear import DiscreteTimeLinearSystem, MassSpringDamperSystem
 
 
 class TestDiscreteTimeLinearSystem:
@@ -74,3 +75,82 @@ class TestDiscreteTimeLinearSystem:
 
         self.stochastic_system.state = np.array([1, 2])
         self.stochastic_system.update()
+
+
+class TestMassSpringDamperSystem:
+    time_step = 0.01
+    mass = 1.0
+    spring_constant = 1.0
+    damping_coefficient = 1.0
+    one_mass_system = MassSpringDamperSystem(
+        number_of_connections=1,
+        mass=mass,
+        spring_constant=spring_constant,
+        damping_coefficient=damping_coefficient,
+        time_step=time_step,
+        observation_choice="last_position",
+    )
+    two_mass_system = MassSpringDamperSystem(
+        number_of_connections=2,
+        mass=mass,
+        spring_constant=spring_constant,
+        damping_coefficient=damping_coefficient,
+        time_step=time_step,
+        observation_choice="all_positions",
+    )
+
+    def test_initialization(self):
+        assert self.one_mass_system.state_dim == 2
+        assert self.one_mass_system.observation_dim == 1
+        assert self.one_mass_system.control_dim == 0
+        assert self.one_mass_system.number_of_systems == 1
+        assert np.all(
+            self.one_mass_system.state_space_matrix_A
+            == expm(
+                np.array(
+                    [
+                        [0, 1],
+                        [
+                            -self.spring_constant / self.mass,
+                            -self.damping_coefficient / self.mass,
+                        ],
+                    ]
+                )
+                * self.time_step
+            )
+        )
+        assert np.all(
+            self.one_mass_system.state_space_matrix_C == np.array([[0, 1]])
+        )
+
+        assert self.two_mass_system.state_dim == 4
+        assert self.two_mass_system.observation_dim == 2
+        assert self.two_mass_system.control_dim == 0
+        assert np.all(
+            self.two_mass_system.state_space_matrix_A
+            == expm(
+                np.array(
+                    [
+                        [0, 0, 1, 0],
+                        [0, 0, 0, 1],
+                        [
+                            -2 * self.spring_constant / self.mass,
+                            self.spring_constant / self.mass,
+                            -2 * self.damping_coefficient / self.mass,
+                            self.damping_coefficient / self.mass,
+                        ],
+                        [
+                            self.spring_constant / self.mass,
+                            -self.spring_constant / self.mass,
+                            self.damping_coefficient / self.mass,
+                            -self.damping_coefficient / self.mass,
+                        ],
+                    ]
+                )
+                * self.time_step
+            )
+        )
+        assert np.all(
+            self.two_mass_system.state_space_matrix_C
+            == np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
+        )

@@ -83,7 +83,9 @@ class System:
         `observation: ArrayLike[float]`
             The observation vector of systems. Shape of the array is `(number_of_systems, observation_dim)`.
         """
-        return self._observation.squeeze()
+        if self._number_of_systems == 1:
+            return self._observation.squeeze()
+        return self._observation
 
     control = MatrixDescriptor("number_of_systems", "control_dim")
 

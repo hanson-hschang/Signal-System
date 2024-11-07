@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import Any, Literal, Optional, get_args
 
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
+from scipy.linalg import expm
 
+from assertion import isPositiveInteger
 from system import DynamicMixin, System
 
 
@@ -187,7 +189,10 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
                 size=self._number_of_systems,
             ),
         )
-        return self._observation.squeeze()
+        observation: NDArray = super(
+            DiscreteTimeLinearSystem, self.__class__
+        ).observation.__get__(self)
+        return observation
 
     @staticmethod
     @njit(cache=True)  # type: ignore
@@ -199,3 +204,76 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
     ) -> None:
         for i in range(state.shape[0]):
             observation[i, :] = state_space_matrix_C @ state[i, :] + noise[i, :]
+
+
+class MassSpringDamperSystem(DiscreteTimeLinearSystem):
+    str_type_observation_choices = Literal["all_positions", "last_position"]
+
+    def __init__(
+        self,
+        number_of_connections: int,
+        mass: float = 1.0,
+        spring_constant: float = 1.0,
+        damping_coefficient: float = 1.0,
+        time_step: float = 0.01,
+        observation_choice: str_type_observation_choices = "last_position",
+        **kwargs: Any,
+    ) -> None:
+        assert isPositiveInteger(
+            number_of_connections
+        ), "number_of_connections should be an integer value that is greater or equal to 1"
+        assert observation_choice in get_args(
+            self.str_type_observation_choices
+        ), f"observation_choice should be one of {get_args(self.str_type_observation_choices)}"
+        self.number_of_connections = int(number_of_connections)
+        self.discretization_time_step = time_step
+        self.mass = mass
+        self.spring = spring_constant
+        self.damping = damping_coefficient
+
+        matrix_A = np.zeros(
+            (2 * self.number_of_connections, 2 * self.number_of_connections)
+        )
+        matrix_A[: self.number_of_connections, self.number_of_connections :] = (
+            np.identity(self.number_of_connections)
+        )
+        matrix_A[self.number_of_connections, 0] = -self.spring / self.mass
+        matrix_A[self.number_of_connections, self.number_of_connections] = (
+            -self.damping / self.mass
+        )
+        for i in range(1, self.number_of_connections):
+            position_index = i - 1
+            velocity_index = self.number_of_connections + i - 1
+            matrix_A[
+                velocity_index + 0, position_index : position_index + 2
+            ] += (np.array([-1, 1]) * self.spring / self.mass)
+            matrix_A[
+                velocity_index + 1, position_index : position_index + 2
+            ] -= (np.array([-1, 1]) * self.spring / self.mass)
+            matrix_A[
+                velocity_index + 0, velocity_index : velocity_index + 2
+            ] += (np.array([-1, 1]) * self.damping / self.mass)
+            matrix_A[
+                velocity_index + 1, velocity_index : velocity_index + 2
+            ] -= (np.array([-1, 1]) * self.damping / self.mass)
+
+        self.observation_choice = observation_choice
+        match self.observation_choice:
+            case "all_positions":
+                matrix_C = np.zeros(
+                    (self.number_of_connections, 2 * self.number_of_connections)
+                )
+                matrix_C[:, self.number_of_connections :] = np.identity(
+                    self.number_of_connections
+                )
+            case "last_position":
+                matrix_C = np.zeros((1, 2 * self.number_of_connections))
+                matrix_C[0, -1] = 1
+
+        # TODO: covariance matrices should be calculated based on the time_step parameter
+
+        super().__init__(
+            state_space_matrix_A=expm(matrix_A * self.discretization_time_step),
+            state_space_matrix_C=matrix_C,
+            **kwargs,
+        )

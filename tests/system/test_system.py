@@ -8,7 +8,10 @@ class TestSystem:
     state_dim = 2
     observation_dim = 2
     control_dim = 1
-    system = System(state_dim, observation_dim)
+    number_of_systems = 3
+    system = System(
+        state_dim, observation_dim, number_of_systems=number_of_systems
+    )
     control_system = System(state_dim, observation_dim, control_dim)
 
     def test_system_initialization(self):
@@ -16,10 +19,16 @@ class TestSystem:
         assert self.system.observation_dim == self.observation_dim
         assert np.allclose(self.system.state, np.zeros(self.state_dim))
         assert np.allclose(
-            self.system.observation, np.zeros(self.observation_dim)
+            self.system.observation,
+            np.zeros((self.number_of_systems, self.observation_dim)),
         )
-        self.system.state = [1.0, 2.0]
-        assert np.allclose(self.system.state, np.array([1, 2]))
+        state = [
+            [1.0, 2.0],
+            [3.0, 4.0],
+            [5.0, 6.0],
+        ]
+        self.system.state = state
+        assert np.allclose(self.system.state, np.array(state))
         with pytest.raises(AssertionError):
             self.system.state = [1, 2, 3]
 
