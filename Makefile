@@ -56,8 +56,7 @@ install-pre-commit:
 #* Unittests
 .PHONY: test
 test:
-	poetry run pytest -c pyproject.toml --cov=src --cov-report=xml
-	poetry run pytest -c pyproject.toml --cov=src
+	poetry run pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 
 #* Formatters
 .PHONY: formatting
