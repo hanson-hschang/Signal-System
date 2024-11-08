@@ -3,7 +3,7 @@ from typing import Any, Union
 import numpy as np
 from numpy.typing import NDArray
 
-from assertion import isNonNegativeInteger, isPositiveInteger
+from assertion import isNonNegativeInteger, isPositiveInteger, isPositiveNumber
 from tool.matrix_descriptor import MatrixDescriptor
 
 
@@ -96,8 +96,8 @@ class DynamicMixin:
         time_step: Union[int, float] = 1,
         **kwargs: Any,
     ) -> None:
-        assert (
-            isinstance(time_step, (int, float)) and time_step > 0
+        assert isPositiveNumber(
+            time_step
         ), f"time_step {time_step} must be a positive number"
         self._time_step = time_step
         super().__init__(**kwargs)

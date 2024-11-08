@@ -1,4 +1,17 @@
-from assertion import isNonNegativeInteger, isPositiveInteger
+from assertion import isNonNegativeInteger, isPositiveInteger, isPositiveNumber
+
+
+def test_isPositiveNumber():
+    assert isPositiveNumber(1) == True
+    assert isPositiveNumber(0) == False
+    assert isPositiveNumber(-1) == False
+    assert isPositiveNumber(1.0) == True
+    assert isPositiveNumber(0.0) == False
+    assert isPositiveNumber(-1.0) == False
+    assert isPositiveNumber(1.5) == True
+    assert isPositiveNumber(0.5) == True
+    assert isPositiveNumber(-1.5) == False
+    assert isPositiveNumber("1") == False
 
 
 def test_isPositiveInteger():

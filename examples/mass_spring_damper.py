@@ -64,8 +64,8 @@ def main(
             )
         case MassSpringDamperSystem.ObservationChoice.LAST_POSITION:
             observation_noise_covariance = np.diag([observation_noise_variance])
-        case _:
-            assert_never(observation_choice)
+        case _ as unmatched_observation_choice:
+            assert_never(unmatched_observation_choice)
 
     linear_system = MassSpringDamperSystem(
         number_of_connections=number_of_connections,
