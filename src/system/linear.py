@@ -1,13 +1,10 @@
-from typing import Any, Callable, Optional, Union, assert_never
-
-from enum import StrEnum
+from typing import Callable, Optional, Union
 
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
-from scipy.linalg import expm
 
-from assertion import Validator, isPositiveInteger
+from assertion import Validator
 from system import DynamicSystem
 
 

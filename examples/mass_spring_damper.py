@@ -1,4 +1,4 @@
-from typing import Any, Optional, assert_never
+from typing import Optional, assert_never
 
 from enum import StrEnum
 
