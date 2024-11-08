@@ -18,8 +18,8 @@ class TestDiscreteTimeLinearSystem:
     stochastic_system = DiscreteTimeLinearSystem(
         state_space_matrix_A=state_space_matrix_A,
         state_space_matrix_C=state_space_matrix_C,
-        process_noise_covariance_Q=process_noise_covariance_Q,
-        observation_noise_covariance_R=observation_noise_covariance_R,
+        process_noise_covariance=process_noise_covariance_Q,
+        observation_noise_covariance=observation_noise_covariance_R,
     )
 
     def test_initialization(self):
@@ -36,11 +36,11 @@ class TestDiscreteTimeLinearSystem:
             == self.state_space_matrix_C
         )
         assert np.all(
-            self.control_system.process_noise_covariance_Q
+            self.control_system.process_noise_covariance
             == np.zeros(self.state_space_matrix_A.shape)
         )
         assert np.all(
-            self.control_system.observation_noise_covariance_R
+            self.control_system.observation_noise_covariance
             == np.zeros(
                 (
                     self.state_space_matrix_C.shape[0],
@@ -58,11 +58,11 @@ class TestDiscreteTimeLinearSystem:
             == self.state_space_matrix_C
         )
         assert np.all(
-            self.stochastic_system.process_noise_covariance_Q
+            self.stochastic_system.process_noise_covariance
             == self.process_noise_covariance_Q
         )
         assert np.all(
-            self.stochastic_system.observation_noise_covariance_R
+            self.stochastic_system.observation_noise_covariance
             == self.observation_noise_covariance_R
         )
 
@@ -88,7 +88,7 @@ class TestMassSpringDamperSystem:
         spring_constant=spring_constant,
         damping_coefficient=damping_coefficient,
         time_step=time_step,
-        observation_choice="last_position",
+        observation_choice=MassSpringDamperSystem.ObservationChoice.LAST_POSITION,
     )
     two_mass_system = MassSpringDamperSystem(
         number_of_connections=2,
@@ -96,7 +96,7 @@ class TestMassSpringDamperSystem:
         spring_constant=spring_constant,
         damping_coefficient=damping_coefficient,
         time_step=time_step,
-        observation_choice="all_positions",
+        observation_choice=MassSpringDamperSystem.ObservationChoice.ALL_POSITIONS,
     )
 
     def test_initialization(self):

@@ -1,4 +1,6 @@
-from typing import Any, Literal, Optional, get_args
+from typing import Any, Literal, Optional, assert_never, get_args
+
+from enum import StrEnum
 
 import numpy as np
 from numba import njit
@@ -15,8 +17,8 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
         state_space_matrix_A: ArrayLike,
         state_space_matrix_C: ArrayLike,
         state_space_matrix_B: Optional[ArrayLike] = None,
-        process_noise_covariance_Q: Optional[ArrayLike] = None,
-        observation_noise_covariance_R: Optional[ArrayLike] = None,
+        process_noise_covariance: Optional[ArrayLike] = None,
+        observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ):
         state_space_matrix_A = np.array(state_space_matrix_A, dtype=np.float64)
@@ -47,43 +49,43 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
             state_space_matrix_B = np.zeros((state_space_matrix_A.shape[0], 0))
             self._update_state = self._update_state_without_control
 
-        if process_noise_covariance_Q is not None:
-            process_noise_covariance_Q = np.array(
-                process_noise_covariance_Q, dtype=np.float64
+        if process_noise_covariance is not None:
+            process_noise_covariance = np.array(
+                process_noise_covariance, dtype=np.float64
             )
-            assert (len(process_noise_covariance_Q.shape) == 2) and (
-                process_noise_covariance_Q.shape[0]
-                == process_noise_covariance_Q.shape[1]
+            assert (len(process_noise_covariance.shape) == 2) and (
+                process_noise_covariance.shape[0]
+                == process_noise_covariance.shape[1]
             ), "process_noise_covariance_Q should be a square matrix"
             assert (
-                process_noise_covariance_Q.shape[0]
+                process_noise_covariance.shape[0]
                 == state_space_matrix_A.shape[0]
             ), "process_noise_covariance_Q and state_space_matrix_A should have compatible shapes"
         else:
-            process_noise_covariance_Q = np.zeros(state_space_matrix_A.shape)
+            process_noise_covariance = np.zeros(state_space_matrix_A.shape)
 
-        if observation_noise_covariance_R is not None:
-            observation_noise_covariance_R = np.array(
-                observation_noise_covariance_R, dtype=np.float64
+        if observation_noise_covariance is not None:
+            observation_noise_covariance = np.array(
+                observation_noise_covariance, dtype=np.float64
             )
-            assert (len(observation_noise_covariance_R.shape) == 2) and (
-                observation_noise_covariance_R.shape[0]
-                == observation_noise_covariance_R.shape[1]
+            assert (len(observation_noise_covariance.shape) == 2) and (
+                observation_noise_covariance.shape[0]
+                == observation_noise_covariance.shape[1]
             ), "observation_noise_covariance_R should be a square matrix"
             assert (
-                observation_noise_covariance_R.shape[0]
+                observation_noise_covariance.shape[0]
                 == state_space_matrix_C.shape[0]
             ), "observation_noise_covariance_R and state_space_matrix_C should have compatible shapes"
         else:
-            observation_noise_covariance_R = np.zeros(
+            observation_noise_covariance = np.zeros(
                 (state_space_matrix_C.shape[0], state_space_matrix_C.shape[0])
             )
 
         self._state_space_matrix_A = state_space_matrix_A
         self._state_space_matrix_B = state_space_matrix_B
         self._state_space_matrix_C = state_space_matrix_C
-        self._process_noise_covariance_Q = process_noise_covariance_Q
-        self._observation_noise_covariance_R = observation_noise_covariance_R
+        self._process_noise_covariance = process_noise_covariance
+        self._observation_noise_covariance = observation_noise_covariance
 
         super().__init__(
             state_dim=state_space_matrix_A.shape[0],
@@ -118,20 +120,20 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
         return self._state_space_matrix_C
 
     @property
-    def process_noise_covariance_Q(self) -> NDArray[np.float64]:
+    def process_noise_covariance(self) -> NDArray[np.float64]:
         """
-        `process_noise_covariance_Q: ArrayLike[float]`
+        `process_noise_covariance: ArrayLike[float]`
             The process noise covariance matrix of the system. Shape of the matrix is `(state_dim, state_dim)`.
         """
-        return self._process_noise_covariance_Q
+        return self._process_noise_covariance
 
     @property
-    def observation_noise_covariance_R(self) -> NDArray[np.float64]:
+    def observation_noise_covariance(self) -> NDArray[np.float64]:
         """
-        `observation_noise_covariance_R: ArrayLike[float]`
+        `observation_noise_covariance: ArrayLike[float]`
             The observation noise covariance matrix of the system. Shape of the matrix is `(observation_dim, observation_dim)`.
         """
-        return self._observation_noise_covariance_R
+        return self._observation_noise_covariance
 
     def update(self) -> None:
         """
@@ -144,7 +146,7 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
             self._state_space_matrix_B,
             np.random.multivariate_normal(
                 np.zeros(self._state_dim),
-                self._process_noise_covariance_Q,
+                self._process_noise_covariance,
                 size=self._number_of_systems,
             ),
         )
@@ -185,7 +187,7 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
             self._state_space_matrix_C,
             np.random.multivariate_normal(
                 np.zeros(self._observation_dim),
-                self._observation_noise_covariance_R,
+                self._observation_noise_covariance,
                 size=self._number_of_systems,
             ),
         )
@@ -207,7 +209,9 @@ class DiscreteTimeLinearSystem(DynamicMixin, System):
 
 
 class MassSpringDamperSystem(DiscreteTimeLinearSystem):
-    str_type_observation_choices = Literal["all_positions", "last_position"]
+    class ObservationChoice(StrEnum):
+        ALL_POSITIONS = "ALL_POSITIONS"
+        LAST_POSITION = "LAST_POSITION"
 
     def __init__(
         self,
@@ -216,15 +220,15 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
         spring_constant: float = 1.0,
         damping_coefficient: float = 1.0,
         time_step: float = 0.01,
-        observation_choice: str_type_observation_choices = "last_position",
+        observation_choice: ObservationChoice = ObservationChoice.LAST_POSITION,
         **kwargs: Any,
     ) -> None:
         assert isPositiveInteger(
             number_of_connections
         ), "number_of_connections should be an integer value that is greater or equal to 1"
-        assert observation_choice in get_args(
-            self.str_type_observation_choices
-        ), f"observation_choice should be one of {get_args(self.str_type_observation_choices)}"
+        assert isinstance(
+            observation_choice, self.ObservationChoice
+        ), f"observation_choice should be one of {self.ObservationChoice.__members__.keys()}"
         self.number_of_connections = int(number_of_connections)
         self.discretization_time_step = time_step
         self.mass = mass
@@ -257,18 +261,20 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
                 velocity_index + 1, velocity_index : velocity_index + 2
             ] -= (np.array([-1, 1]) * self.damping / self.mass)
 
-        self.observation_choice = observation_choice
-        match self.observation_choice:
-            case "all_positions":
+        self._observation_choice = observation_choice
+        match self._observation_choice:
+            case self.ObservationChoice.ALL_POSITIONS:
                 matrix_C = np.zeros(
                     (self.number_of_connections, 2 * self.number_of_connections)
                 )
                 matrix_C[:, self.number_of_connections :] = np.identity(
                     self.number_of_connections
                 )
-            case "last_position":
+            case self.ObservationChoice.LAST_POSITION:
                 matrix_C = np.zeros((1, 2 * self.number_of_connections))
                 matrix_C[0, -1] = 1
+            case _ as unmatched_observation_choice:  # pragma: no cover
+                assert_never(unmatched_observation_choice)
 
         # TODO: covariance matrices should be calculated based on the time_step parameter
 
