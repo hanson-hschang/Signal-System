@@ -1,8 +1,7 @@
 import numpy as np
 import pytest
-from scipy.linalg import expm
 
-from system.linear import DiscreteTimeLinearSystem, MassSpringDamperSystem
+from system.linear import DiscreteTimeLinearSystem
 
 
 class TestDiscreteTimeLinearSystem:
@@ -92,78 +91,3 @@ class TestDiscreteTimeLinearSystem:
     ) -> None:
         """Test the update of the system"""
         stochastic_system.update(0)
-
-
-class TestMassSpringDamperSystem:
-
-    @pytest.fixture
-    def one_mass_system(self) -> MassSpringDamperSystem:
-        return MassSpringDamperSystem(
-            number_of_connections=1,
-            mass=1.0,
-            spring_constant=1.0,
-            damping_coefficient=1.0,
-            time_step=0.01,
-            observation_choice=MassSpringDamperSystem.ObservationChoice.LAST_POSITION,
-        )
-
-    @pytest.fixture
-    def two_mass_system(self) -> MassSpringDamperSystem:
-        return MassSpringDamperSystem(
-            number_of_connections=2,
-            mass=1.0,
-            spring_constant=1.0,
-            damping_coefficient=1.0,
-            time_step=0.01,
-            observation_choice=MassSpringDamperSystem.ObservationChoice.ALL_POSITIONS,
-        )
-
-    def test_one_mass_system_initialization(
-        self, one_mass_system: MassSpringDamperSystem
-    ) -> None:
-        """Test the initialization of the system"""
-        assert one_mass_system.state_dim == 2
-        assert one_mass_system.observation_dim == 1
-        assert one_mass_system.control_dim == 0
-        assert one_mass_system.number_of_systems == 1
-        assert np.all(
-            one_mass_system.state_space_matrix_A
-            == expm(
-                np.array(
-                    [
-                        [0, 1],
-                        [-1, -1],
-                    ]
-                )
-                * 0.01
-            )
-        )
-        assert np.all(
-            one_mass_system.state_space_matrix_C == np.array([[0, 1]])
-        )
-
-    def test_two_mass_system_initialization(
-        self, two_mass_system: MassSpringDamperSystem
-    ) -> None:
-        """Test the initialization of the system"""
-        assert two_mass_system.state_dim == 4
-        assert two_mass_system.observation_dim == 2
-        assert two_mass_system.control_dim == 0
-        assert np.all(
-            two_mass_system.state_space_matrix_A
-            == expm(
-                np.array(
-                    [
-                        [0, 0, 1, 0],
-                        [0, 0, 0, 1],
-                        [-2, 1, -2, 1],
-                        [1, -1, 1, -1],
-                    ]
-                )
-                * 0.01
-            )
-        )
-        assert np.all(
-            two_mass_system.state_space_matrix_C
-            == np.array([[0, 0, 1, 0], [0, 0, 0, 1]])
-        )

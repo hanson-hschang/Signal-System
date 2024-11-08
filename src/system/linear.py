@@ -98,6 +98,7 @@ class DiscreteTimeLinearSystem(DynamicSystem):
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
+        time_step: float = 1.0,
     ):
         self.StateSpaceMatrixAValidator(state_space_matrix_A)
         state_space_matrix_A = np.array(state_space_matrix_A, dtype=np.float64)
@@ -150,7 +151,7 @@ class DiscreteTimeLinearSystem(DynamicSystem):
             observation_dim=observation_dim,
             control_dim=control_dim,
             number_of_systems=number_of_systems,
-            time_step=1,
+            time_step=time_step,
         )
 
     def _set_compute_state_process(self, control_flag: bool) -> None:
@@ -246,80 +247,3 @@ class DiscreteTimeLinearSystem(DynamicSystem):
     ) -> None:
         for i in range(state.shape[0]):
             observation[i, :] = state_space_matrix_C @ state[i, :] + noise[i, :]
-
-
-class MassSpringDamperSystem(DiscreteTimeLinearSystem):
-    class ObservationChoice(StrEnum):
-        ALL_POSITIONS = "ALL_POSITIONS"
-        LAST_POSITION = "LAST_POSITION"
-
-    def __init__(
-        self,
-        number_of_connections: int,
-        mass: float = 1.0,
-        spring_constant: float = 1.0,
-        damping_coefficient: float = 1.0,
-        time_step: float = 0.01,
-        observation_choice: ObservationChoice = ObservationChoice.LAST_POSITION,
-        **kwargs: Any,
-    ) -> None:
-        assert isPositiveInteger(
-            number_of_connections
-        ), "number_of_connections should be an integer value that is greater or equal to 1"
-        assert isinstance(
-            observation_choice, self.ObservationChoice
-        ), f"observation_choice should be one of {self.ObservationChoice.__members__.keys()}"
-        self.number_of_connections = int(number_of_connections)
-        self.discretization_time_step = time_step
-        self.mass = mass
-        self.spring = spring_constant
-        self.damping = damping_coefficient
-
-        matrix_A = np.zeros(
-            (2 * self.number_of_connections, 2 * self.number_of_connections)
-        )
-        matrix_A[: self.number_of_connections, self.number_of_connections :] = (
-            np.identity(self.number_of_connections)
-        )
-        matrix_A[self.number_of_connections, 0] = -self.spring / self.mass
-        matrix_A[self.number_of_connections, self.number_of_connections] = (
-            -self.damping / self.mass
-        )
-        for i in range(1, self.number_of_connections):
-            position_index = i - 1
-            velocity_index = self.number_of_connections + i - 1
-            matrix_A[
-                velocity_index + 0, position_index : position_index + 2
-            ] += (np.array([-1, 1]) * self.spring / self.mass)
-            matrix_A[
-                velocity_index + 1, position_index : position_index + 2
-            ] -= (np.array([-1, 1]) * self.spring / self.mass)
-            matrix_A[
-                velocity_index + 0, velocity_index : velocity_index + 2
-            ] += (np.array([-1, 1]) * self.damping / self.mass)
-            matrix_A[
-                velocity_index + 1, velocity_index : velocity_index + 2
-            ] -= (np.array([-1, 1]) * self.damping / self.mass)
-
-        self._observation_choice = observation_choice
-        match self._observation_choice:
-            case self.ObservationChoice.ALL_POSITIONS:
-                matrix_C = np.zeros(
-                    (self.number_of_connections, 2 * self.number_of_connections)
-                )
-                matrix_C[:, self.number_of_connections :] = np.identity(
-                    self.number_of_connections
-                )
-            case self.ObservationChoice.LAST_POSITION:
-                matrix_C = np.zeros((1, 2 * self.number_of_connections))
-                matrix_C[0, -1] = 1
-            case _ as unmatched_observation_choice:  # pragma: no cover
-                assert_never(unmatched_observation_choice)
-
-        # TODO: covariance matrices should be calculated based on the time_step parameter
-
-        super().__init__(
-            state_space_matrix_A=expm(matrix_A * self.discretization_time_step),
-            state_space_matrix_C=matrix_C,
-            **kwargs,
-        )
