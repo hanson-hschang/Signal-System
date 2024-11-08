@@ -1,60 +1,72 @@
 import numpy as np
 import pytest
 
-from system import DynamicMixin, System
+from system import DynamicSystem, System
 
 
 class TestSystem:
-    state_dim = 2
-    observation_dim = 2
-    control_dim = 1
-    number_of_systems = 3
-    system = System(
-        state_dim, observation_dim, number_of_systems=number_of_systems
-    )
-    control_system = System(state_dim, observation_dim, control_dim)
 
-    def test_system_initialization(self):
-        assert self.system.state_dim == self.state_dim
-        assert self.system.observation_dim == self.observation_dim
-        assert np.allclose(self.system.state, np.zeros(self.state_dim))
+    @pytest.fixture
+    def system(self) -> System:
+        """Create a basic system with default parameters"""
+        return System(
+            state_dim=2,
+            observation_dim=2,
+            number_of_systems=3,
+        )
+
+    @pytest.fixture
+    def control_system(self) -> System:
+        """Create a basic control_system with default parameters"""
+        return System(
+            state_dim=2,
+            observation_dim=2,
+            control_dim=1,
+        )
+
+    def test_system_initialization(self, system: System) -> None:
+        """Test the initialization of the system"""
+        assert np.allclose(system.state, np.zeros(system.state_dim))
         assert np.allclose(
-            self.system.observation,
-            np.zeros((self.number_of_systems, self.observation_dim)),
+            system.observation,
+            np.zeros((system.number_of_systems, system.observation_dim)),
         )
         state = [
             [1.0, 2.0],
             [3.0, 4.0],
             [5.0, 6.0],
         ]
-        self.system.state = state
-        assert np.allclose(self.system.state, np.array(state))
+        system.state = state
+        assert np.allclose(system.state, np.array(state))
         with pytest.raises(AssertionError):
-            self.system.state = [1, 2, 3]
+            system.state = [1, 2, 3]
 
-    def test_control_system_initialization(self):
-        assert self.control_system.state_dim == self.state_dim
-        assert self.control_system.observation_dim == self.observation_dim
-        assert self.control_system.control_dim == self.control_dim
-        assert np.allclose(self.control_system.state, np.zeros(self.state_dim))
+    def test_control_system_initialization(
+        self, control_system: System
+    ) -> None:
+        """Test the initialization of the system with control"""
         assert np.allclose(
-            self.control_system.observation, np.zeros(self.observation_dim)
+            control_system.control, np.zeros(control_system.control_dim)
         )
-        assert np.allclose(
-            self.control_system.control, np.zeros(self.control_dim)
-        )
-        self.control_system.control = [1.0]
-        assert np.allclose(self.control_system.control, np.array([1]))
+        control = [1.0]
+        control_system.control = control
+        assert np.allclose(control_system.control, np.array(control))
         with pytest.raises(AssertionError):
-            self.control_system.control = [1, 2, 3]
+            control_system.control = [1, 2, 3]
 
 
-class TestDynamicMixin:
-    def test_dynamic_mixin_initialization(self):
-        dynamic_mixin = DynamicMixin(0.5)
-        assert dynamic_mixin.time_step == 0.5
-        with pytest.raises(AssertionError):
-            dynamic_mixin = DynamicMixin(0)
-        with pytest.raises(AssertionError):
-            dynamic_mixin = DynamicMixin(-1)
-        dynamic_mixin.update()
+class TestDynamicSystem:
+
+    @pytest.fixture
+    def system(self) -> DynamicSystem:
+        """Create a basic dynamic system with default parameters"""
+        return DynamicSystem(
+            state_dim=2, observation_dim=1, control_dim=1, time_step=0.1
+        )
+
+    def test_update_method(self, system: DynamicSystem) -> None:
+        """Test the update method"""
+        initial_time = 0.0
+        new_time = system.update(initial_time)
+        assert new_time == initial_time + system.time_step
+        assert np.allclose(system.state, np.zeros(2))

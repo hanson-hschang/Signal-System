@@ -1,6 +1,7 @@
 from typing import Any, Union
 
 import numpy as np
+from numba import njit
 from numpy.typing import NDArray
 
 from assertion import isNonNegativeInteger, isPositiveInteger, isPositiveNumber
@@ -42,6 +43,7 @@ class System:
         self._control = np.zeros(
             (self._number_of_systems, self._control_dim), dtype=np.float64
         )
+        super().__init__(**kwargs)
 
     @property
     def state_dim(self) -> int:
@@ -83,14 +85,18 @@ class System:
         `observation: ArrayLike[float]`
             The observation vector of systems. Shape of the array is `(number_of_systems, observation_dim)`.
         """
+        self._compute_observation()
         if self._number_of_systems == 1:
             return self._observation.squeeze()
         return self._observation
 
+    def _compute_observation(self) -> None:
+        self._observation[:, :] = np.zeros_like(self._observation)
+
     control = MatrixDescriptor("number_of_systems", "control_dim")
 
 
-class DynamicMixin:
+class DynamicSystem(System):
     def __init__(
         self,
         time_step: Union[int, float] = 1,
@@ -110,8 +116,22 @@ class DynamicMixin:
         """
         return self._time_step
 
-    def update(self) -> None:
+    def update(self, time: Union[int, float]) -> Union[int, float]:
         """
-        Update the state of each system by one time step.
+        Update each system by one time step.
         """
-        pass
+        self._update_state(
+            self._state,
+            np.zeros_like(self._state),
+            np.zeros_like(self._state),
+        )
+        return time + self._time_step
+
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _update_state(
+        state: NDArray[np.float64],
+        state_process: NDArray[np.float64],
+        process_noise: NDArray[np.float64],
+    ) -> None:
+        state[:, :] = state_process + process_noise
