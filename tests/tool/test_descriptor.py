@@ -1,39 +1,40 @@
-from typing import Any
-
 import numpy as np
 import pytest
-from numpy.typing import NDArray
 
-from tool.matrix_descriptor import MatrixDescriptor
-
-
-class MatrixClass:
-    def __init__(self) -> None:
-        self.num_rows = 2
-        self.num_cols = 3
-        self._value = np.zeros((self.num_rows, self.num_cols))
-
-    value = MatrixDescriptor("num_rows", "num_cols")
+from tool.descriptor import TensorDescriptor
 
 
 class VectorClass:
     def __init__(self) -> None:
-        self.num_rows = 1
-        self.num_cols = 3
-        self._value = np.zeros((self.num_rows, self.num_cols))
+        self._num_dim_1 = 3
+        self._value = np.zeros(self._num_dim_1)
 
-    value = MatrixDescriptor("num_rows", "num_cols")
+    value = TensorDescriptor("_num_dim_1")
 
 
-class TestMatrixDescriptor:
+class MatrixClass:
+    def __init__(self) -> None:
+        self._num_dim_1 = 2
+        self._num_dim_2 = 3
+        self._value = np.zeros((self._num_dim_1, self._num_dim_2))
+
+    value = TensorDescriptor("_num_dim_1", "_num_dim_2")
+
+
+class TestTensorDescriptor:
+
+    @pytest.fixture
+    def vector(self) -> VectorClass:
+        return VectorClass()
 
     @pytest.fixture
     def matrix(self) -> MatrixClass:
         return MatrixClass()
 
-    @pytest.fixture
-    def vector(self) -> VectorClass:
-        return VectorClass()
+    def test_vector_assignment(self, vector: VectorClass) -> None:
+        new_vector = [1, 2, 3]
+        vector.value = new_vector
+        assert np.all(vector.value == np.array(new_vector))
 
     def test_matrix_initialization(self, matrix: MatrixClass) -> None:
         assert matrix.value.shape == (2, 3)
@@ -42,11 +43,6 @@ class TestMatrixDescriptor:
         new_matrix = [[1, 2.5, 3], [4.5, 5, 6.5]]
         matrix.value = new_matrix
         assert np.all(matrix.value == np.array(new_matrix))
-
-    def test_matrix_single_row_squeeze(self, vector: VectorClass) -> None:
-        new_vector = [1, 2, 3]
-        vector.value = new_vector
-        assert np.all(vector.value == np.array(new_vector))
 
     def test_matrix_wrong_shape(self, matrix: MatrixClass) -> None:
         with pytest.raises(AssertionError):

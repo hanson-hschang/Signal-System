@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike
 from scipy.linalg import expm
 
 from assertion import isPositiveInteger
-from system.linear import DiscreteTimeLinearSystem
+from system.dense_state.linear import DiscreteTimeLinearSystem
 
 
 class ObservationChoice(StrEnum):
@@ -33,8 +33,8 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
         time_step: float = 0.01,
         observation_choice: ObservationChoice = ObservationChoice.LAST_POSITION,
         control_choice: ControlChoice = ControlChoice.NO_CONTROL,
-        observation_noise_covariance: Optional[ArrayLike] = None,
         process_noise_covariance: Optional[ArrayLike] = None,
+        observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
         assert isPositiveInteger(
@@ -118,24 +118,21 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
             case _ as unmatched_control_choice:
                 assert_never(unmatched_control_choice)
 
-        observation_noise_covariance = np.array(
-            observation_noise_covariance
-        ) * np.sqrt(time_step)
-        process_noise_covariance = (
-            np.array(process_noise_covariance) * time_step
-        )
+        process_noise_covariance = np.array(process_noise_covariance)
+        observation_noise_covariance = np.array(observation_noise_covariance)
+
+        state_space_matrix_A = expm(matrix_A * time_step)
+        state_space_matrix_B = state_space_matrix_A @ matrix_B * time_step
 
         super().__init__(
-            state_space_matrix_A=expm(matrix_A * time_step),
-            state_space_matrix_B=expm(matrix_A * time_step)
-            @ matrix_B
-            * time_step,
+            state_space_matrix_A=state_space_matrix_A,
+            state_space_matrix_B=state_space_matrix_B,
             state_space_matrix_C=matrix_C,
-            time_step=time_step,
-            observation_noise_covariance=observation_noise_covariance,
             process_noise_covariance=process_noise_covariance,
+            observation_noise_covariance=observation_noise_covariance,
             number_of_systems=number_of_systems,
         )
+        self._time_step = time_step
 
 
 @click.command()
@@ -228,11 +225,12 @@ def main(
         time_step=time_step,
         observation_choice=observation_choice,
         control_choice=control_choice,
-        observation_noise_covariance=observation_noise_covariance,
         process_noise_covariance=process_noise_covariance,
+        observation_noise_covariance=observation_noise_covariance,
         number_of_systems=number_of_systems,
     )
-    print(linear_system.observation)
+    observation = linear_system.observe()
+    print(observation)
 
 
 if __name__ == "__main__":

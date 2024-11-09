@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from system.linear import DiscreteTimeLinearSystem
+from system.dense_state.linear import DiscreteTimeLinearSystem
 
 
 class TestDiscreteTimeLinearSystem:
@@ -75,19 +75,20 @@ class TestDiscreteTimeLinearSystem:
         assert stochastic_system.process_noise_covariance.shape == (1, 1)
         assert stochastic_system.observation_noise_covariance.shape == (1, 1)
 
-    def test_control_system_update(
+    def test_control_system_process(
         self, control_system: DiscreteTimeLinearSystem
     ) -> None:
-        """Test the update of the system"""
+        """Test the process of the system"""
         control_system.state = np.array([1, 2])
         control_system.control = [1]
-        time = control_system.update(0)
+        time = control_system.process(0)
         assert np.all(control_system.state == np.array([3, 3]))
-        assert np.all(control_system.observation == np.array([3, 6]))
+        observation = control_system.observe()
+        assert np.all(observation == np.array([3, 6]))
         assert time == 1
 
-    def test_stochastic_system_update(
+    def test_stochastic_system_process(
         self, stochastic_system: DiscreteTimeLinearSystem
     ) -> None:
-        """Test the update of the system"""
-        stochastic_system.update(0)
+        """Test the process of the system"""
+        stochastic_system.process(0)

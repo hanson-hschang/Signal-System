@@ -1,72 +1,66 @@
 import numpy as np
 import pytest
 
-from system import DynamicSystem, System
+from system.dense_state import ContinuousTimeSystem, DiscreteTimeSystem
 
 
 class TestSystem:
 
     @pytest.fixture
-    def system(self) -> System:
+    def continuous_time_system(self) -> ContinuousTimeSystem:
         """Create a basic system with default parameters"""
-        return System(
+        return ContinuousTimeSystem(
+            time_step=0.1,
             state_dim=2,
-            observation_dim=2,
+            observation_dim=1,
             number_of_systems=3,
         )
 
     @pytest.fixture
-    def control_system(self) -> System:
+    def discrete_time_control_system(self) -> DiscreteTimeSystem:
         """Create a basic control_system with default parameters"""
-        return System(
+        return DiscreteTimeSystem(
             state_dim=2,
-            observation_dim=2,
+            observation_dim=1,
             control_dim=1,
+            process_noise_covariance=[[1, 0], [0, 1]],
+            observation_noise_covariance=[[1]],
         )
 
-    def test_system_initialization(self, system: System) -> None:
-        """Test the initialization of the system"""
-        assert np.allclose(system.state, np.zeros(system.state_dim))
-        assert np.allclose(
-            system.observation,
-            np.zeros((system.number_of_systems, system.observation_dim)),
-        )
+    def test_continuous_time_system(
+        self, continuous_time_system: ContinuousTimeSystem
+    ) -> None:
+        """Test the continuous time system"""
         state = [
             [1.0, 2.0],
             [3.0, 4.0],
             [5.0, 6.0],
         ]
-        system.state = state
-        assert np.allclose(system.state, np.array(state))
+        continuous_time_system.state = state
+        time = continuous_time_system.process(0)
+        observation = continuous_time_system.observe()
+        assert time == 0.1
+        assert np.allclose(continuous_time_system.state, np.array(state))
+        assert observation.shape == (3, 1)
         with pytest.raises(AssertionError):
-            system.state = [1, 2, 3]
+            continuous_time_system.state = [1, 2, 3]
 
-    def test_control_system_initialization(
-        self, control_system: System
+    def test_discrete_time_control_system(
+        self, discrete_time_control_system: DiscreteTimeSystem
     ) -> None:
-        """Test the initialization of the system with control"""
-        assert np.allclose(
-            control_system.control, np.zeros(control_system.control_dim)
+        """Test the discrete time control system"""
+        assert discrete_time_control_system.process_noise_covariance.shape == (
+            2,
+            2,
+        )
+        assert (
+            discrete_time_control_system.observation_noise_covariance.shape
+            == (1, 1)
         )
         control = [1.0]
-        control_system.control = control
-        assert np.allclose(control_system.control, np.array(control))
-        with pytest.raises(AssertionError):
-            control_system.control = [1, 2, 3]
-
-
-class TestDynamicSystem:
-
-    @pytest.fixture
-    def system(self) -> DynamicSystem:
-        """Create a basic dynamic system with default parameters"""
-        return DynamicSystem(
-            state_dim=2, observation_dim=1, control_dim=1, time_step=0.1
+        discrete_time_control_system.control = control
+        assert np.allclose(
+            discrete_time_control_system.control, np.array(control)
         )
-
-    def test_update_method(self, system: DynamicSystem) -> None:
-        """Test the update method"""
-        initial_time = 0.0
-        new_time = system.update(initial_time)
-        assert new_time == initial_time + system.time_step
-        assert np.allclose(system.state, np.zeros(2))
+        with pytest.raises(AssertionError):
+            discrete_time_control_system.control = [1, 2, 3]
