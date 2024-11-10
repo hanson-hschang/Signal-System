@@ -1,11 +1,10 @@
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 import numpy as np
-from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from assertion.inspect import inspect_arguments
-from system.dense_state import ContinuousTimeSystem, DiscreteTimeSystem
+from system.dense_state import ContinuousTimeSystem
 
 
 class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
@@ -16,6 +15,7 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         observation_dim: int,
         process_function: Callable,
         observation_function: Callable,
+        state_constraint_function: Optional[Callable] = None,
         control_dim: int = 0,
         number_of_systems: int = 1,
         process_noise_covariance: Optional[ArrayLike] = None,
@@ -36,6 +36,19 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
             result_shape=self._observation.shape,
             arg_name_shape_dict=arg_name_shape_dict,
         )
+        if state_constraint_function is None:
+
+            def default_state_constraint_function(
+                state: NDArray[np.float64],
+            ) -> NDArray[np.float64]:
+                return state
+
+            state_constraint_function = default_state_constraint_function
+        self._state_constraint_function: Callable = inspect_arguments(
+            func=state_constraint_function,
+            result_shape=self._state.shape,
+            arg_name_shape_dict=arg_name_shape_dict,
+        )
         if self._control_dim > 0:
             arg_name_shape_dict["control"] = self._control.shape
         self._process_function: Callable = inspect_arguments(
@@ -48,20 +61,28 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
     def _set_compute_state_process(self, control_flag: bool) -> None:
         def _compute_state_process_without_control() -> NDArray[np.float64]:
             state_process: NDArray[np.float64] = (
-                self._process_function(
-                    self._state,
+                self._state_constraint_function(
+                    self._state
+                    + self._process_function(
+                        self._state,
+                    )
+                    * self._time_step
                 )
-            ) * self._time_step
-            return self._state + state_process
+            )
+            return state_process
 
         def _compute_state_process_with_control() -> NDArray[np.float64]:
             state_process: NDArray[np.float64] = (
-                self._process_function(
-                    self._state,
-                    self._control,
+                self._state_constraint_function(
+                    self._state
+                    + self._process_function(
+                        self._state,
+                        self._control,
+                    )
+                    * self._time_step
                 )
-            ) * self._time_step
-            return self._state + state_process
+            )
+            return state_process
 
         self._compute_state_process: Callable[[], NDArray[np.float64]] = (
             _compute_state_process_with_control
@@ -83,6 +104,7 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
         observation_dim: int,
         process_function: Callable,
         observation_function: Callable,
+        state_constraint_function: Optional[Callable] = None,
         control_dim: int = 0,
         number_of_systems: int = 1,
         process_noise_covariance: Optional[ArrayLike] = None,
@@ -94,6 +116,7 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
             observation_dim=observation_dim,
             process_function=process_function,
             observation_function=observation_function,
+            state_constraint_function=state_constraint_function,
             control_dim=control_dim,
             number_of_systems=number_of_systems,
             process_noise_covariance=process_noise_covariance,

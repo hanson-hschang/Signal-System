@@ -30,6 +30,13 @@ class TestNonlinearSystem:
         ) -> NDArray[np.float64]:
             return state[:, 0:1]
 
+        @njit(cache=True)  # type: ignore
+        def state_constraint_function(
+            state: NDArray[np.float64],
+        ) -> NDArray[np.float64]:
+            state[:, 1] = (state[:, 1] + np.pi) % (2 * np.pi) - np.pi
+            return state
+
         return ContinuousTimeNonlinearSystem(
             time_step=0.1,
             state_dim=2,
@@ -37,6 +44,7 @@ class TestNonlinearSystem:
             control_dim=1,
             process_function=process_function,
             observation_function=observation_function,
+            state_constraint_function=state_constraint_function,
         )
 
     @pytest.fixture
