@@ -229,6 +229,8 @@ def main(
         observation_noise_covariance=observation_noise_covariance,
         number_of_systems=number_of_systems,
     )
+    # linear_system.process(0)
+    print(linear_system.state.shape)
     observation = linear_system.observe()
     print(observation)
 

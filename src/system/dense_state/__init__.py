@@ -100,12 +100,8 @@ class ContinuousTimeSystem:
     observation_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
-    state = TensorDescriptor(
-        "_number_of_systems", "_state_dim", squeeze_first_dimension=True
-    )
-    control = TensorDescriptor(
-        "_number_of_systems", "_control_dim", squeeze_first_dimension=True
-    )
+    state = TensorDescriptor("_number_of_systems", "_state_dim")
+    control = TensorDescriptor("_number_of_systems", "_control_dim")
     process_noise_covariance = TensorDescriptor("_state_dim", "_state_dim")
     observation_noise_covariance = TensorDescriptor(
         "_observation_dim", "_observation_dim"
