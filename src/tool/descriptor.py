@@ -27,8 +27,6 @@ class TensorDescriptor:
 
     def _squeeze_first_dimension(self, obj: object) -> None:
         shape = self._get_shape(obj)
-        flag = self._name_of_dimensions[0] == "_number_of_systems"
-        flag2 = shape[0] == 1
         if (self._name_of_dimensions[0] == "_number_of_systems") and (
             shape[0] == 1
         ):

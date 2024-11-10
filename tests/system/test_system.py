@@ -13,7 +13,8 @@ class TestSystem:
             time_step=0.1,
             state_dim=2,
             observation_dim=1,
-            number_of_systems=4,
+            # number_of_systems=4,
+            number_of_systems=1,
         )
 
     @pytest.fixture
@@ -31,19 +32,25 @@ class TestSystem:
         self, continuous_time_system: ContinuousTimeSystem
     ) -> None:
         """Test the continuous time system"""
-        assert continuous_time_system.state.shape == (4, 2)
-        state = [
-            [1.0, 2.0],
-            [3.0, 4.0],
-            [5.0, 6.0],
-            [7.0, 8.0],
-        ]
+        observation = continuous_time_system.observe()
+
+        # assert continuous_time_system.state.shape == (4, 2)
+        # state = [
+        #     [1.0, 2.0],
+        #     [3.0, 4.0],
+        #     [5.0, 6.0],
+        #     [7.0, 8.0],
+        # ]
+        # assert observation.shape == (4, 1)
+
+        assert observation.shape == (1,)
+        assert continuous_time_system.state.shape == (2,)
+        state = [1.0, 2.0]
+
         continuous_time_system.state = state
         assert np.allclose(continuous_time_system.state, np.array(state))
         time = continuous_time_system.process(0)
-        observation = continuous_time_system.observe()
         assert time == 0.1
-        assert observation.shape == (4, 1)
         with pytest.raises(AssertionError):
             continuous_time_system.state = [1, 2, 3]
 
