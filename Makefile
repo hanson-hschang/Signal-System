@@ -56,8 +56,7 @@ install-pre-commit:
 #* Unittests
 .PHONY: test
 test:
-	poetry run pytest -c pyproject.toml --cov=src/mppi --cov-report=xml
-	poetry run pytest -c pyproject.toml --cov=src/mppi
+	poetry run pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 
 #* Formatters
 .PHONY: formatting
@@ -65,18 +64,18 @@ formatting:
 	poetry run pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
 	poetry run isort --settings-path pyproject.toml ./
 	poetry run black --config pyproject.toml ./
-	poetry run mypy --config-file pyproject.toml src/mppi
+	poetry run mypy --config-file pyproject.toml ./
 
 #* Linting
-.PHONY: check_test
-check_test:
-	poetry run pytest -c pyproject.toml --cov=src/mppi
+.PHONY: check-test
+check-test:
+	poetry run pytest -c pyproject.toml --cov=src
 
 .PHONY: check-formatting
 check-formatting:
 	poetry run isort --diff --check-only --settings-path pyproject.toml ./
 	poetry run black --diff --check --config pyproject.toml ./
-	poetry run mypy --config-file pyproject.toml src/mppi
+	poetry run mypy --config-file pyproject.toml src
 
 .PHONY: lint
 lint: check-formatting
