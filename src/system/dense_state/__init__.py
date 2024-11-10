@@ -4,12 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from assertion import (
-    Validator,
-    isNonNegativeInteger,
-    isPositiveInteger,
-    isPositiveNumber,
-)
+from assertion import isNonNegativeInteger, isPositiveInteger, isPositiveNumber
+from assertion.validator import Validator
 from tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
 
 
