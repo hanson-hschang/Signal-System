@@ -25,9 +25,8 @@ classifiers = [
 
 # ...
 packages = [
-    { include = "assertion", from = "src" },
     { include = "system", from = "src" },
-    { include = "mppi", from = "src" },
+    { include = "control", from = "src" },
     { include = "tool", from = "src" },
 ]
 

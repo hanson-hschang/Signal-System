@@ -4,8 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from assertion.validator import Validator
 from system.dense_state import DiscreteTimeSystem
+from tool.assertion.validator import Validator
 
 
 class DiscreteTimeLinearSystem(DiscreteTimeSystem):
@@ -103,6 +103,31 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             number_of_systems=number_of_systems,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
+        )
+
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "DiscreteTimeLinearSystem":
+        """
+        Create multiple systems based on the current system.
+
+        Parameters
+        ----------
+        `number_of_systems: int`
+            The number of systems to be created.
+
+        Returns
+        -------
+        `system: DiscreteTimeLinearSystem`
+            The created multi-system.
+        """
+        return self.__class__(
+            state_space_matrix_A=self.state_space_matrix_A,
+            state_space_matrix_C=self.state_space_matrix_C,
+            state_space_matrix_B=self.state_space_matrix_B,
+            process_noise_covariance=self._process_noise_covariance,
+            observation_noise_covariance=self._observation_noise_covariance,
+            number_of_systems=number_of_systems,
         )
 
     def _set_compute_state_process(self, control_flag: bool) -> None:

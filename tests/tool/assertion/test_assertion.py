@@ -2,7 +2,11 @@ from typing import Any
 
 import pytest
 
-from assertion import isNonNegativeInteger, isPositiveInteger, isPositiveNumber
+from tool.assertion import (
+    isNonNegativeInteger,
+    isPositiveInteger,
+    isPositiveNumber,
+)
 
 
 @pytest.mark.parametrize(

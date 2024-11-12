@@ -1,6 +1,6 @@
 import pytest
 
-from assertion.validator import Validator
+from tool.assertion.validator import Validator
 
 
 def test_validator_base_class_initialization() -> None:

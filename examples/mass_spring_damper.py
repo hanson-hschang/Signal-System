@@ -7,8 +7,8 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import expm
 
-from assertion import isPositiveInteger
 from system.dense_state.linear import DiscreteTimeLinearSystem
+from tool.assertion import isPositiveInteger
 
 
 class ObservationChoice(StrEnum):
@@ -133,6 +133,35 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
             number_of_systems=number_of_systems,
         )
         self._time_step = time_step
+
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "MassSpringDamperSystem":
+        """
+        Create multiple systems based on the current system.
+
+        Parameters
+        ----------
+        `number_of_systems: int`
+            The number of systems to be created.
+
+        Returns
+        -------
+        `system: MassSpringDamperSystem`
+            The created multi-system.
+        """
+        return self.__class__(
+            number_of_connections=self._number_of_connections,
+            mass=self._mass,
+            spring_constant=self._spring,
+            damping_coefficient=self._damping,
+            time_step=self._time_step,
+            observation_choice=self._observation_choice,
+            control_choice=self._control_choice,
+            process_noise_covariance=self.process_noise_covariance,
+            observation_noise_covariance=self.observation_noise_covariance,
+            number_of_systems=number_of_systems,
+        )
 
 
 @click.command()

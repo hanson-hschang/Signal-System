@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from numpy.typing import NDArray
 
-from assertion.inspect import inspect_arguments
+from tool.assertion.inspect import inspect_arguments
 
 
 def test_inspect_arguments() -> None:

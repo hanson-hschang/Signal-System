@@ -3,8 +3,8 @@ from typing import Callable, Optional
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from assertion.inspect import inspect_arguments
 from system.dense_state import ContinuousTimeSystem
+from tool.assertion.inspect import inspect_arguments
 
 
 class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
@@ -57,6 +57,35 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
             arg_name_shape_dict=arg_name_shape_dict,
         )
         self._set_compute_state_process(control_flag=(control_dim > 0))
+
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "ContinuousTimeNonlinearSystem":
+        """
+        Create multiple systems based on the current system.
+
+        Parameters
+        ----------
+        `number_of_systems: int`
+            The number of systems to be created.
+
+        Returns
+        -------
+        `system: ContinuousTimeNonlinearSystem`
+            The created multi-system.
+        """
+        return self.__class__(
+            time_step=self._time_step,
+            state_dim=self._state_dim,
+            observation_dim=self._observation_dim,
+            process_function=self._process_function,
+            observation_function=self._observation_function,
+            state_constraint_function=self._state_constraint_function,
+            control_dim=self._control_dim,
+            number_of_systems=number_of_systems,
+            process_noise_covariance=self._process_noise_covariance,
+            observation_noise_covariance=self._observation_noise_covariance,
+        )
 
     def _set_compute_state_process(self, control_flag: bool) -> None:
         def _compute_state_process_without_control() -> NDArray[np.float64]:
@@ -121,6 +150,34 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
             number_of_systems=number_of_systems,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
+        )
+
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "DiscreteTimeNonlinearSystem":
+        """
+        Create multiple systems based on the current system.
+
+        Parameters
+        ----------
+        `number_of_systems: int`
+            The number of systems to be created.
+
+        Returns
+        -------
+        `system: DiscreteTimeNonlinearSystem`
+            The created multi-system.
+        """
+        return self.__class__(
+            state_dim=self._state_dim,
+            observation_dim=self._observation_dim,
+            process_function=self._process_function,
+            observation_function=self._observation_function,
+            state_constraint_function=self._state_constraint_function,
+            control_dim=self._control_dim,
+            number_of_systems=number_of_systems,
+            process_noise_covariance=self._process_noise_covariance,
+            observation_noise_covariance=self._observation_noise_covariance,
         )
 
     def _set_compute_state_process(self, control_flag: bool) -> None:

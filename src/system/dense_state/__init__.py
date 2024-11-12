@@ -4,8 +4,12 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from assertion import isNonNegativeInteger, isPositiveInteger, isPositiveNumber
-from assertion.validator import Validator
+from tool.assertion import (
+    isNonNegativeInteger,
+    isPositiveInteger,
+    isPositiveNumber,
+)
+from tool.assertion.validator import Validator
 from tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
 
 
@@ -103,6 +107,32 @@ class ContinuousTimeSystem:
         "_observation_dim", "_observation_dim"
     )
 
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "ContinuousTimeSystem":
+        """
+        Create multiple systems based on the current system.
+
+        Parameters
+        ----------
+        `number_of_systems: int`
+            The number of systems to be created.
+
+        Returns
+        -------
+        `system: ContinuousTimeSystem`
+            The created multi-system.
+        """
+        return self.__class__(
+            time_step=self._time_step,
+            state_dim=self._state_dim,
+            observation_dim=self._observation_dim,
+            control_dim=self._control_dim,
+            number_of_systems=number_of_systems,
+            process_noise_covariance=self._process_noise_covariance,
+            observation_noise_covariance=self._observation_noise_covariance,
+        )
+
     def process(self, time: Union[int, float]) -> Union[int, float]:
         """
         Update the state of each system by one time step based on the current state and control (if existed).
@@ -191,4 +221,29 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
             **kwargs,
+        )
+
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "DiscreteTimeSystem":
+        """
+        Create multiple systems based on the current system.
+
+        Parameters
+        ----------
+        `number_of_systems: int`
+            The number of systems to be created.
+
+        Returns
+        -------
+        `system: DiscreteTimeSystem`
+            The created multi-system.
+        """
+        return self.__class__(
+            state_dim=self._state_dim,
+            observation_dim=self._observation_dim,
+            control_dim=self._control_dim,
+            number_of_systems=number_of_systems,
+            process_noise_covariance=self._process_noise_covariance,
+            observation_noise_covariance=self._observation_noise_covariance,
         )
