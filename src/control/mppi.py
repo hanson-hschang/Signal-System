@@ -44,7 +44,7 @@ class ModelPredictivePathIntegralController:
         time_horizon: int,
         number_of_samples: int,
         temperature: float,
-        smoothing_window_size: int = 1,
+        smoothing_window_size: int = 10,
     ):
         assert issubclass(
             type(system), ContinuousTimeSystem
@@ -135,17 +135,21 @@ class ModelPredictivePathIntegralController:
                 control_trajectory[:, k][:, np.newaxis]
                 + noisy_exploration_control_trajectory[:, :, k]
             )
+            # TODO: Implement the exploration control trajectory
+
             self._systems.control = control
             time = self._systems.process(time)
             self._costs.state = self._systems.state
             total_cost += (
                 self._costs.evaluate()
-                + self._temperature
+                + self._temperature  # This is not correct, it should be exploration related parameter
                 * np.einsum(
                     "m, im -> i",
                     self._costs.running_cost_control_weight
                     @ control_trajectory[:, k],
-                    control[:, :, k],
+                    control[
+                        :, :, k
+                    ],  # This is not correct, it should be the difference between control and control_trajectory
                 )
                 * self._costs.time_step
             )
