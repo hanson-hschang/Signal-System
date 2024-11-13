@@ -241,9 +241,10 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                         i * self._number_of_connections + j, :
                     ],
                 )
-                self._subplots[i][j].set_ylim(
+                ylim_range = (
                     self._position_range if i == 0 else self._velocity_range
                 )
+                self._subplots[i][j].set_ylim(*ylim_range)
         for j in range(self._number_of_connections):
             self._subplots[0][j].set_title(f"Mass {j+1}")
         self._fig.supxlabel("Time (sec)")

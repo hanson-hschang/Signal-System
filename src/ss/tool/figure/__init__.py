@@ -40,7 +40,7 @@ class TimeTrajectoryFigure:
         self._fig_layout = fig_layout
 
         self._fig = plt.figure(figsize=self._fig_size)
-        self._grid_spec = gridspec.GridSpec(*self._fig_layout, figure=self)
+        self._grid_spec = gridspec.GridSpec(*self._fig_layout, figure=self._fig)
         self._subplots: List[List[Axes]] = []
         for row in range(self._fig_layout[0]):
             self._subplots.append([])
@@ -52,7 +52,8 @@ class TimeTrajectoryFigure:
     def plot_figure(
         self,
     ) -> Self:
-        self._fig.suptitle(self._fig_title)
+        if self._fig_title is not None:
+            self._fig.suptitle(self._fig_title)
         self._fig.tight_layout()
         return self
 
