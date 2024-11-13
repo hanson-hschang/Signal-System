@@ -25,9 +25,7 @@ classifiers = [
 
 # ...
 packages = [
-    { include = "system", from = "src" },
-    { include = "control", from = "src" },
-    { include = "tool", from = "src" },
+    { include = "ss", from = "src" },
 ]
 
 [tool.poetry.dependencies]

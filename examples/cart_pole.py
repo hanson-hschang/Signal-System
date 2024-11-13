@@ -1,9 +1,14 @@
+from typing import List, Tuple
+
 import click
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 from numba import njit
 from numpy.typing import NDArray
 
-from system.dense_state.nonlinear import ContinuousTimeNonlinearSystem
+from ss.system.dense_state.nonlinear import ContinuousTimeNonlinearSystem
 
 
 class CartPoleSystem(ContinuousTimeNonlinearSystem):
@@ -75,6 +80,13 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
             return process
 
         @njit(cache=True)  # type: ignore
+        def state_constraint_function(
+            state: NDArray[np.float64],
+        ) -> NDArray[np.float64]:
+            state[:, 2] = np.fmod(state[:, 2] + np.pi, 2 * np.pi) - np.pi
+            return state
+
+        @njit(cache=True)  # type: ignore
         def observation_function(
             state: NDArray[np.float64],
         ) -> NDArray[np.float64]:
@@ -87,8 +99,98 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
             control_dim=1,
             process_function=process_function,
             observation_function=observation_function,
+            state_constraint_function=state_constraint_function,
             number_of_systems=number_of_systems,
         )
+
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "CartPoleSystem":
+        return self.__class__(
+            cart_mass=self._cart_mass,
+            pole_mass=self._pole_mass,
+            pole_length=self._pole_length,
+            gravity=self._gravity,
+            time_step=self._time_step,
+            number_of_systems=number_of_systems,
+        )
+
+
+def plot_cart_pole_states(
+    time_trajectory: NDArray[np.float64],
+    state_trajectory: NDArray[np.float64],
+) -> Tuple[Figure, Axes]:
+    """
+    Plot the state trajectories of a cart-pole system.
+
+    Parameters:
+    state_trajectory: numpy array of shape (4, time_steps)
+        Contains [cart_position, cart_velocity, pole_angle, pole_angular_velocity]
+    time_step: float
+        Time step size in seconds
+    """
+
+    # Create subplots
+    fig: Figure = plt.figure(figsize=(12, 8))
+    axes: NDArray = fig.subplots(2, 2)
+    print(type(axes[0, 0]))
+    fig.suptitle("Cart-Pole System State Trajectories")
+
+    # Plot cart position
+    axes[0, 0].plot(
+        time_trajectory,
+        state_trajectory[0, :],
+        "b-",
+        label="Position",
+    )
+    axes[0, 0].set_xlabel("Time (s)")
+    axes[0, 0].set_ylabel("Cart Position (m)")
+    axes[0, 0].grid(True)
+    axes[0, 0].legend()
+
+    # Plot cart velocity
+    axes[0, 1].plot(
+        time_trajectory,
+        state_trajectory[1, :],
+        "r-",
+        label="Velocity",
+    )
+    axes[0, 1].set_xlabel("Time (s)")
+    axes[0, 1].set_ylabel("Cart Velocity (m/s)")
+    axes[0, 1].grid(True)
+    axes[0, 1].legend()
+
+    # Plot pole angle
+    axes[1, 0].plot(
+        time_trajectory,
+        state_trajectory[2, :],
+        "g-",
+        label="Angle",
+    )
+    axes[1, 0].set_xlabel("Time (s)")
+    axes[1, 0].set_ylabel("Pole Angle (rad)")
+    axes[1, 0].grid(True)
+    axes[1, 0].legend()
+
+    # Plot pole angular velocity
+    axes[1, 1].plot(
+        time_trajectory,
+        state_trajectory[3, :],
+        "m-",
+        label="Angular Velocity",
+    )
+    axes[1, 1].set_xlabel("Time (s)")
+    axes[1, 1].set_ylabel("Pole Angular Velocity (rad/s)")
+    axes[1, 1].grid(True)
+    axes[1, 1].legend()
+
+    # Adjust layout to prevent overlap
+    fig.tight_layout()
+
+    # Show the plot
+    plt.show()
+
+    return fig, axes
 
 
 @click.command()

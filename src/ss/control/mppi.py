@@ -1,15 +1,14 @@
 from typing import Optional
 
-from signal.smoothing.moving_averaging import MovingAveragingSmoother
-
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from control.cost.quadratic import QuadraticCost
-from system.dense_state import ContinuousTimeSystem
-from tool.assertion import isPositiveInteger, isPositiveNumber
-from tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
+from ss.control.cost.quadratic import QuadraticCost
+from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
+from ss.system.dense_state import ContinuousTimeSystem
+from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
 
 
 class ModelPredictivePathIntegralController:
@@ -44,7 +43,9 @@ class ModelPredictivePathIntegralController:
         time_horizon: int,
         number_of_samples: int,
         temperature: float,
-        smoothing_window_size: int = 10,
+        base_control_confidence: float,
+        exploration_percentage: float,
+        smoothing_window_size: Optional[int] = None,
     ):
         assert issubclass(
             type(system), ContinuousTimeSystem
@@ -69,6 +70,16 @@ class ModelPredictivePathIntegralController:
         assert isPositiveNumber(
             temperature
         ), f"temperature {temperature} must be a positive number"
+        assert (
+            isPositiveNumber(base_control_confidence)
+            and base_control_confidence <= 1
+        ), f"base_control_confidence {base_control_confidence} must be a positive number within the range (0, 1]"
+        assert (
+            isPositiveNumber(exploration_percentage)
+            and exploration_percentage < 1
+        ), f"exploration_percentage {exploration_percentage} must be a positive number within the range (0, 1)"
+        if smoothing_window_size is None:
+            smoothing_window_size = int(time_horizon * 0.1) + 1
         assert isPositiveInteger(
             smoothing_window_size
         ), f"smoothing_window_size {smoothing_window_size} must be a positive integer"
@@ -87,10 +98,16 @@ class ModelPredictivePathIntegralController:
             (self._control_dim, self._time_horizon)
         )
         self._temperature = temperature
+        self._base_control_confidence = base_control_confidence
+        self._exploration_percentage = exploration_percentage
+        self._exploration_index = self._compute_exploration_index()
+        self._control_cost_regularization_weight = (
+            self._compute_control_cost_regularization_weight()
+        )
         self._smoothing_window_size = smoothing_window_size
 
         self._moving_average_smoother = MovingAveragingSmoother(
-            smoothing_window_size
+            self._smoothing_window_size
         )
 
     time_horizon = ReadOnlyDescriptor[int]()
@@ -109,6 +126,30 @@ class ModelPredictivePathIntegralController:
             temperature
         ), f"temperature {temperature} must be a positive number"
         self._temperature = temperature
+        self._control_cost_regularization_weight = (
+            self._compute_control_cost_regularization_weight()
+        )
+
+    @property
+    def base_control_confidence(self) -> float:
+        return self._base_control_confidence
+
+    @base_control_confidence.setter
+    def base_control_confidence(self, base_control_confidence: float) -> None:
+        assert (
+            isPositiveNumber(base_control_confidence)
+            and base_control_confidence <= 1
+        ), f"base_control_confidence {base_control_confidence} must be a positive number within the range (0, 1]"
+        self._base_control_confidence = base_control_confidence
+        self._control_cost_regularization_weight = (
+            self._compute_control_cost_regularization_weight()
+        )
+
+    def _compute_exploration_index(self) -> int:
+        return int(self._exploration_percentage * self._number_of_samples)
+
+    def _compute_control_cost_regularization_weight(self) -> float:
+        return (1 - self._base_control_confidence) * self._temperature
 
     def reset_systems(self, state: Optional[ArrayLike] = None) -> None:
         if state is None:
@@ -117,7 +158,7 @@ class ModelPredictivePathIntegralController:
         assert (len(state.shape) == 1) and (
             state.shape[0] == self._systems._state_dim
         ), f"state {state} must be a vector with length {self._systems._state_dim}"
-        self._systems._state = np.tile(state, (self._number_of_samples, 1))
+        self._systems.state = np.tile(state, (self._number_of_samples, 1))
 
     def compute_control(self) -> NDArray[np.float64]:
         """
@@ -131,28 +172,23 @@ class ModelPredictivePathIntegralController:
 
         time = 0.0
         for k in range(self._time_horizon):
-            control = (
-                control_trajectory[:, k][:, np.newaxis]
-                + noisy_exploration_control_trajectory[:, :, k]
-            )
-            # TODO: Implement the exploration control trajectory
-
+            control = noisy_exploration_control_trajectory[:, :, k]
+            control[self._exploration_index :, :] += control_trajectory[:, k][
+                np.newaxis, :
+            ]
             self._systems.control = control
             time = self._systems.process(time)
             self._costs.state = self._systems.state
-            total_cost += (
-                self._costs.evaluate()
-                + self._temperature  # This is not correct, it should be exploration related parameter
+            total_cost += self._costs.evaluate() + (
+                self._control_cost_regularization_weight
                 * np.einsum(
                     "m, im -> i",
                     self._costs.running_cost_control_weight
                     @ control_trajectory[:, k],
-                    control[
-                        :, :, k
-                    ],  # This is not correct, it should be the difference between control and control_trajectory
+                    control,
                 )
                 * self._costs.time_step
-            )
+            )  # TODO: implement this in numba
         self._costs.set_terminal()
         total_cost += self._costs.evaluate()
 

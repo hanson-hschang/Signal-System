@@ -3,8 +3,8 @@ from typing import Any, Callable
 import numpy as np
 from numpy.typing import NDArray
 
-from tool.assertion import isPositiveInteger, isPositiveNumber
-from tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
+from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
 
 
 class Cost:
@@ -48,8 +48,8 @@ class Cost:
     state_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
-    state = TensorDescriptor("_number_of_systems", "_state_dim")
-    control = TensorDescriptor("_number_of_systems", "_control_dim")
+    state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
+    control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
 
     def create_multiple_costs(self, number_of_systems: int) -> "Cost":
         """

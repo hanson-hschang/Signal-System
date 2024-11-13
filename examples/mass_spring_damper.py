@@ -7,8 +7,8 @@ import numpy as np
 from numpy.typing import ArrayLike
 from scipy.linalg import expm
 
-from system.dense_state.linear import DiscreteTimeLinearSystem
-from tool.assertion import isPositiveInteger
+from ss.system.dense_state.linear import DiscreteTimeLinearSystem
+from ss.tool.assertion import isPositiveInteger
 
 
 class ObservationChoice(StrEnum):

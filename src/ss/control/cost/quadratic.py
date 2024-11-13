@@ -4,9 +4,9 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from control.cost import Cost
-from tool.assertion.validator import Validator
-from tool.descriptor import TensorDescriptor
+from ss.control.cost import Cost
+from ss.tool.assertion.validator import Validator
+from ss.tool.descriptor import TensorDescriptor
 
 
 class QuadraticCost(Cost):

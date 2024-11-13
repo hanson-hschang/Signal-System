@@ -3,7 +3,7 @@ import pytest
 from numba import njit
 from numpy.typing import NDArray
 
-from system.dense_state.nonlinear import (
+from ss.system.dense_state.nonlinear import (
     ContinuousTimeNonlinearSystem,
     DiscreteTimeNonlinearSystem,
 )

@@ -4,13 +4,17 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from tool.assertion import (
+from ss.tool.assertion import (
     isNonNegativeInteger,
     isPositiveInteger,
     isPositiveNumber,
 )
-from tool.assertion.validator import Validator
-from tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
+from ss.tool.assertion.validator import Validator
+from ss.tool.descriptor import (
+    MultiSystemTensorDescriptor,
+    ReadOnlyDescriptor,
+    TensorDescriptor,
+)
 
 
 class ContinuousTimeSystem:
@@ -100,8 +104,8 @@ class ContinuousTimeSystem:
     observation_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
-    state = TensorDescriptor("_number_of_systems", "_state_dim")
-    control = TensorDescriptor("_number_of_systems", "_control_dim")
+    state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
+    control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
     process_noise_covariance = TensorDescriptor("_state_dim", "_state_dim")
     observation_noise_covariance = TensorDescriptor(
         "_observation_dim", "_observation_dim"

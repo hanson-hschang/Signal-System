@@ -3,8 +3,8 @@ from typing import Callable, Optional
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from system.dense_state import ContinuousTimeSystem
-from tool.assertion.inspect import inspect_arguments
+from ss.system.dense_state import ContinuousTimeSystem
+from ss.tool.assertion.inspect import inspect_arguments
 
 
 class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):

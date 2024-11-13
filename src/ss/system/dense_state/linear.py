@@ -4,8 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from system.dense_state import DiscreteTimeSystem
-from tool.assertion.validator import Validator
+from ss.system.dense_state import DiscreteTimeSystem
+from ss.tool.assertion.validator import Validator
 
 
 class DiscreteTimeLinearSystem(DiscreteTimeSystem):
