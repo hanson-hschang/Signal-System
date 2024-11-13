@@ -1,10 +1,12 @@
-from typing import Any, Callable
+from typing import Any, Callable, Self, Tuple
 
 import numpy as np
+from matplotlib.axes import Axes
 from numpy.typing import NDArray
 
 from ss.tool.assertion import isPositiveInteger, isPositiveNumber
 from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
+from ss.tool.figure import TimeTrajectoryFigure
 
 
 class Cost:
@@ -90,3 +92,38 @@ class Cost:
 
     def _evaluate_running(self) -> None:
         self._cost = np.zeros(self._number_of_systems, dtype=np.float64)
+
+
+class CostTrajectoryFigure(TimeTrajectoryFigure):
+    """
+    Figure for plotting the cost trajectory.
+    """
+
+    def __init__(
+        self,
+        time_trajectory: NDArray[np.float64],
+        cost_trajectory: NDArray[np.float64],
+        fig_size: Tuple[int, int] = (12, 8),
+    ) -> None:
+        super().__init__(
+            time_trajectory,
+            fig_size=fig_size,
+            fig_title="Cost Trajectory",
+        )
+        assert (
+            len(cost_trajectory.shape) == 1
+        ), "cost_trajectory must be a 1D array."
+        assert (
+            cost_trajectory.shape[0] == self._time_length
+        ), "cost_trajectory must have the same length as time_trajectory."
+        self._cost_trajectory = cost_trajectory
+        self._cost_subplot: Axes = self._subplots[0][0]
+
+    def plot_figure(
+        self,
+    ) -> Self:
+        self._cost_subplot.plot(self._time_trajectory, self._cost_trajectory)
+        self._cost_subplot.set_xlabel("Time (s)")
+        self._cost_subplot.set_ylabel("Cost")
+        super().plot_figure()
+        return self

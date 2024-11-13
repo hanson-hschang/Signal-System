@@ -1,14 +1,16 @@
-from typing import Optional, assert_never
+from typing import Optional, Self, Tuple, assert_never
 
 from enum import StrEnum
 
 import click
 import numpy as np
-from numpy.typing import ArrayLike
+from matplotlib.axes import Axes
+from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system.dense_state.linear import DiscreteTimeLinearSystem
 from ss.tool.assertion import isPositiveInteger
+from ss.tool.figure import TimeTrajectoryFigure
 
 
 class ObservationChoice(StrEnum):
@@ -118,9 +120,6 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
             case _ as unmatched_control_choice:
                 assert_never(unmatched_control_choice)
 
-        process_noise_covariance = np.array(process_noise_covariance)
-        observation_noise_covariance = np.array(observation_noise_covariance)
-
         state_space_matrix_A = expm(matrix_A * time_step)
         state_space_matrix_B = state_space_matrix_A @ matrix_B * time_step
 
@@ -162,6 +161,94 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
             observation_noise_covariance=self.observation_noise_covariance,
             number_of_systems=number_of_systems,
         )
+
+
+class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
+    """
+    Figure for plotting the state trajectories of a mass-spring-damper system.
+    """
+
+    def __init__(
+        self,
+        time_trajectory: NDArray[np.float64],
+        state_trajectory: NDArray[np.float64],
+        fig_size: Tuple[int, int] = (12, 8),
+    ) -> None:
+        assert (
+            len(state_trajectory.shape) == 2
+        ), "state_trajectory must be a 2D array."
+        assert (
+            state_trajectory.shape[0] % 2 == 0
+        ), "state_trajectory must have an even number of rows."
+        self._number_of_connections = state_trajectory.shape[0] // 2
+        super().__init__(
+            time_trajectory,
+            fig_size=fig_size,
+            fig_title="Mass-Spring-Damper System State Trajectory",
+            fig_layout=(2, self._number_of_connections),
+        )
+        assert (
+            state_trajectory.shape[1] == self._time_length
+        ), "state_trajectory must have the same length as time_trajectory."
+
+        self._state_trajectory = state_trajectory
+        self._state_name = [
+            "Position (m)",
+            "Velocity (m/s)",
+        ]
+        self._position_range = np.array(
+            [
+                np.min(
+                    self._state_trajectory[: self._number_of_connections, :]
+                ),
+                np.max(
+                    self._state_trajectory[: self._number_of_connections, :]
+                ),
+            ]
+        )
+        position_range_diff = self._position_range[1] - self._position_range[0]
+        self._position_range += np.array(
+            [
+                -0.1 * position_range_diff,
+                0.1 * position_range_diff,
+            ]
+        )
+        self._velocity_range = np.array(
+            [
+                np.min(
+                    self._state_trajectory[self._number_of_connections :, :]
+                ),
+                np.max(
+                    self._state_trajectory[self._number_of_connections :, :]
+                ),
+            ]
+        )
+        velocity_range_diff = self._velocity_range[1] - self._velocity_range[0]
+        self._velocity_range += np.array(
+            [
+                -0.1 * velocity_range_diff,
+                0.1 * velocity_range_diff,
+            ]
+        )
+
+    def plot_figure(self) -> Self:
+        for i, state_name in enumerate(self._state_name):
+            self._subplots[i][0].set_ylabel(state_name)
+            for j in range(self._number_of_connections):
+                self._subplots[i][j].plot(
+                    self._time_trajectory,
+                    self._state_trajectory[
+                        i * self._number_of_connections + j, :
+                    ],
+                )
+                self._subplots[i][j].set_ylim(
+                    self._position_range if i == 0 else self._velocity_range
+                )
+        for j in range(self._number_of_connections):
+            self._subplots[0][j].set_title(f"Mass {j+1}")
+        self._fig.supxlabel("Time (sec)")
+        super().plot_figure()
+        return self
 
 
 @click.command()

@@ -1,14 +1,13 @@
-from typing import List, Tuple
+from typing import Self, Tuple
 
 import click
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
 from numba import njit
 from numpy.typing import NDArray
 
 from ss.system.dense_state.nonlinear import ContinuousTimeNonlinearSystem
+from ss.tool.figure import TimeTrajectoryFigure
 
 
 class CartPoleSystem(ContinuousTimeNonlinearSystem):
@@ -116,81 +115,73 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
         )
 
 
-def plot_cart_pole_states(
-    time_trajectory: NDArray[np.float64],
-    state_trajectory: NDArray[np.float64],
-) -> Tuple[Figure, Axes]:
+class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
     """
-    Plot the state trajectories of a cart-pole system.
-
-    Parameters:
-    state_trajectory: numpy array of shape (4, time_steps)
-        Contains [cart_position, cart_velocity, pole_angle, pole_angular_velocity]
-    time_step: float
-        Time step size in seconds
+    Figure for plotting the state trajectories of a cart-pole system.
     """
 
-    # Create subplots
-    fig: Figure = plt.figure(figsize=(12, 8))
-    axes: NDArray = fig.subplots(2, 2)
-    print(type(axes[0, 0]))
-    fig.suptitle("Cart-Pole System State Trajectories")
+    def __init__(
+        self,
+        time_trajectory: NDArray[np.float64],
+        state_trajectory: NDArray[np.float64],
+        fig_size: Tuple[int, int] = (12, 8),
+    ) -> None:
+        assert (
+            len(state_trajectory.shape) == 2
+        ), "state_trajectory must be a 2D array."
+        assert (
+            state_trajectory.shape[0] == 4
+        ), "state_trajectory must have number of rows same as the state dimension."
+        super().__init__(
+            time_trajectory,
+            fig_size,
+            fig_title="Cart-Pole System State Trajectory",
+            fig_layout=(2, 2),
+        )
+        assert (
+            state_trajectory.shape[1] == self._time_length
+        ), "state_trajectory must have number of columns same length of time_trajectory."
 
-    # Plot cart position
-    axes[0, 0].plot(
-        time_trajectory,
-        state_trajectory[0, :],
-        "b-",
-        label="Position",
-    )
-    axes[0, 0].set_xlabel("Time (s)")
-    axes[0, 0].set_ylabel("Cart Position (m)")
-    axes[0, 0].grid(True)
-    axes[0, 0].legend()
+        self._state_trajectory = state_trajectory
+        self._state_name = [
+            "Cart Position (m)",
+            "Cart Velocity (m/s)",
+            "Pole Angle (rad)",
+            "Pole Angular Velocity (rad/s)",
+        ]
+        self._state_subplots = [
+            self._subplots[0][0],
+            self._subplots[0][1],
+            self._subplots[1][0],
+            self._subplots[1][1],
+        ]
 
-    # Plot cart velocity
-    axes[0, 1].plot(
-        time_trajectory,
-        state_trajectory[1, :],
-        "r-",
-        label="Velocity",
-    )
-    axes[0, 1].set_xlabel("Time (s)")
-    axes[0, 1].set_ylabel("Cart Velocity (m/s)")
-    axes[0, 1].grid(True)
-    axes[0, 1].legend()
+    def plot_figure(self) -> Self:
+        for state_subplot, state_trajectory, state_name in zip(
+            self._state_subplots,
+            self._state_trajectory,
+            self._state_name,
+        ):
+            self._plot_figure(
+                state_subplot,
+                state_trajectory,
+                state_name,
+            )
+        super().plot_figure()
+        return self
 
-    # Plot pole angle
-    axes[1, 0].plot(
-        time_trajectory,
-        state_trajectory[2, :],
-        "g-",
-        label="Angle",
-    )
-    axes[1, 0].set_xlabel("Time (s)")
-    axes[1, 0].set_ylabel("Pole Angle (rad)")
-    axes[1, 0].grid(True)
-    axes[1, 0].legend()
-
-    # Plot pole angular velocity
-    axes[1, 1].plot(
-        time_trajectory,
-        state_trajectory[3, :],
-        "m-",
-        label="Angular Velocity",
-    )
-    axes[1, 1].set_xlabel("Time (s)")
-    axes[1, 1].set_ylabel("Pole Angular Velocity (rad/s)")
-    axes[1, 1].grid(True)
-    axes[1, 1].legend()
-
-    # Adjust layout to prevent overlap
-    fig.tight_layout()
-
-    # Show the plot
-    plt.show()
-
-    return fig, axes
+    def _plot_figure(
+        self,
+        ax: Axes,
+        state_trajectory: NDArray[np.number],
+        label: str,
+    ) -> None:
+        ax.plot(
+            self._time_trajectory,
+            state_trajectory,
+        )
+        ax.set_ylabel(label)
+        ax.grid(True)
 
 
 @click.command()

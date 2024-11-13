@@ -172,13 +172,19 @@ class ModelPredictivePathIntegralController:
 
         time = 0.0
         for k in range(self._time_horizon):
-            control = noisy_exploration_control_trajectory[:, :, k]
-            control[self._exploration_index :, :] += control_trajectory[:, k][
-                np.newaxis, :
-            ]
+
+            self._costs.state = self._systems.state
+
+            control = (
+                noisy_exploration_control_trajectory[:, k, :]
+                + control_trajectory[:, k][np.newaxis, :]
+            )
+            # control[self._exploration_index :, :] += control_trajectory[:, k][
+            #     np.newaxis, :
+            # ]
             self._systems.control = control
             time = self._systems.process(time)
-            self._costs.state = self._systems.state
+
             total_cost += self._costs.evaluate() + (
                 self._control_cost_regularization_weight
                 * np.einsum(
@@ -225,7 +231,7 @@ class ModelPredictivePathIntegralController:
             np.linalg.inv(self._costs.running_cost_control_weight),
             size=(self._number_of_samples, self._time_horizon),
         )
-        return noisy_exploration_control_trajectory.transpose(0, 2, 1)
+        return noisy_exploration_control_trajectory
 
     @staticmethod
     @njit(cache=True)  # type: ignore
@@ -249,11 +255,11 @@ class ModelPredictivePathIntegralController:
         noisy_exploration_control_trajectory: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         exploration_control_trajectory = np.zeros(
-            noisy_exploration_control_trajectory.shape[1:]
+            noisy_exploration_control_trajectory.shape[-1:0:-1]
         )
         for k in range(noisy_exploration_control_trajectory.shape[2]):
             exploration_control_trajectory[:, k] = np.sum(
-                noisy_exploration_control_trajectory[:, :, k]
+                noisy_exploration_control_trajectory[:, k, :]
                 * weight[:, np.newaxis],
                 axis=0,
             )
