@@ -151,11 +151,18 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             )
             return state_process
 
-        self._compute_state_process: Callable[[], NDArray[np.float64]] = (
-            _compute_state_process_with_control
-            if control_flag
-            else _compute_state_process_without_control
-        )
+        if control_flag:
+            setattr(
+                self,
+                "_compute_state_process",
+                _compute_state_process_with_control,
+            )
+        else:
+            setattr(
+                self,
+                "_compute_state_process",
+                _compute_state_process_without_control,
+            )
 
     @staticmethod
     @njit(cache=True)  # type: ignore

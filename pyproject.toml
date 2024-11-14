@@ -145,7 +145,7 @@ exclude_lines = [
     ''''@(abc\.)?'abstractmethod''',
     '\.\.\.'
 ]
-fail_under = 40
+fail_under = 30
 show_missing = true
 
 

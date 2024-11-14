@@ -1,14 +1,24 @@
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-from cart_pole import CartPoleStateTrajectoryFigure, CartPoleSystem
 
 from ss.control.cost import CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
+from ss.system.dense_state.examples.mass_spring_damper import (
+    ControlChoice,
+    MassSpringDamperStateTrajectoryFigure,
+    MassSpringDamperSystem,
+)
 
 
 @click.command()
+@click.option(
+    "--number-of-connections",
+    type=click.IntRange(min=1),
+    default=4,
+    help="Set the number of connections (positive integers).",
+)
 @click.option(
     "--simulation-time",
     type=click.FloatRange(min=0),
@@ -18,22 +28,22 @@ from ss.control.mppi import ModelPredictivePathIntegralController
 @click.option(
     "--time-step",
     type=click.FloatRange(min=0),
-    default=0.02,
+    default=0.01,
     help="Set the time step (positive value).",
 )
-def main(simulation_time: float, time_step: float) -> None:
+def main(
+    number_of_connections: int, simulation_time: float, time_step: float
+) -> None:
     simulation_time_steps = int(simulation_time / time_step)
-    system = CartPoleSystem(
-        cart_mass=1.0,
-        pole_mass=0.01,
-        pole_length=2.0,
-        gravity=9.81,
+    system = MassSpringDamperSystem(
+        number_of_connections=number_of_connections,
         time_step=time_step,
+        control_choice=ControlChoice.ALL_FORCES,
     )
-    system.state = np.array([0.0, 0.0, np.pi, 0.0])
+    system.state = np.random.rand(2 * number_of_connections)
     cost = QuadraticCost(
-        running_cost_state_weight=np.diag([5.0, 10.0, 0.1, 0.1]),
-        running_cost_control_weight=0.1 * np.identity(1),
+        running_cost_state_weight=np.identity(2 * number_of_connections),
+        running_cost_control_weight=np.identity(number_of_connections),
         time_step=time_step,
     )
     controller = ModelPredictivePathIntegralController(
@@ -47,7 +57,9 @@ def main(simulation_time: float, time_step: float) -> None:
     )
 
     cost_trajectory = np.zeros(simulation_time_steps)
-    state_trajectory = np.zeros((4, simulation_time_steps))
+    state_trajectory = np.zeros(
+        (2 * number_of_connections, simulation_time_steps)
+    )
     time_trajectory = np.zeros(simulation_time_steps)
 
     time = 0.0
@@ -59,11 +71,7 @@ def main(simulation_time: float, time_step: float) -> None:
 
         controller.reset_systems(current_state)
         control_trajectory = controller.compute_control()
-        # controller.control_trajectory = np.clip(
-        #     control_trajectory, -100.0, 100.0
-        # )
-
-        control = controller.control_trajectory[:, 0]
+        control = control_trajectory[:, 0]
         system.control = control
         time = system.process(time)
 
@@ -78,7 +86,7 @@ def main(simulation_time: float, time_step: float) -> None:
             f"Cost: {cost_trajectory[k]}"
         )
 
-    CartPoleStateTrajectoryFigure(
+    MassSpringDamperStateTrajectoryFigure(
         time_trajectory,
         state_trajectory,
     ).plot_figure()

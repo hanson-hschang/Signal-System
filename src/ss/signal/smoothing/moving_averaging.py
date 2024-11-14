@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional
 
 import numpy as np
 from numba import njit
@@ -9,7 +9,7 @@ from ss.tool.descriptor import ReadOnlyDescriptor
 
 
 class MovingAveragingSmoother:
-    def __init__(self, window_size: int):
+    def __init__(self, window_size: int) -> None:
         assert isPositiveInteger(
             window_size
         ), f"window_size {window_size} must be a positive integer"
