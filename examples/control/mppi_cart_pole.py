@@ -92,8 +92,8 @@ def main(
         cost_callback.make_callback(k, time)
 
     # Compute the terminal cost
-    cost.set_terminal()
-    cost_callback.make_callback(simulation_time_steps, time)
+    # cost.set_terminal()
+    # cost_callback.make_callback(simulation_time_steps, time)
 
     CartPoleStateTrajectoryFigure(
         system_callback["time"],
