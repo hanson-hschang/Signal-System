@@ -4,20 +4,13 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import (
-    isNonNegativeInteger,
-    isPositiveInteger,
-    isPositiveNumber,
-)
+from ss.system.state_vector import System
+from ss.tool.assertion import isPositiveNumber
 from ss.tool.assertion.validator import Validator
-from ss.tool.descriptor import (
-    MultiSystemTensorDescriptor,
-    ReadOnlyDescriptor,
-    TensorDescriptor,
-)
+from ss.tool.descriptor import TensorDescriptor
 
 
-class ContinuousTimeSystem:
+class ContinuousTimeSystem(System):
     class _NoiseCovarianceValidator(Validator):
         def __init__(
             self,
@@ -62,18 +55,15 @@ class ContinuousTimeSystem:
         assert isPositiveNumber(
             time_step
         ), f"time_step {time_step} must be a positive number"
-        assert isPositiveInteger(
-            state_dim
-        ), f"state_dim {state_dim} must be a positive integer"
-        assert isPositiveInteger(
-            observation_dim
-        ), f"observation_dim {observation_dim} must be a positive integer"
-        assert isNonNegativeInteger(
-            control_dim
-        ), f"control_dim {control_dim} must be a non-negative integer"
-        assert isPositiveInteger(
-            number_of_systems
-        ), f"number_of_systems {number_of_systems} must be a positive integer"
+        self._time_step = time_step
+
+        super().__init__(
+            state_dim=state_dim,
+            observation_dim=observation_dim,
+            control_dim=control_dim,
+            number_of_systems=number_of_systems,
+            **kwargs,
+        )
 
         self._process_noise_covariance = self._NoiseCovarianceValidator(
             state_dim, "process_noise_covariance", process_noise_covariance
@@ -84,28 +74,6 @@ class ContinuousTimeSystem:
             observation_noise_covariance,
         ).get_noise_covariance()
 
-        self._time_step = time_step
-        self._state_dim = int(state_dim)
-        self._observation_dim = int(observation_dim)
-        self._control_dim = int(control_dim)
-        self._number_of_systems = int(number_of_systems)
-        self._state = np.zeros(
-            (self._number_of_systems, self._state_dim), dtype=np.float64
-        )
-        self._observation = np.zeros(
-            (self._number_of_systems, self._observation_dim), dtype=np.float64
-        )
-        self._control = np.zeros(
-            (self._number_of_systems, self._control_dim), dtype=np.float64
-        )
-        super().__init__(**kwargs)
-
-    state_dim = ReadOnlyDescriptor[int]()
-    observation_dim = ReadOnlyDescriptor[int]()
-    control_dim = ReadOnlyDescriptor[int]()
-    number_of_systems = ReadOnlyDescriptor[int]()
-    state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
     process_noise_covariance = TensorDescriptor("_state_dim", "_state_dim")
     observation_noise_covariance = TensorDescriptor(
         "_observation_dim", "_observation_dim"
@@ -151,58 +119,28 @@ class ContinuousTimeSystem:
         `time: Union[int, float]`
             The updated time.
         """
+        self._update(
+            self._state,
+            self._compute_state_process(),
+            self._compute_process_noise(),
+        )
+        return time + self._time_step
+
+    def _compute_process_noise(self) -> NDArray[np.float64]:
         process_noise = np.random.multivariate_normal(
             np.zeros(self._state_dim),
             self._process_noise_covariance * np.sqrt(self._time_step),
             size=self._number_of_systems,
         )
-        self._update(
-            self._state,
-            self._compute_state_process(),
-            process_noise,
-        )
-        return time + self._time_step
+        return process_noise
 
-    def observe(self) -> NDArray[np.float64]:
-        """
-        Make observation of each system based on the current state.
-
-        Returns
-        -------
-        `observation: ArrayLike[float]`
-            The observation vector of systems. Shape of the array is `(number_of_systems, observation_dim)`.
-        """
+    def _compute_observation_noise(self) -> NDArray[np.float64]:
         observation_noise = np.random.multivariate_normal(
             np.zeros(self._observation_dim),
             self._observation_noise_covariance * np.sqrt(self._time_step),
             size=self._number_of_systems,
         )
-        self._update(
-            self._observation,
-            self._compute_observation_process(),
-            observation_noise,
-        )
-        observation: NDArray[np.float64] = (
-            self._observation[0]
-            if self._number_of_systems == 1
-            else self._observation
-        )
-        return observation
-
-    @staticmethod
-    @njit(cache=True)  # type: ignore
-    def _update(
-        array: NDArray[np.float64],
-        process: NDArray[np.float64],
-        noise: NDArray[np.float64],
-    ) -> None:
-        array[:, :] = process + noise
-
-    def _compute_state_process(self) -> NDArray[np.float64]:
-        return self._state
-
-    def _compute_observation_process(self) -> NDArray[np.float64]:
-        return np.zeros_like(self._observation)
+        return observation_noise
 
 
 class DiscreteTimeSystem(ContinuousTimeSystem):

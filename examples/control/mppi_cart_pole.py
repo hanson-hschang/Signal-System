@@ -2,10 +2,11 @@ import click
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ss.control.cost import CostTrajectoryFigure
+from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
-from ss.system.dense_state.examples.cart_pole import (
+from ss.system.state_vector import SystemCallback
+from ss.system.state_vector.examples.cart_pole import (
     CartPoleStateTrajectoryFigure,
     CartPoleSystem,
 )
@@ -24,7 +25,17 @@ from ss.system.dense_state.examples.cart_pole import (
     default=0.02,
     help="Set the time step (positive value).",
 )
-def main(simulation_time: float, time_step: float) -> None:
+@click.option(
+    "--step-skip",
+    type=click.IntRange(min=1),
+    default=1,
+    help="Set the step skip (positive integers).",
+)
+def main(
+    simulation_time: float,
+    time_step: float,
+    step_skip: int,
+) -> None:
     simulation_time_steps = int(simulation_time / time_step)
     system = CartPoleSystem(
         cart_mass=1.0,
@@ -34,60 +45,63 @@ def main(simulation_time: float, time_step: float) -> None:
         time_step=time_step,
     )
     system.state = np.array([0.0, 0.0, np.pi, 0.0])
+    system_callback = SystemCallback(
+        step_skip=step_skip,
+        system=system,
+    )
     cost = QuadraticCost(
         running_cost_state_weight=np.diag([5.0, 10.0, 0.1, 0.1]),
         running_cost_control_weight=0.1 * np.identity(1),
         time_step=time_step,
+    )
+    cost_callback = CostCallback(
+        step_skip=step_skip,
+        cost=cost,
     )
     controller = ModelPredictivePathIntegralController(
         system=system,
         cost=cost,
         time_horizon=100,
         number_of_samples=1000,
-        temperature=50.0,
-        base_control_confidence=1.0,
-        exploration_percentage=0.01,  # Fixme: This is a hack to avoid zero
+        temperature=100.0,
+        base_control_confidence=0.98,
     )
-
-    cost_trajectory = np.zeros(simulation_time_steps)
-    state_trajectory = np.zeros((4, simulation_time_steps))
-    time_trajectory = np.zeros(simulation_time_steps)
 
     time = 0.0
     for k in range(simulation_time_steps):
-        time_trajectory[k] = time
 
+        # Get the current state
         current_state = system.state
-        state_trajectory[:, k] = current_state
 
+        # Compute the control
         controller.reset_systems(current_state)
         control_trajectory = controller.compute_control()
         # controller.control_trajectory = np.clip(
         #     control_trajectory, -100.0, 100.0
         # )
-
         control = controller.control_trajectory[:, 0]
+
+        # Apply the control
         system.control = control
+        system_callback.make_callback(k, time)
         time = system.process(time)
 
+        # Compute the cost
         cost.state = current_state
         cost.control = control
-        cost_trajectory[k] = cost.evaluate()
+        cost_callback.make_callback(k, time)
 
-        print(
-            f"Time: {time_trajectory[k]} sec, "
-            f"State: {state_trajectory[:, k]}, "
-            f"Control: {control}, "
-            f"Cost: {cost_trajectory[k]}"
-        )
+    # Compute the terminal cost
+    cost.set_terminal()
+    cost_callback.make_callback(simulation_time_steps, time)
 
     CartPoleStateTrajectoryFigure(
-        time_trajectory,
-        state_trajectory,
+        system_callback["time"],
+        system_callback["state"],
     ).plot_figure()
     CostTrajectoryFigure(
-        time_trajectory,
-        cost_trajectory,
+        cost_callback["time"],
+        cost_callback["cost"],
     ).plot_figure()
     plt.show()
 

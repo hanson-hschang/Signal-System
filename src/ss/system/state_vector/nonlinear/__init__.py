@@ -1,4 +1,4 @@
-from ss.system.dense_state.nonlinear._nonlinear import (
+from ss.system.state_vector.nonlinear._nonlinear import (
     ContinuousTimeNonlinearSystem,
     DiscreteTimeNonlinearSystem,
 )

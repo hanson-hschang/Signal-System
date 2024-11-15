@@ -11,7 +11,7 @@ from ss.tool.descriptor import TensorDescriptor
 
 class QuadraticCost(Cost):
     class _CostWeightValidator(Validator):
-        def __init__(self, cost_weight: ArrayLike):
+        def __init__(self, cost_weight: ArrayLike) -> None:
             super().__init__()
             self._cost_weight = np.array(cost_weight, dtype=np.float64)
             self._validate_shape()
@@ -27,7 +27,7 @@ class QuadraticCost(Cost):
     class _TerminalCostWeightValidator(Validator):
         def __init__(
             self, dimension: int, cost_weight: Optional[ArrayLike] = None
-        ):
+        ) -> None:
             super().__init__()
             if cost_weight is None:
                 cost_weight = np.zeros((dimension, dimension))
@@ -46,7 +46,7 @@ class QuadraticCost(Cost):
     class _IntrinsicVectorValidator(Validator):
         def __init__(
             self, dimension: int, intrinsic_vector: Optional[ArrayLike]
-        ):
+        ) -> None:
             super().__init__()
             if intrinsic_vector is None:
                 intrinsic_vector = np.zeros(dimension)

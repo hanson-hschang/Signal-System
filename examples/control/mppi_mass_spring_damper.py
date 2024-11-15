@@ -2,10 +2,11 @@ import click
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ss.control.cost import CostTrajectoryFigure
+from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
-from ss.system.dense_state.examples.mass_spring_damper import (
+from ss.system.state_vector import SystemCallback
+from ss.system.state_vector.examples.mass_spring_damper import (
     ControlChoice,
     MassSpringDamperStateTrajectoryFigure,
     MassSpringDamperSystem,
@@ -16,7 +17,7 @@ from ss.system.dense_state.examples.mass_spring_damper import (
 @click.option(
     "--number-of-connections",
     type=click.IntRange(min=1),
-    default=4,
+    default=2,
     help="Set the number of connections (positive integers).",
 )
 @click.option(
@@ -28,71 +29,83 @@ from ss.system.dense_state.examples.mass_spring_damper import (
 @click.option(
     "--time-step",
     type=click.FloatRange(min=0),
-    default=0.01,
+    default=0.02,
     help="Set the time step (positive value).",
 )
+@click.option(
+    "--step-skip",
+    type=click.IntRange(min=1),
+    default=1,
+    help="Set the step skip (positive integers).",
+)
 def main(
-    number_of_connections: int, simulation_time: float, time_step: float
+    number_of_connections: int,
+    simulation_time: float,
+    time_step: float,
+    step_skip: int,
 ) -> None:
     simulation_time_steps = int(simulation_time / time_step)
     system = MassSpringDamperSystem(
         number_of_connections=number_of_connections,
         time_step=time_step,
         control_choice=ControlChoice.ALL_FORCES,
+        process_noise_covariance=0.01 * np.identity(2 * number_of_connections),
     )
     system.state = np.random.rand(2 * number_of_connections)
+    system_callback = SystemCallback(
+        step_skip=step_skip,
+        system=system,
+    )
     cost = QuadraticCost(
         running_cost_state_weight=np.identity(2 * number_of_connections),
         running_cost_control_weight=np.identity(number_of_connections),
         time_step=time_step,
+    )
+    cost_callback = CostCallback(
+        step_skip=step_skip,
+        cost=cost,
     )
     controller = ModelPredictivePathIntegralController(
         system=system,
         cost=cost,
         time_horizon=100,
         number_of_samples=1000,
-        temperature=50.0,
-        base_control_confidence=1.0,
-        exploration_percentage=0.01,  # Fixme: This is a hack to avoid zero
+        temperature=100.0,
+        base_control_confidence=0.98,
     )
-
-    cost_trajectory = np.zeros(simulation_time_steps)
-    state_trajectory = np.zeros(
-        (2 * number_of_connections, simulation_time_steps)
-    )
-    time_trajectory = np.zeros(simulation_time_steps)
 
     time = 0.0
     for k in range(simulation_time_steps):
-        time_trajectory[k] = time
 
+        # Get the current state
         current_state = system.state
-        state_trajectory[:, k] = current_state
 
+        # Compute the control
         controller.reset_systems(current_state)
         control_trajectory = controller.compute_control()
         control = control_trajectory[:, 0]
+
+        # Apply the control
         system.control = control
+        system_callback.make_callback(k, time)
         time = system.process(time)
 
+        # Compute the cost
         cost.state = current_state
         cost.control = control
-        cost_trajectory[k] = cost.evaluate()
+        cost_callback.make_callback(k, time)
 
-        print(
-            f"Time: {time_trajectory[k]} sec, "
-            f"State: {state_trajectory[:, k]}, "
-            f"Control: {control}, "
-            f"Cost: {cost_trajectory[k]}"
-        )
+    # Compute the terminal cost
+    # cost.set_terminal()
+    # cost_callback.make_callback(simulation_time_steps, time)
 
     MassSpringDamperStateTrajectoryFigure(
-        time_trajectory,
-        state_trajectory,
+        system_callback["time"],
+        system_callback["state"],
     ).plot_figure()
     CostTrajectoryFigure(
-        time_trajectory,
-        cost_trajectory,
+        cost_callback["time"],
+        cost_callback["cost"],
     ).plot_figure()
     plt.show()
 

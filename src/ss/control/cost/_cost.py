@@ -5,6 +5,7 @@ from matplotlib.axes import Axes
 from numpy.typing import NDArray
 
 from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.tool.callback import Callback
 from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
 from ss.tool.figure import TimeTrajectoryFigure
 
@@ -94,6 +95,21 @@ class Cost:
         self._cost = np.zeros(self._number_of_systems, dtype=np.float64)
 
 
+class CostCallback(Callback):
+    def __init__(
+        self,
+        step_skip: int,
+        cost: Cost,
+    ) -> None:
+        assert issubclass(type(cost), Cost), "cost must be an instance of Cost."
+        self._cost = cost
+        super().__init__(step_skip)
+
+    def _record_params(self, time: float) -> None:
+        super()._record_params(time)
+        self.callback_params["cost"].append(self._cost.evaluate())
+
+
 class CostTrajectoryFigure(TimeTrajectoryFigure):
     """
     Figure for plotting the cost trajectory.
@@ -108,7 +124,7 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
         super().__init__(
             time_trajectory,
             fig_size=fig_size,
-            fig_title="Cost Trajectory",
+            fig_title="Accumulated Cost Trajectory",
         )
         assert (
             len(cost_trajectory.shape) == 1
@@ -122,8 +138,10 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
     def plot_figure(
         self,
     ) -> Self:
-        self._cost_subplot.plot(self._time_trajectory, self._cost_trajectory)
-        self._cost_subplot.set_xlabel("Time (s)")
-        self._cost_subplot.set_ylabel("Cost")
+        time_step = np.mean(np.diff(self._time_trajectory))
+        self._cost_subplot.plot(
+            self._time_trajectory,
+            np.cumsum(self._cost_trajectory) * time_step,
+        )
         super().plot_figure()
         return self

@@ -6,14 +6,18 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.control.cost.quadratic import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
-from ss.system.dense_state import ContinuousTimeSystem
-from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.system.state_vector.dynamic_system import ContinuousTimeSystem
+from ss.tool.assertion import (
+    isNonNegativeNumber,
+    isPositiveInteger,
+    isPositiveNumber,
+)
 from ss.tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
 
 
 class ModelPredictivePathIntegralController:
     """
-    Model Predictive Path Integral Controller (MPPI) [Williams et al., 2018]
+    Model Predictive Path Integral Controller [Williams et al., 2018]
 
     Parameters:
     -----------
@@ -44,9 +48,9 @@ class ModelPredictivePathIntegralController:
         number_of_samples: int,
         temperature: float,
         base_control_confidence: float,
-        exploration_percentage: float,
+        exploration_percentage: float = 0.0,
         smoothing_window_size: Optional[int] = None,
-    ):
+    ) -> None:
         assert issubclass(
             type(system), ContinuousTimeSystem
         ), f"system {system} must be an instance of ContinuousTimeSystem"
@@ -75,7 +79,7 @@ class ModelPredictivePathIntegralController:
             and base_control_confidence <= 1
         ), f"base_control_confidence {base_control_confidence} must be a positive number within the range (0, 1]"
         assert (
-            isPositiveNumber(exploration_percentage)
+            isNonNegativeNumber(exploration_percentage)
             and exploration_percentage < 1
         ), f"exploration_percentage {exploration_percentage} must be a positive number within the range (0, 1)"
         if smoothing_window_size is None:
@@ -212,7 +216,8 @@ class ModelPredictivePathIntegralController:
         )
 
         self._update_control_trajectory(
-            self._control_trajectory, exploration_control_trajectory
+            self._control_trajectory,
+            exploration_control_trajectory,
         )
 
         return self._control_trajectory

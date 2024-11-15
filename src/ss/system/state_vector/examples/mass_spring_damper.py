@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
-from ss.system.dense_state.linear import DiscreteTimeLinearSystem
+from ss.system.state_vector.linear import DiscreteTimeLinearSystem
 from ss.tool.assertion import isPositiveInteger
 from ss.tool.figure import TimeTrajectoryFigure
 
@@ -168,10 +168,11 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
 
     def __init__(
         self,
-        time_trajectory: NDArray[np.float64],
-        state_trajectory: NDArray[np.float64],
+        time_trajectory: ArrayLike,
+        state_trajectory: ArrayLike,
         fig_size: Tuple[int, int] = (12, 8),
     ) -> None:
+        state_trajectory = np.array(state_trajectory)
         assert (
             len(state_trajectory.shape) == 2
         ), "state_trajectory must be a 2D array."
@@ -245,6 +246,5 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                 self._subplots[i][j].set_ylim(*ylim_range)
         for j in range(self._number_of_connections):
             self._subplots[0][j].set_title(f"Mass {j+1}")
-        self._fig.supxlabel("Time (sec)")
         super().plot_figure()
         return self

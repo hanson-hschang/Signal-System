@@ -3,9 +3,9 @@ from typing import Self, Tuple
 import numpy as np
 from matplotlib.axes import Axes
 from numba import njit
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
-from ss.system.dense_state.nonlinear import ContinuousTimeNonlinearSystem
+from ss.system.state_vector.nonlinear import ContinuousTimeNonlinearSystem
 from ss.tool.figure import TimeTrajectoryFigure
 
 
@@ -121,10 +121,11 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
 
     def __init__(
         self,
-        time_trajectory: NDArray[np.float64],
-        state_trajectory: NDArray[np.float64],
+        time_trajectory: ArrayLike,
+        state_trajectory: ArrayLike,
         fig_size: Tuple[int, int] = (12, 8),
     ) -> None:
+        state_trajectory = np.array(state_trajectory)
         assert (
             len(state_trajectory.shape) == 2
         ), "state_trajectory must be a 2D array."
@@ -161,7 +162,7 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
             self._state_trajectory,
             self._state_name,
         ):
-            self._plot_figure(
+            self._plot_subplot(
                 state_subplot,
                 state_trajectory,
                 state_name,
@@ -169,10 +170,10 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
         super().plot_figure()
         return self
 
-    def _plot_figure(
+    def _plot_subplot(
         self,
         ax: Axes,
-        state_trajectory: NDArray[np.number],
+        state_trajectory: NDArray[np.float64],
         label: str,
     ) -> None:
         ax.plot(

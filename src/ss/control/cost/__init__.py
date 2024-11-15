@@ -1,1 +1,1 @@
-from ss.control.cost._cost import Cost, CostTrajectoryFigure
+from ss.control.cost._cost import Cost, CostCallback, CostTrajectoryFigure

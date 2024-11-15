@@ -4,7 +4,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 from ss.tool.assertion import isPositiveInteger, isPositiveNumber
 
@@ -12,11 +12,12 @@ from ss.tool.assertion import isPositiveInteger, isPositiveNumber
 class TimeTrajectoryFigure:
     def __init__(
         self,
-        time_trajectory: NDArray[np.float64],
+        time_trajectory: ArrayLike,
         fig_size: Tuple[int, int] = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
     ) -> None:
+        time_trajectory = np.array(time_trajectory)
         assert (
             len(time_trajectory.shape) == 1
         ), "time_trajectory must be a 1D array."
@@ -53,6 +54,7 @@ class TimeTrajectoryFigure:
     ) -> Self:
         if self._fig_title is not None:
             self._fig.suptitle(self._fig_title)
+        self._fig.supxlabel("Time (sec)")
         self._fig.tight_layout()
         return self
 
