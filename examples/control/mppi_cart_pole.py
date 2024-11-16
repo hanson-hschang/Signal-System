@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import click
 import matplotlib.pyplot as plt
 import numpy as np
@@ -94,6 +97,12 @@ def main(
     # Compute the terminal cost
     # cost.set_terminal()
     # cost_callback.make_callback(simulation_time_steps, time)
+
+    parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
+    data_folder_directory = parent_directory / Path(__file__).stem
+
+    system_callback.save(data_folder_directory / "system.hdf5")
+    cost_callback.save(data_folder_directory / "cost.hdf5")
 
     CartPoleStateTrajectoryFigure(
         system_callback["time"],

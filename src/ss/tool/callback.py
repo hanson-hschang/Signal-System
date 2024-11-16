@@ -1,7 +1,9 @@
-from typing import Any, DefaultDict, List
+from typing import DefaultDict, List, Union
 
 from collections import defaultdict
+from pathlib import Path
 
+import h5py
 import numpy as np
 from numpy.typing import NDArray
 
@@ -35,5 +37,30 @@ class Callback:
             signal_trajectory = np.moveaxis(signal_trajectory, 0, -1)
         return signal_trajectory
 
-    def save_params(self, filename: str) -> None:
-        pass
+    def save(self, filename: Union[str, Path]) -> None:
+        """
+        Save callback parameters to an HDF5 file.
+
+        Args:
+            filename (str): Path to save the HDF5 file
+
+        Note:
+            - Creates parent directories if they don't exist
+            - Converts all parameters to numpy arrays before saving
+            - Maintains the structure of multi-dimensional arrays
+        """
+        assert isinstance(
+            filename, (str, Path)
+        ), "filename must be a string or Path."
+        filepath = Path(filename) if isinstance(filename, str) else filename
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+
+        with h5py.File(filepath, "w") as f:
+
+            for key in self.callback_params.keys():
+                data = self[key]
+
+                dataset: h5py.Dataset = f.create_dataset(
+                    name=key,
+                    data=data,
+                )
