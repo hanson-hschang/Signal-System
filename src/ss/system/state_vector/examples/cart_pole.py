@@ -1,4 +1,6 @@
-from typing import Self, Tuple
+from typing import Any, Dict, Optional, Self, Tuple
+
+from collections import defaultdict
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -126,21 +128,31 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
         fig_size: Tuple[int, int] = (12, 8),
     ) -> None:
         state_trajectory = np.array(state_trajectory)
+        match len(state_trajectory.shape):
+            case 1:
+                state_trajectory = state_trajectory[np.newaxis, np.newaxis, :]
+            case 2:
+                state_trajectory = state_trajectory[np.newaxis, :, :]
+            case _:
+                pass
         assert (
-            len(state_trajectory.shape) == 2
-        ), "state_trajectory must be a 2D array."
-        assert (
-            state_trajectory.shape[0] == 4
-        ), "state_trajectory must have number of rows same as the state dimension."
+            len(state_trajectory.shape) == 3
+        ), "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+        assert state_trajectory.shape[1] == 4, (
+            "state_trajectory must have 4 states, corresponding to the cart-pole system."
+            "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+        )
         super().__init__(
             time_trajectory,
-            fig_size,
+            number_of_systems=state_trajectory.shape[0],
+            fig_size=fig_size,
             fig_title="Cart-Pole System State Trajectory",
             fig_layout=(2, 2),
         )
-        assert (
-            state_trajectory.shape[1] == self._time_length
-        ), "state_trajectory must have number of columns same length of time_trajectory."
+        assert state_trajectory.shape[2] == self._time_length, (
+            "state_trajectory must have the same length of time_trajectory."
+            "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+        )
 
         self._state_trajectory = state_trajectory
         self._state_name = [
@@ -157,28 +169,57 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
         ]
 
     def plot_figure(self) -> Self:
-        for state_subplot, state_trajectory, state_name in zip(
-            self._state_subplots,
-            self._state_trajectory,
-            self._state_name,
-        ):
-            self._plot_subplot(
-                state_subplot,
-                state_trajectory,
-                state_name,
+        if self._number_of_systems <= 10:
+            self._plot_each_system_trajectory()
+        else:
+            kwargs: Dict = dict(
+                color=self._default_color,
+                alpha=self._default_alpha,
+            )
+            self._plot_each_system_trajectory(
+                **kwargs,
+            )
+            mean_trajectory, std_trajectory = (
+                self._compute_system_statistics_trajectory(
+                    signal_trajectory=self._state_trajectory,
+                )
+            )
+            self._plot_systems_statistics_trajectory(
+                mean_trajectory=mean_trajectory,
+                std_trajectory=std_trajectory,
             )
         super().plot_figure()
         return self
 
-    def _plot_subplot(
+    def _plot_each_system_trajectory(
         self,
-        ax: Axes,
-        state_trajectory: NDArray[np.float64],
-        label: str,
+        **kwargs: Any,
     ) -> None:
-        ax.plot(
-            self._time_trajectory,
-            state_trajectory,
-        )
-        ax.set_ylabel(label)
-        ax.grid(True)
+        for i in range(self._number_of_systems):
+            for state_subplot, state_trajectory, state_name in zip(
+                self._state_subplots,
+                self._state_trajectory[i, ...],
+                self._state_name,
+            ):
+                self._plot_signal_trajectory(
+                    state_subplot,
+                    state_trajectory,
+                    state_name,
+                    **kwargs,
+                )
+
+    def _plot_systems_statistics_trajectory(
+        self,
+        mean_trajectory: NDArray[np.float64],
+        std_trajectory: NDArray[np.float64],
+    ) -> None:
+        for state_subplot, mean_state, std_state in zip(
+            self._state_subplots,
+            mean_trajectory,
+            std_trajectory,
+        ):
+            self._plot_statistics_signal_trajectory(
+                state_subplot,
+                mean_state,
+                std_state,
+            )

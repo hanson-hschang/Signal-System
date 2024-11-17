@@ -14,7 +14,7 @@ class Callback:
         step_skip: int,
     ) -> None:
         self.sample_every = step_skip
-        self.callback_params: DefaultDict[str, List] = defaultdict(list)
+        self._callback_params: DefaultDict[str, List] = defaultdict(list)
 
     def make_callback(
         self,
@@ -25,14 +25,14 @@ class Callback:
             self._record_params(time)
 
     def _record_params(self, time: float) -> None:
-        self.callback_params["time"].append(time)
+        self._callback_params["time"].append(time)
 
     def __getitem__(self, key: str) -> NDArray[np.float64]:
         assert isinstance(key, str), "key must be a string."
         assert (
-            key in self.callback_params.keys()
-        ), f"{key} not in callback_params."
-        signal_trajectory = np.array(self.callback_params[key])
+            key in self._callback_params.keys()
+        ), f"{key} not in callback parameters."
+        signal_trajectory = np.array(self._callback_params[key])
         if len(signal_trajectory.shape) > 1:
             signal_trajectory = np.moveaxis(signal_trajectory, 0, -1)
         return signal_trajectory
@@ -41,13 +41,10 @@ class Callback:
         """
         Save callback parameters to an HDF5 file.
 
-        Args:
-            filename (str): Path to save the HDF5 file
-
-        Note:
-            - Creates parent directories if they don't exist
-            - Converts all parameters to numpy arrays before saving
-            - Maintains the structure of multi-dimensional arrays
+        Parameters:
+        -----------
+        filename: str or Path
+            The path to the file to save the callback parameters.
         """
         assert isinstance(
             filename, (str, Path)
@@ -57,10 +54,10 @@ class Callback:
 
         with h5py.File(filepath, "w") as f:
 
-            for key in self.callback_params.keys():
+            for key in self._callback_params.keys():
                 data = self[key]
 
-                dataset: h5py.Dataset = f.create_dataset(
+                f.create_dataset(
                     name=key,
                     data=data,
                 )

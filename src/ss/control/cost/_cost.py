@@ -107,7 +107,7 @@ class CostCallback(Callback):
 
     def _record_params(self, time: float) -> None:
         super()._record_params(time)
-        self.callback_params["cost"].append(self._cost.evaluate())
+        self._callback_params["cost"].append(self._cost.evaluate())
 
 
 class CostTrajectoryFigure(TimeTrajectoryFigure):
