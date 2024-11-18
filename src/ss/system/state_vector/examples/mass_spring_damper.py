@@ -191,6 +191,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
         self._number_of_connections = state_trajectory.shape[1] // 2
         super().__init__(
             time_trajectory,
+            number_of_systems=state_trajectory.shape[0],
             fig_size=fig_size,
             fig_title="Mass-Spring-Damper System State Trajectory",
             fig_layout=(2, self._number_of_connections),

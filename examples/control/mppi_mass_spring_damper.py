@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 
 from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
@@ -41,11 +42,18 @@ from ss.system.state_vector.examples.mass_spring_damper import (
     default=1,
     help="Set the step skip (positive integers).",
 )
+@click.option(
+    "--number-of-systems",
+    type=click.IntRange(min=1),
+    default=1,
+    help="Set the number of systems (positive integers).",
+)
 def main(
     number_of_connections: int,
     simulation_time: float,
     time_step: float,
     step_skip: int,
+    number_of_systems: int,
 ) -> None:
     simulation_time_steps = int(simulation_time / time_step)
     system = MassSpringDamperSystem(
@@ -53,8 +61,11 @@ def main(
         time_step=time_step,
         control_choice=ControlChoice.ALL_FORCES,
         process_noise_covariance=0.01 * np.identity(2 * number_of_connections),
+        number_of_systems=number_of_systems,
     )
-    system.state = np.random.rand(2 * number_of_connections)
+    system.state = np.random.rand(
+        number_of_systems, 2 * number_of_connections
+    ).squeeze()
     system_callback = SystemCallback(
         step_skip=step_skip,
         system=system,
@@ -63,6 +74,7 @@ def main(
         running_cost_state_weight=np.identity(2 * number_of_connections),
         running_cost_control_weight=np.identity(number_of_connections),
         time_step=time_step,
+        number_of_systems=number_of_systems,
     )
     cost_callback = CostCallback(
         step_skip=step_skip,
@@ -78,36 +90,48 @@ def main(
     )
 
     time = 0.0
-    for k in range(simulation_time_steps):
+    for k in tqdm(range(simulation_time_steps)):
 
         # Get the current state
         current_state = system.state
+        if len(current_state.shape) == 1:
+            current_state = current_state[np.newaxis, :]
 
-        # Compute the control
-        controller.reset_systems(current_state)
-        control_trajectory = controller.compute_control()
-        control = control_trajectory[:, 0]
+        # Initialize control placeholder
+        control = np.zeros_like(system.control)
+        if len(control.shape) == 1:
+            control = control[np.newaxis, :]
+        for i in range(number_of_systems):
+            # Compute the control for each system
+            controller.reset_systems(current_state[i, :])
+            control_trajectory = controller.compute_control()
+            control[i, :] = control_trajectory[:, 0]
 
-        # Apply the control
-        system.control = control
+        # Set the control
+        system.control = control.squeeze()
         system_callback.make_callback(k, time)
-        time = system.process(time)
 
         # Compute the cost
-        cost.state = current_state
-        cost.control = control
+        cost.state = current_state.squeeze()
+        cost.control = control.squeeze()
         cost_callback.make_callback(k, time)
 
-    # Compute the terminal cost
-    # cost.set_terminal()
-    # cost_callback.make_callback(simulation_time_steps, time)
+        # Update the system
+        time = system.process(time)
 
+    # Compute the terminal cost
+    cost.set_terminal()
+    cost.state = system.state
+    cost_callback.make_callback(simulation_time_steps, time)
+    system_callback.make_callback(simulation_time_steps, time)
+
+    # Save the data
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
     data_folder_directory = parent_directory / Path(__file__).stem
-
     system_callback.save(data_folder_directory / "system.hdf5")
     cost_callback.save(data_folder_directory / "cost.hdf5")
 
+    # Plot the data
     MassSpringDamperStateTrajectoryFigure(
         system_callback["time"],
         system_callback["state"],

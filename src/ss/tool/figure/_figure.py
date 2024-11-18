@@ -107,4 +107,3 @@ class TimeTrajectoryFigure:
             mean_trajectory + std_trajectory,
             alpha=self._default_std_alpha,
         )
-        ax.legend(["Mean", "Standard Deviation"])
