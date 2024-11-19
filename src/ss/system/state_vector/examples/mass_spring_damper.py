@@ -118,9 +118,6 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
             case _ as unmatched_control_choice:
                 assert_never(unmatched_control_choice)
 
-        # state_space_matrix_A = expm(matrix_A * time_step)
-        # state_space_matrix_B = state_space_matrix_A @ matrix_B * time_step
-
         super().__init__(
             time_step=time_step,
             state_space_matrix_A=matrix_A,
