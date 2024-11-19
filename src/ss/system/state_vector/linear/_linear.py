@@ -1,16 +1,18 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
+from scipy.linalg import expm
 
 from ss.system.state_vector.dynamic_system import DiscreteTimeSystem
+from ss.tool.assertion import isPositiveNumber
 from ss.tool.assertion.validator import Validator
 
 
 class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     class _StateSpaceMatrixAValidator(Validator):
-        def __init__(self, state_space_matrix_A: ArrayLike):
+        def __init__(self, state_space_matrix_A: ArrayLike) -> None:
             super().__init__()
             self._state_space_matrix_A = np.array(
                 state_space_matrix_A, dtype=np.float64
@@ -32,7 +34,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             self,
             state_dim: int,
             state_space_matrix_B: Optional[ArrayLike] = None,
-        ):
+        ) -> None:
             super().__init__()
             if state_space_matrix_B is None:
                 state_space_matrix_B = np.zeros((state_dim, 0))
@@ -53,7 +55,9 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             return self._state_space_matrix_B
 
     class _StateSpaceMatrixCValidator(Validator):
-        def __init__(self, state_dim: int, state_space_matrix_C: ArrayLike):
+        def __init__(
+            self, state_dim: int, state_space_matrix_C: ArrayLike
+        ) -> None:
             super().__init__()
             self._state_space_matrix_C = np.array(
                 state_space_matrix_C, dtype=np.float64
@@ -79,21 +83,21 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
-    ):
-        self.state_space_matrix_A = self._StateSpaceMatrixAValidator(
+    ) -> None:
+        self._state_space_matrix_A = self._StateSpaceMatrixAValidator(
             state_space_matrix_A
         ).get_matrix()
-        state_dim = self.state_space_matrix_A.shape[0]
+        state_dim = self._state_space_matrix_A.shape[0]
 
-        self.state_space_matrix_C = self._StateSpaceMatrixCValidator(
+        self._state_space_matrix_C = self._StateSpaceMatrixCValidator(
             state_dim, state_space_matrix_C
         ).get_matrix()
-        observation_dim = self.state_space_matrix_C.shape[0]
+        observation_dim = self._state_space_matrix_C.shape[0]
 
-        self.state_space_matrix_B = self._StateSpaceMatrixBValidator(
+        self._state_space_matrix_B = self._StateSpaceMatrixBValidator(
             state_dim, state_space_matrix_B
         ).get_matrix()
-        control_dim = self.state_space_matrix_B.shape[1]
+        control_dim = self._state_space_matrix_B.shape[1]
         self._set_compute_state_process(control_flag=(control_dim > 0))
 
         super().__init__(
@@ -104,6 +108,18 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
         )
+
+    @property
+    def state_space_matrix_A(self) -> NDArray[np.float64]:
+        return self._state_space_matrix_A
+
+    @property
+    def state_space_matrix_B(self) -> NDArray[np.float64]:
+        return self._state_space_matrix_B
+
+    @property
+    def state_space_matrix_C(self) -> NDArray[np.float64]:
+        return self._state_space_matrix_C
 
     def create_multiple_systems(
         self, number_of_systems: int
@@ -122,9 +138,9 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             The created multi-system.
         """
         return self.__class__(
-            state_space_matrix_A=self.state_space_matrix_A,
-            state_space_matrix_C=self.state_space_matrix_C,
-            state_space_matrix_B=self.state_space_matrix_B,
+            state_space_matrix_A=self._state_space_matrix_A,
+            state_space_matrix_C=self._state_space_matrix_C,
+            state_space_matrix_B=self._state_space_matrix_B,
             process_noise_covariance=self._process_noise_covariance,
             observation_noise_covariance=self._observation_noise_covariance,
             number_of_systems=number_of_systems,
@@ -135,7 +151,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             state_process: NDArray[np.float64] = (
                 self._state_process_without_control(
                     self._state,
-                    self.state_space_matrix_A,
+                    self._state_space_matrix_A,
                 )
             )
             return state_process
@@ -144,9 +160,9 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             state_process: NDArray[np.float64] = (
                 self._state_process_with_control(
                     self._state,
-                    self.state_space_matrix_A,
+                    self._state_space_matrix_A,
                     self._control,
-                    self.state_space_matrix_B,
+                    self._state_space_matrix_B,
                 )
             )
             return state_process
@@ -194,7 +210,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     def _compute_observation_process(self) -> NDArray[np.float64]:
         observation_process: NDArray[np.float64] = self._observation_process(
             self._state,
-            self.state_space_matrix_C,
+            self._state_space_matrix_C,
         )
         return observation_process
 
@@ -208,3 +224,59 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         for i in range(state.shape[0]):
             observation[i, :] = state_space_matrix_C @ state[i, :]
         return observation
+
+
+class ContinuousTimeLinearSystem(DiscreteTimeLinearSystem):
+    def __init__(
+        self,
+        time_step: Union[int, float],
+        state_space_matrix_A: ArrayLike,
+        state_space_matrix_C: ArrayLike,
+        state_space_matrix_B: Optional[ArrayLike] = None,
+        process_noise_covariance: Optional[ArrayLike] = None,
+        observation_noise_covariance: Optional[ArrayLike] = None,
+        number_of_systems: int = 1,
+    ) -> None:
+        assert isPositiveNumber(
+            time_step
+        ), f"time_step {time_step} must be a positive number"
+        super().__init__(
+            state_space_matrix_A=state_space_matrix_A,
+            state_space_matrix_C=state_space_matrix_C,
+            state_space_matrix_B=state_space_matrix_B,
+            process_noise_covariance=process_noise_covariance,
+            observation_noise_covariance=observation_noise_covariance,
+            number_of_systems=number_of_systems,
+        )
+        self._time_step = time_step
+
+        self._continuous_time_state_space_matrix_A = (
+            self._state_space_matrix_A.copy()
+        )
+        self._continuous_time_state_space_matrix_B = (
+            self._state_space_matrix_B.copy()
+        )
+        self._continuous_time_state_space_matrix_C = (
+            self._state_space_matrix_C.copy()
+        )
+
+        self._state_space_matrix_A = np.array(
+            expm(self._state_space_matrix_A * self._time_step), dtype=np.float64
+        )
+        self._state_space_matrix_B = (
+            self._state_space_matrix_A
+            @ self._state_space_matrix_B
+            * self._time_step
+        )
+
+    @property
+    def state_space_matrix_A(self) -> NDArray[np.float64]:
+        return self._continuous_time_state_space_matrix_A
+
+    @property
+    def state_space_matrix_B(self) -> NDArray[np.float64]:
+        return self._continuous_time_state_space_matrix_B
+
+    @property
+    def state_space_matrix_C(self) -> NDArray[np.float64]:
+        return self._continuous_time_state_space_matrix_C

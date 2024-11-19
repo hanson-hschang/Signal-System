@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
-from ss.system.state_vector.linear import DiscreteTimeLinearSystem
+from ss.system.state_vector.linear import ContinuousTimeLinearSystem
 from ss.tool.assertion import isPositiveInteger
 from ss.tool.figure import TimeTrajectoryFigure
 
@@ -23,7 +23,7 @@ class ControlChoice(StrEnum):
     NO_CONTROL = "NO_CONTROL"
 
 
-class MassSpringDamperSystem(DiscreteTimeLinearSystem):
+class MassSpringDamperSystem(ContinuousTimeLinearSystem):
     def __init__(
         self,
         number_of_connections: int = 1,
@@ -118,18 +118,18 @@ class MassSpringDamperSystem(DiscreteTimeLinearSystem):
             case _ as unmatched_control_choice:
                 assert_never(unmatched_control_choice)
 
-        state_space_matrix_A = expm(matrix_A * time_step)
-        state_space_matrix_B = state_space_matrix_A @ matrix_B * time_step
+        # state_space_matrix_A = expm(matrix_A * time_step)
+        # state_space_matrix_B = state_space_matrix_A @ matrix_B * time_step
 
         super().__init__(
-            state_space_matrix_A=state_space_matrix_A,
-            state_space_matrix_B=state_space_matrix_B,
+            time_step=time_step,
+            state_space_matrix_A=matrix_A,
+            state_space_matrix_B=matrix_B,
             state_space_matrix_C=matrix_C,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
             number_of_systems=number_of_systems,
         )
-        self._time_step = time_step
 
     def create_multiple_systems(
         self, number_of_systems: int

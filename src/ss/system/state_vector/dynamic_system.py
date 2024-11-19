@@ -1,7 +1,6 @@
 from typing import Any, Optional, Union
 
 import numpy as np
-from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system.state_vector import System
