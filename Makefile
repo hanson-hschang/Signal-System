@@ -61,7 +61,7 @@ test:
 #* Formatters
 .PHONY: formatting
 formatting:
-	poetry run pyupgrade --exit-zero-even-if-changed --py38-plus **/*.py
+	poetry run pyupgrade --exit-zero-even-if-changed --py38-plus src/**/*.py
 	poetry run isort --settings-path pyproject.toml ./
 	poetry run black --config pyproject.toml ./
 	poetry run mypy --config-file pyproject.toml ./
