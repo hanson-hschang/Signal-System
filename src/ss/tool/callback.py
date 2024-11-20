@@ -1,4 +1,4 @@
-from typing import DefaultDict, List, Union
+from typing import Any, DefaultDict, Dict, List, Union
 
 from collections import defaultdict
 from pathlib import Path
@@ -15,6 +15,7 @@ class Callback:
     ) -> None:
         self.sample_every = step_skip
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
+        self._meta_data: DefaultDict[str, Any] = defaultdict()
 
     def make_callback(
         self,
@@ -61,3 +62,17 @@ class Callback:
                     name=key,
                     data=data,
                 )
+            for key, value in self._meta_data.items():
+                f.attrs[key] = value
+
+    def add_meta_data(self, meta_data: Dict[str, Any]) -> None:
+        """
+        Add meta data to the callback.
+
+        Parameters:
+        -----------
+        meta_data: Dict[str, Any]
+            The meta data to be added to the callback.
+        """
+        assert isinstance(meta_data, dict), "meta_data must be a dictionary."
+        self._meta_data.update(meta_data)

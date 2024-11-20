@@ -91,7 +91,7 @@ def main(
         base_control_confidence=0.98,
     )
 
-    time = 0.0
+    current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
 
         # Get the current state
@@ -111,21 +111,21 @@ def main(
 
         # Set the control
         system.control = control.squeeze()
-        system_callback.make_callback(k, time)
+        system_callback.make_callback(k, current_time)
 
         # Compute the cost
         cost.state = current_state.squeeze()
         cost.control = control.squeeze()
-        cost_callback.make_callback(k, time)
+        cost_callback.make_callback(k, current_time)
 
         # Update the system
-        time = system.process(time)
+        current_time = system.process(current_time)
 
     # Compute the terminal cost
     cost.set_terminal()
     cost.state = system.state
-    cost_callback.make_callback(simulation_time_steps, time)
-    system_callback.make_callback(simulation_time_steps, time)
+    cost_callback.make_callback(simulation_time_steps, current_time)
+    system_callback.make_callback(simulation_time_steps, current_time)
 
     # Save the data
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))

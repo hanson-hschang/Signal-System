@@ -70,7 +70,7 @@ def main(
         base_control_confidence=0.98,
     )
 
-    time = 0.0
+    current_time = 0.0
     for k in range(simulation_time_steps):
 
         # Get the current state
@@ -82,17 +82,17 @@ def main(
         # controller.control_trajectory = np.clip(
         #     control_trajectory, -100.0, 100.0
         # )
-        control = controller.control_trajectory[:, 0]
+        control = control_trajectory[:, 0]
 
         # Apply the control
         system.control = control
-        system_callback.make_callback(k, time)
-        time = system.process(time)
+        system_callback.make_callback(k, current_time)
+        current_time = system.process(current_time)
 
         # Compute the cost
         cost.state = current_state
         cost.control = control
-        cost_callback.make_callback(k, time)
+        cost_callback.make_callback(k, current_time)
 
     # Compute the terminal cost
     # cost.set_terminal()
