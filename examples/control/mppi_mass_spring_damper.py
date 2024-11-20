@@ -63,8 +63,10 @@ def main(
         process_noise_covariance=0.01 * np.identity(2 * number_of_connections),
         number_of_systems=number_of_systems,
     )
-    system.state = np.random.rand(
-        number_of_systems, 2 * number_of_connections
+    system.state = np.random.multivariate_normal(
+        np.ones(2 * number_of_connections),
+        np.identity(2 * number_of_connections),
+        size=(number_of_systems,),
     ).squeeze()
     system_callback = SystemCallback(
         step_skip=step_skip,
