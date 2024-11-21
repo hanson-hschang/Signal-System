@@ -150,7 +150,9 @@ class ModelPredictivePathIntegralController:
         )
 
     def _compute_exploration_index(self) -> int:
-        return int(self._base_control_confidence * self._number_of_samples)
+        return int(
+            (1 - self._base_control_confidence) * self._number_of_samples
+        )
 
     def _compute_control_cost_regularization_weight(self) -> float:
         return (1 - self._base_control_confidence) * self._temperature
@@ -179,14 +181,14 @@ class ModelPredictivePathIntegralController:
 
             self._costs.state = self._systems.state
 
+            base_control = control_trajectory[:, k][np.newaxis, :]
+
             control = (
-                noisy_exploration_control_trajectory[:, k, :]
-                + control_trajectory[:, k][np.newaxis, :]
+                noisy_exploration_control_trajectory[:, k, :] + base_control
             )
             # control = noisy_exploration_control_trajectory[:, k, :]
-            # control[:self._exploration_index, :] += control_trajectory[:, k][
-            #     np.newaxis, :
-            # ]
+            # control[:self._exploration_index, :] += base_control
+
             self._systems.control = control
             time = self._systems.process(time)
 
@@ -195,7 +197,7 @@ class ModelPredictivePathIntegralController:
                 * np.einsum(
                     "m, im -> i",
                     self._costs.running_cost_control_weight
-                    @ control_trajectory[:, k],
+                    @ base_control[0, :],
                     control,
                 )
                 * self._costs.time_step
