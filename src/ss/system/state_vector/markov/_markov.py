@@ -40,7 +40,8 @@ class MarkovChain(DiscreteTimeSystem):
                 )
             if self._state_dim is not None and shape[0] != self._state_dim:
                 self._errors.append(
-                    f"transition_probability_matrix should have the shape as (state_dim, state_dim) with state_dim={self._state_dim}. Got {shape}"
+                    f"transition_probability_matrix should have the shape as (state_dim, state_dim) with state_dim={self._state_dim}."
+                    f"The transition_probability_matrix given has the shape {shape}."
                 )
 
         def _validate_row_sum(self) -> None:
