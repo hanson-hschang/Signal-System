@@ -4,8 +4,7 @@ from pathlib import Path
 import click
 from tqdm import tqdm
 
-from ss.system.state_vector import SystemCallback
-from ss.system.state_vector.markov import MarkovChain
+from ss.system.state_vector.markov import MarkovChain, MarkovChainCallback
 
 
 @click.command()
@@ -49,12 +48,12 @@ def main(
         emission_probability_matrix=emission_probability_matrix,
         number_of_systems=number_of_systems,
     )
-    system_callback = SystemCallback(
+    system_callback = MarkovChainCallback(
         step_skip=step_skip,
         system=markov_chain,
     )
 
-    current_time = 0
+    current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
         system_callback.make_callback(k, current_time)
         current_time = markov_chain.process(current_time)

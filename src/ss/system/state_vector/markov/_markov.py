@@ -4,12 +4,13 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
+from ss.system.state_vector import SystemCallback
 from ss.system.state_vector.dynamic_system import DiscreteTimeSystem
 from ss.tool.assertion.validator import Validator
 
 
 @njit(cache=True)  # type: ignore
-def _one_hot_encoding(
+def _one_hot_embedding(
     indices: NDArray[np.int64],
     identity: NDArray[np.float64],
 ) -> NDArray[np.float64]:
@@ -117,9 +118,25 @@ class MarkovChain(DiscreteTimeSystem):
         self._state_index: NDArray[np.int64] = np.zeros(
             self._number_of_systems, dtype=np.int64
         )
-        self._state_dim_identity = np.identity(
-            self._state_dim, dtype=np.float64
+        self._observation_index: NDArray[np.int64] = np.zeros(
+            self._number_of_systems, dtype=np.int64
         )
+        self._state_embedding = np.identity(self._state_dim, dtype=np.float64)
+        self._observation_embedding = np.identity(
+            self._observation_dim, dtype=np.float64
+        )
+        self._state[...] = _one_hot_embedding(
+            self._state_index,
+            self._state_embedding,
+        )
+
+    @property
+    def state_index(self) -> NDArray[np.int64]:
+        return self._state_index.squeeze()
+
+    @property
+    def observation_index(self) -> NDArray[np.int64]:
+        return self._observation_index.squeeze()
 
     @property
     def transition_probability_matrix(self) -> NDArray[np.float64]:
@@ -165,22 +182,22 @@ class MarkovChain(DiscreteTimeSystem):
             self._state_index,
             self._transition_probability_cumsum,
         )
-        # state_process is a one-hot encoding of the state_index
-        state_process: NDArray[np.float64] = _one_hot_encoding(
+        # state_process is a one-hot embedding of the state_index
+        state_process: NDArray[np.float64] = _one_hot_embedding(
             self._state_index,
-            self._state_dim_identity,
+            self._state_embedding,
         )
         return state_process
 
     def _compute_observation_process(self) -> NDArray[np.float64]:
-        observation_index: NDArray[np.int64] = self._process(
+        self._observation_index: NDArray[np.int64] = self._process(
             self._state_index,
             self._emission_probability_cumsum,
         )
-        # observation_process is a one-hot encoding of the observation_index
-        observation_process: NDArray[np.float64] = _one_hot_encoding(
-            observation_index,
-            self._state_dim_identity,
+        # observation_process is a one-hot embedding of the observation_index
+        observation_process: NDArray[np.float64] = _one_hot_embedding(
+            self._observation_index,
+            self._observation_embedding,
         )
         return observation_process
 
@@ -200,3 +217,25 @@ class MarkovChain(DiscreteTimeSystem):
                 side="right",
             )
         return output_index
+
+
+class MarkovChainCallback(SystemCallback):
+    def __init__(
+        self,
+        step_skip: int,
+        system: MarkovChain,
+    ) -> None:
+        assert issubclass(
+            type(system), MarkovChain
+        ), f"system must be an instance of MarkovChain"
+        super().__init__(step_skip, system)
+        self._system: MarkovChain = system
+
+    def _record_params(self, time: float) -> None:
+        super()._record_params(time)
+        self._callback_params["state_index"].append(
+            self._system.state_index.copy()
+        )
+        self._callback_params["observation_index"].append(
+            self._system.observation_index.copy()
+        )
