@@ -113,6 +113,10 @@ class MarkovChain(DiscreteTimeSystem):
         if initial_distribution is None:
             initial_distribution = np.ones(self._state_dim) / self._state_dim
         initial_distribution = np.array(initial_distribution, dtype=np.float64)
+        assert initial_distribution.shape[0] == self._state_dim, (
+            f"initial_distribution should have the same length as state_dim {self._state_dim}."
+            f"The initial_distribution given has shape {initial_distribution.shape}."
+        )
 
         self._transition_probability_cumsum = np.cumsum(
             self._transition_probability_matrix, axis=1
