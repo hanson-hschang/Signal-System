@@ -111,12 +111,12 @@ def main(
 
         # Set the control
         system.control = control.squeeze()
-        system_callback.make_callback(k, current_time)
+        system_callback.record(k, current_time)
 
         # Compute the cost
         cost.state = current_state.squeeze()
         cost.control = control.squeeze()
-        cost_callback.make_callback(k, current_time)
+        cost_callback.record(k, current_time)
 
         # Update the system
         current_time = system.process(current_time)
@@ -124,8 +124,8 @@ def main(
     # Compute the terminal cost
     cost.set_terminal()
     cost.state = system.state
-    cost_callback.make_callback(simulation_time_steps, current_time)
-    system_callback.make_callback(simulation_time_steps, current_time)
+    cost_callback.record(simulation_time_steps, current_time)
+    system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))

@@ -105,8 +105,8 @@ class CostCallback(Callback):
         self._cost = cost
         super().__init__(step_skip)
 
-    def _record_params(self, time: float) -> None:
-        super()._record_params(time)
+    def _record(self, time: float) -> None:
+        super()._record(time)
         self._callback_params["cost"].append(self._cost.evaluate().copy())
 
 

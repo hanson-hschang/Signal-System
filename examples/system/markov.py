@@ -55,10 +55,10 @@ def main(
 
     current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
-        system_callback.make_callback(k, current_time)
+        system_callback.record(k, current_time)
         current_time = markov_chain.process(current_time)
 
-    system_callback.make_callback(simulation_time_steps, current_time)
+    system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))

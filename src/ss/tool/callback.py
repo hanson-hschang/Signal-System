@@ -15,17 +15,17 @@ class Callback:
     ) -> None:
         self.sample_every = step_skip
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
-        self._meta_data: DefaultDict[str, Any] = defaultdict()
+        self._meta_info: DefaultDict[str, Any] = defaultdict()
 
-    def make_callback(
+    def record(
         self,
         current_step: int,
         time: float,
     ) -> None:
         if current_step % self.sample_every == 0:
-            self._record_params(time)
+            self._record(time)
 
-    def _record_params(self, time: float) -> None:
+    def _record(self, time: float) -> None:
         self._callback_params["time"].append(time)
 
     def __getitem__(self, key: str) -> NDArray[np.float64]:
@@ -62,17 +62,17 @@ class Callback:
                     name=key,
                     data=data,
                 )
-            for key, value in self._meta_data.items():
+            for key, value in self._meta_info.items():
                 f.attrs[key] = value
 
-    def add_meta_data(self, meta_data: Dict[str, Any]) -> None:
+    def add_meta_info(self, meta_info: Dict[str, Any]) -> None:
         """
-        Add meta data to the callback.
+        Add meta information to the callback.
 
         Parameters:
         -----------
-        meta_data: Dict[str, Any]
-            The meta data to be added to the callback.
+        meta_info: Dict[str, Any]
+            The meta information to be added to the callback.
         """
-        assert isinstance(meta_data, dict), "meta_data must be a dictionary."
-        self._meta_data.update(meta_data)
+        assert isinstance(meta_info, dict), "meta_info must be a dictionary."
+        self._meta_info.update(meta_info)

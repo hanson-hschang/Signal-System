@@ -86,13 +86,13 @@ def main(
 
         # Apply the control
         system.control = control
-        system_callback.make_callback(k, current_time)
+        system_callback.record(k, current_time)
         current_time = system.process(current_time)
 
         # Compute the cost
         cost.state = current_state
         cost.control = control
-        cost_callback.make_callback(k, current_time)
+        cost_callback.record(k, current_time)
 
     # Compute the terminal cost
     # cost.set_terminal()
