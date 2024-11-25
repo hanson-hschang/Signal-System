@@ -190,7 +190,7 @@ class MarkovChain(DiscreteTimeSystem):
         return state_process
 
     def _compute_observation_process(self) -> NDArray[np.float64]:
-        self._observation_index: NDArray[np.int64] = self._process(
+        self._observation_index = self._process(
             self._state_index,
             self._emission_probability_cumsum,
         )
