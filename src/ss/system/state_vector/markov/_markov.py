@@ -86,6 +86,7 @@ class MarkovChain(DiscreteTimeSystem):
         self,
         transition_probability_matrix: ArrayLike,
         emission_probability_matrix: ArrayLike,
+        initial_distribution: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
         self._transition_probability_matrix = (
@@ -109,14 +110,21 @@ class MarkovChain(DiscreteTimeSystem):
             number_of_systems=number_of_systems,
         )
 
+        if initial_distribution is None:
+            initial_distribution = np.ones(self._state_dim) / self._state_dim
+        initial_distribution = np.array(initial_distribution, dtype=np.float64)
+
         self._transition_probability_cumsum = np.cumsum(
             self._transition_probability_matrix, axis=1
         )
         self._emission_probability_cumsum = np.cumsum(
             self._emission_probability_matrix, axis=1
         )
-        self._state_value: NDArray[np.int64] = np.zeros(
-            self._number_of_systems, dtype=np.int64
+
+        self._state_value: NDArray[np.int64] = np.random.choice(
+            self._state_dim,
+            size=self._number_of_systems,
+            p=initial_distribution,
         )
         self._observation_value: NDArray[np.int64] = np.zeros(
             self._number_of_systems, dtype=np.int64
@@ -129,6 +137,7 @@ class MarkovChain(DiscreteTimeSystem):
             self._state_value,
             self._state_embedding,
         )
+        self.observe()
 
     @property
     def state_value(self) -> NDArray[np.int64]:
