@@ -4,13 +4,13 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "MPPI"
+name = "Signal-System"
 version = "0.1.0"
-description = "Model Predictive Path Integral control"
+description = "A package for signal and system simulation, design, analysis, and learning"
 readme = "README.md"
 authors = ["Heng-Sheng Chang"]
 license = "MIT"
-keywords = ["MPC", "MPPI"]
+keywords = ["Signal", "System", "Learning"]
 
 # Pypi classifiers: https://pypi.org/classifiers/
 classifiers = [
@@ -26,6 +26,7 @@ classifiers = [
 # ...
 packages = [
     { include = "ss", from = "src" },
+    { include = "lss", from = "src" },
 ]
 
 [tool.poetry.dependencies]
