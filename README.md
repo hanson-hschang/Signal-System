@@ -1,5 +1,5 @@
 <div align=center>
-  <h1>Signal & System with Learning</h1>
+  <h1>Signal & System</h1>
 
 <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white"/>
 <a href='https://github.com/hanson-hschang/Signal-System/actions'>
