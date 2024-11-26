@@ -1,18 +1,14 @@
 <div align=center>
-  <h1>Model Predictive Path Integral control</h1>
+  <h1>Signal & System with Learning</h1>
 </div>
 
-## Project description
+<img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white"/>
+<a href='https://github.com/hanson-hschang/Signal-System/actions'>
+    <img src='https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg' alt='CI' />
+</a>
 
-Build a python library that implements the Model Predictive Path Integral (MPPI) control.
 ## Dependency & installation
 
 ## Examples
 
 ## Developer environment setup
-
-
-## Related papers
-- 2018: [Information-Theoretic Model Predictive Control: Theory and Applications to Autonomous Driving](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8558663)
-- 2017: [Information Theoretic MPC for Model-Based Reinforcement Learning](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=7989202)
-- 2016: [Aggressive driving with model predictive path integral control](https://ieeexplore.ieee.org/document/7487277)
