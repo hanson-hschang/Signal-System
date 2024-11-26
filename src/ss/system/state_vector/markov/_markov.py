@@ -10,11 +10,11 @@ from ss.tool.assertion.validator import Validator
 
 
 @njit(cache=True)  # type: ignore
-def _one_hot_embedding(
-    indices: NDArray[np.int64],
-    identity: NDArray[np.float64],
+def _one_hot_encoding(
+    values: NDArray[np.int64],
+    basis: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    return identity[indices]
+    return basis[values]
 
 
 class MarkovChain(DiscreteTimeSystem):
@@ -134,13 +134,15 @@ class MarkovChain(DiscreteTimeSystem):
         self._observation_value: NDArray[np.int64] = np.zeros(
             self._number_of_systems, dtype=np.int64
         )
-        self._state_embedding = np.identity(self._state_dim, dtype=np.float64)
-        self._observation_embedding = np.identity(
+        self._state_encoder_basis = np.identity(
+            self._state_dim, dtype=np.float64
+        )
+        self._observation_encoder_basis = np.identity(
             self._observation_dim, dtype=np.float64
         )
-        self._state[...] = _one_hot_embedding(
+        self._state[...] = _one_hot_encoding(
             self._state_value,
-            self._state_embedding,
+            self._state_encoder_basis,
         )
         self.observe()
 
@@ -197,9 +199,9 @@ class MarkovChain(DiscreteTimeSystem):
             self._transition_probability_cumsum,
         )
         # state_process is a one-hot embedding of the state_index
-        state_process: NDArray[np.float64] = _one_hot_embedding(
+        state_process: NDArray[np.float64] = _one_hot_encoding(
             self._state_value,
-            self._state_embedding,
+            self._state_encoder_basis,
         )
         return state_process
 
@@ -209,9 +211,9 @@ class MarkovChain(DiscreteTimeSystem):
             self._emission_probability_cumsum,
         )
         # observation_process is a one-hot embedding of the observation_index
-        observation_process: NDArray[np.float64] = _one_hot_embedding(
+        observation_process: NDArray[np.float64] = _one_hot_encoding(
             self._observation_value,
-            self._observation_embedding,
+            self._observation_encoder_basis,
         )
         return observation_process
 
