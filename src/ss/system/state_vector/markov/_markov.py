@@ -10,11 +10,11 @@ from ss.tool.assertion.validator import Validator
 
 
 @njit(cache=True)  # type: ignore
-def _one_hot_embedding(
-    indices: NDArray[np.int64],
-    identity: NDArray[np.float64],
+def _one_hot_encoding(
+    values: NDArray[np.int64],
+    basis: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    return identity[indices]
+    return basis[values]
 
 
 class MarkovChain(DiscreteTimeSystem):
@@ -40,7 +40,8 @@ class MarkovChain(DiscreteTimeSystem):
                 )
             if self._state_dim is not None and shape[0] != self._state_dim:
                 self._errors.append(
-                    f"transition_probability_matrix should have the shape as (state_dim, state_dim) with state_dim={self._state_dim}. Got {shape}"
+                    f"transition_probability_matrix should have the shape as (state_dim, state_dim) with state_dim={self._state_dim}."
+                    f"The transition_probability_matrix given has the shape {shape}."
                 )
 
         def _validate_row_sum(self) -> None:
@@ -86,6 +87,7 @@ class MarkovChain(DiscreteTimeSystem):
         self,
         transition_probability_matrix: ArrayLike,
         emission_probability_matrix: ArrayLike,
+        initial_distribution: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
         self._transition_probability_matrix = (
@@ -109,26 +111,40 @@ class MarkovChain(DiscreteTimeSystem):
             number_of_systems=number_of_systems,
         )
 
+        if initial_distribution is None:
+            initial_distribution = np.ones(self._state_dim) / self._state_dim
+        initial_distribution = np.array(initial_distribution, dtype=np.float64)
+        assert initial_distribution.shape[0] == self._state_dim, (
+            f"initial_distribution should have the same length as state_dim {self._state_dim}."
+            f"The initial_distribution given has shape {initial_distribution.shape}."
+        )
+
         self._transition_probability_cumsum = np.cumsum(
             self._transition_probability_matrix, axis=1
         )
         self._emission_probability_cumsum = np.cumsum(
             self._emission_probability_matrix, axis=1
         )
-        self._state_value: NDArray[np.int64] = np.zeros(
-            self._number_of_systems, dtype=np.int64
+
+        self._state_value: NDArray[np.int64] = np.random.choice(
+            self._state_dim,
+            size=self._number_of_systems,
+            p=initial_distribution,
         )
         self._observation_value: NDArray[np.int64] = np.zeros(
             self._number_of_systems, dtype=np.int64
         )
-        self._state_embedding = np.identity(self._state_dim, dtype=np.float64)
-        self._observation_embedding = np.identity(
+        self._state_encoder_basis = np.identity(
+            self._state_dim, dtype=np.float64
+        )
+        self._observation_encoder_basis = np.identity(
             self._observation_dim, dtype=np.float64
         )
-        self._state[...] = _one_hot_embedding(
+        self._state[...] = _one_hot_encoding(
             self._state_value,
-            self._state_embedding,
+            self._state_encoder_basis,
         )
+        self.observe()
 
     @property
     def state_value(self) -> NDArray[np.int64]:
@@ -183,9 +199,9 @@ class MarkovChain(DiscreteTimeSystem):
             self._transition_probability_cumsum,
         )
         # state_process is a one-hot embedding of the state_index
-        state_process: NDArray[np.float64] = _one_hot_embedding(
+        state_process: NDArray[np.float64] = _one_hot_encoding(
             self._state_value,
-            self._state_embedding,
+            self._state_encoder_basis,
         )
         return state_process
 
@@ -195,9 +211,9 @@ class MarkovChain(DiscreteTimeSystem):
             self._emission_probability_cumsum,
         )
         # observation_process is a one-hot embedding of the observation_index
-        observation_process: NDArray[np.float64] = _one_hot_embedding(
+        observation_process: NDArray[np.float64] = _one_hot_encoding(
             self._observation_value,
-            self._observation_embedding,
+            self._observation_encoder_basis,
         )
         return observation_process
 

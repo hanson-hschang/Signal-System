@@ -14,7 +14,7 @@ class TensorDescriptor:
 
     def __get__(self, obj: object, obj_type: type) -> NDArray[np.float64]:
         value: NDArray[np.float64] = getattr(obj, self.private_name)
-        return value
+        return value.copy()
 
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value, dtype=np.float64)
@@ -43,7 +43,7 @@ class MultiSystemTensorDescriptor:
         value: NDArray[np.float64] = getattr(obj, self.private_name)
         if getattr(obj, "_number_of_systems") == 1:
             value = value[0]
-        return value
+        return value.copy()
 
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value, dtype=np.float64)

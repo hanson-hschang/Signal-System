@@ -17,6 +17,10 @@ class Callback:
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
         self._meta_info: DefaultDict[str, Any] = defaultdict()
 
+    @property
+    def meta_info(self) -> Dict[str, Any]:
+        return self._meta_info
+
     def record(
         self,
         current_step: int,
