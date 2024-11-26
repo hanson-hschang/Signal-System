@@ -18,7 +18,7 @@ class TestMassSpringDamperSystem:
     def test_system_initialization(
         self, system: MassSpringDamperSystem
     ) -> None:
-        assert np.allclose(
+        np.testing.assert_allclose(
             system.state_space_matrix_A,
             [[0, 0, 1, 0], [0, 0, 0, 1], [-2, 1, -2, 1], [1, -1, 1, -1]],
         )
