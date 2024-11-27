@@ -54,9 +54,10 @@ class Estimator:
     estimated_state = MultiSystemTensorDescriptor(
         "_number_of_systems", "_state_dim"
     )
-    observation = MultiSystemTensorDescriptor(
+    observation_history = MultiSystemTensorDescriptor(
         "_number_of_systems",
-        "_observation_dim, _horizon_of_observation_history",
+        "_observation_dim",
+        "_horizon_of_observation_history",
     )
 
     def update_observation(self, observation: ArrayLike) -> None:
