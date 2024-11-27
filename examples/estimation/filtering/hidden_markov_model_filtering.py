@@ -4,6 +4,7 @@ from pathlib import Path
 import click
 from tqdm import tqdm
 
+from ss.estimation.estimator import EstimatorCallback
 from ss.estimation.filtering.hmm_filtering import HiddenMarkovModelFilter
 from ss.system.finite_state.markov import HiddenMarkovModel, MarkovChainCallback
 
@@ -33,45 +34,49 @@ def main(
     number_of_systems: int,
 ) -> None:
     epsilon = 0.01
-    transition_probability_matrix = [
-        [0, 0.5, 0.5],
-        [epsilon, 1 - epsilon, 0],
-        [1 - epsilon, 0, epsilon],
-    ]
-    emission_probability_matrix = [
-        [1, 0],
-        [0, 1],
-        [0, 1],
-    ]
 
-    hidden_markov_model = HiddenMarkovModel(
-        transition_probability_matrix=transition_probability_matrix,
-        emission_probability_matrix=emission_probability_matrix,
+    system = HiddenMarkovModel(
+        transition_probability_matrix=[
+            [0, 0.5, 0.5],
+            [epsilon, 1 - epsilon, 0],
+            [1 - epsilon, 0, epsilon],
+        ],
+        emission_probability_matrix=[
+            [1, 0],
+            [0, 1],
+            [0, 1],
+        ],
         number_of_systems=number_of_systems,
     )
-    system_callback = MarkovChainCallback(
-        step_skip=step_skip, system=hidden_markov_model
+    system_callback = MarkovChainCallback(step_skip=step_skip, system=system)
+    estimator = HiddenMarkovModelFilter(
+        system=system,
     )
-    hidden_markov_model_filter = HiddenMarkovModelFilter(
-        system=hidden_markov_model,
+    estimator_callback = EstimatorCallback(
+        step_skip=step_skip,
+        estimator=estimator,
     )
 
     current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
         system_callback.record(k, current_time)
-        current_time = hidden_markov_model.process(current_time)
-        hidden_markov_model_filter.update(
-            observation=hidden_markov_model.observe(),
+        estimator_callback.record(k, current_time)
+
+        current_time = system.process(current_time)
+
+        estimator.update(
+            observation=system.observe(),
         )
-        hidden_markov_model_filter.estimate()
-        print(hidden_markov_model_filter.estimated_state)
+        estimator.estimate()
 
     system_callback.record(simulation_time_steps, current_time)
+    estimator_callback.record(simulation_time_steps, current_time)
 
     # Save the data
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
     data_folder_directory = parent_directory / Path(__file__).stem
     system_callback.save(data_folder_directory / "system.hdf5")
+    estimator_callback.save(data_folder_directory / "filter.hdf5")
 
 
 if __name__ == "__main__":

@@ -150,6 +150,6 @@ class SystemCallback(Callback):
 
     def _record(self, time: float) -> None:
         super()._record(time)
-        self._callback_params["state"].append(self._system.state)
-        self._callback_params["control"].append(self._system.control)
+        self._callback_params["state"].append(self._system.state.copy())
+        self._callback_params["control"].append(self._system.control.copy())
         self._callback_params["observation"].append(self._system.observe())

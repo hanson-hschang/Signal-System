@@ -5,6 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.tool.assertion import isPositiveInteger
+from ss.tool.callback import Callback
 from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
 
 
@@ -82,11 +83,12 @@ class Estimator:
         observation: NDArray[np.float64],
         observation_history: NDArray[np.float64],
     ) -> None:
+        number_of_systems, observation_dim, _ = observation_history.shape
         observation_history[:, :, -1] = observation
-        for i in range(observation_history.shape[0]):
-            for j in range(observation_history.shape[1]):
-                observation_history[i, j, :] = np.roll(
-                    observation_history[i, j, :], 1
+        for n in range(number_of_systems):
+            for m in range(observation_dim):
+                observation_history[n, m, :] = np.roll(
+                    observation_history[n, m, :], 1
                 )
 
     def estimate(self) -> NDArray[np.float64]:
@@ -106,3 +108,22 @@ class Estimator:
 
     def _compute_estimation_process(self) -> NDArray[np.float64]:
         return np.zeros_like(self._estimated_state)
+
+
+class EstimatorCallback(Callback):
+    def __init__(
+        self,
+        step_skip: int,
+        estimator: Estimator,
+    ) -> None:
+        assert issubclass(
+            type(estimator), Estimator
+        ), f"estimator must be an instance of Estimator"
+        self._estimator = estimator
+        super().__init__(step_skip)
+
+    def _record(self, time: float) -> None:
+        super()._record(time)
+        self._callback_params["estimated_state"].append(
+            self._estimator.estimated_state.copy()
+        )
