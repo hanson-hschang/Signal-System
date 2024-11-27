@@ -60,7 +60,7 @@ class Estimator:
         "_horizon_of_observation_history",
     )
 
-    def update_observation(self, observation: ArrayLike) -> None:
+    def update(self, observation: ArrayLike) -> None:
         observation = np.array(observation, dtype=np.float64)
         if observation.ndim == 1:
             observation = observation[np.newaxis, :]
@@ -72,17 +72,25 @@ class Estimator:
             f"required observation shape {(self._number_of_systems, self._observation_dim)}."
         )
         self._update_observation(
-            observation,
+            observation=observation,
+            observation_history=self._observation_history,
         )
 
-    def _update_observation(self, observation: NDArray[np.float64]) -> None:
-        self._observation_history = np.roll(
-            self._observation_history, 1, axis=2
-        )
-        self._observation_history[:, :, 0] = observation
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _update_observation(
+        observation: NDArray[np.float64],
+        observation_history: NDArray[np.float64],
+    ) -> None:
+        observation_history[:, :, -1] = observation
+        for i in range(observation_history.shape[0]):
+            for j in range(observation_history.shape[1]):
+                observation_history[i, j, :] = np.roll(
+                    observation_history[i, j, :], 1
+                )
 
     def estimate(self) -> NDArray[np.float64]:
-        self._estimate(
+        self._update(
             self._estimated_state,
             self._compute_estimation_process(),
         )
@@ -90,11 +98,11 @@ class Estimator:
 
     @staticmethod
     @njit(cache=True)  # type: ignore
-    def _estimate(
-        estimated_state: NDArray[np.float64],
-        estimation: NDArray[np.float64],
+    def _update(
+        array: NDArray[np.float64],
+        process: NDArray[np.float64],
     ) -> None:
-        estimated_state[...] = estimation
+        array[...] = process
 
     def _compute_estimation_process(self) -> NDArray[np.float64]:
         return np.zeros_like(self._estimated_state)
