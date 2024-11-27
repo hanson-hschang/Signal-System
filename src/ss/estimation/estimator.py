@@ -83,10 +83,10 @@ class Estimator:
     ) -> None:
         number_of_systems, observation_dim, _ = observation_history.shape
         observation_history[:, :, -1] = observation
-        for n in range(number_of_systems):
+        for i in range(number_of_systems):
             for m in range(observation_dim):
-                observation_history[n, m, :] = np.roll(
-                    observation_history[n, m, :], 1
+                observation_history[i, m, :] = np.roll(
+                    observation_history[i, m, :], 1
                 )
 
     def estimate(self) -> NDArray[np.float64]:

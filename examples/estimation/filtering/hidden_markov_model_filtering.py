@@ -2,10 +2,14 @@ import os
 from pathlib import Path
 
 import click
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from ss.estimation.estimator import EstimatorCallback
-from ss.estimation.filtering.hmm_filtering import HiddenMarkovModelFilter
+from ss.estimation.filtering.hmm_filtering import (
+    HiddenMarkovModelFilter,
+    HiddenMarkovModelFilterFigure,
+)
 from ss.system.finite_state.markov import HiddenMarkovModel, MarkovChainCallback
 
 
@@ -78,6 +82,41 @@ def main(
     system_callback.save(data_folder_directory / "system.hdf5")
     estimator_callback.save(data_folder_directory / "filter.hdf5")
 
+    # Plot the data
+    observation_trajectory = (
+        system_callback["observation"]
+        if number_of_systems == 1
+        else system_callback["observation"][0]
+    )
+    estimated_state_trajectory = (
+        estimator_callback["estimated_state"]
+        if number_of_systems == 1
+        else estimator_callback["estimated_state"][0]
+    )
+    HiddenMarkovModelFilterFigure(
+        time_trajectory=estimator_callback["time"],
+        observation_trajectory=observation_trajectory,
+        estimated_state_trajectory=estimated_state_trajectory,
+    ).plot()
+    plt.show()
 
+
+# from matplotlib.colors import Normalize
+# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+# import numpy as np
+# fig, ax = plt.subplots()
+
+# # Create a scalar mappable for the colorbar
+# norm = Normalize(vmin=0, vmax=1)
+# sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
+# # sm.set_array([])
+
+# # Create colorbar
+# plt.colorbar(sm, ax=ax, orientation='horizontal')
+
+# # Hide the main plot
+# ax.set_visible(False)
+# plt.show()
+# quit()
 if __name__ == "__main__":
     main()

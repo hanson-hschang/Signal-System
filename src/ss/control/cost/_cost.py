@@ -145,9 +145,7 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
         self._cost_trajectory = cost_trajectory
         self._cost_subplot: Axes = self._subplots[0][0]
 
-    def plot_figure(
-        self,
-    ) -> Self:
+    def plot(self) -> Self:
         time_step = np.mean(np.diff(self._time_trajectory))
         cumsum_cost_trajectory = (
             np.cumsum(self._cost_trajectory, axis=1) * time_step
@@ -174,7 +172,7 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
                 mean_trajectory=mean_trajectory,
                 std_trajectory=std_trajectory,
             )
-        super().plot_figure()
+        super().plot()
         return self
 
     def _plot_each_system_cost_trajectory(

@@ -107,11 +107,11 @@ def main(
     CartPoleStateTrajectoryFigure(
         system_callback["time"],
         system_callback["state"],
-    ).plot_figure()
+    ).plot()
     CostTrajectoryFigure(
         cost_callback["time"],
         cost_callback["cost"],
-    ).plot_figure()
+    ).plot()
     plt.show()
 
 
