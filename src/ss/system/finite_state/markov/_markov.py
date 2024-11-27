@@ -10,11 +10,22 @@ from ss.tool.assertion.validator import Validator
 
 
 @njit(cache=True)  # type: ignore
-def _one_hot_encoding(
+def one_hot_encoding(
     values: NDArray[np.int64],
     basis: NDArray[np.float64],
 ) -> NDArray[np.float64]:
     return basis[values]
+
+
+@njit(cache=True)  # type: ignore
+def one_hot_decoding(
+    one_hot_vectors: NDArray[np.float64],
+) -> NDArray[np.int64]:
+    number_of_systems = one_hot_vectors.shape[0]
+    values = np.empty(number_of_systems, dtype=np.int64)
+    for i in range(number_of_systems):
+        values[i] = np.argmax(one_hot_vectors[i, :])
+    return values
 
 
 class HiddenMarkovModel(DiscreteTimeSystem):
@@ -140,7 +151,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         self._observation_encoder_basis = np.identity(
             self._observation_dim, dtype=np.float64
         )
-        self._state[...] = _one_hot_encoding(
+        self._state[...] = one_hot_encoding(
             self._state_value,
             self._state_encoder_basis,
         )
@@ -201,7 +212,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._transition_probability_cumsum,
         )
         # state_process is a one-hot embedding of the state_index
-        state_process: NDArray[np.float64] = _one_hot_encoding(
+        state_process: NDArray[np.float64] = one_hot_encoding(
             self._state_value,
             self._state_encoder_basis,
         )
@@ -213,7 +224,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._emission_probability_cumsum,
         )
         # observation_process is a one-hot embedding of the observation_index
-        observation_process: NDArray[np.float64] = _one_hot_encoding(
+        observation_process: NDArray[np.float64] = one_hot_encoding(
             self._observation_value,
             self._observation_encoder_basis,
         )
