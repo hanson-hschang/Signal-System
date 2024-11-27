@@ -1,5 +1,3 @@
-from typing import Callable
-
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
@@ -19,16 +17,16 @@ class Estimator:
     ) -> None:
         assert isPositiveInteger(
             state_dim
-        ), f"state_dim {state_dim} must be a positive integer"
+        ), f"{state_dim = } must be a positive integer"
         assert isPositiveInteger(
             observation_dim
-        ), f"observation_dim {observation_dim} must be a positive integer"
+        ), f"{observation_dim = } must be a positive integer"
         assert isPositiveInteger(
             horizon_of_observation_history
-        ), f"horizon_of_observation_history {horizon_of_observation_history} must be a positive integer"
+        ), f"{horizon_of_observation_history = } must be a positive integer"
         assert isPositiveInteger(
             number_of_systems
-        ), f"number_of_systems {number_of_systems} must be a positive integer"
+        ), f"{number_of_systems = } must be a positive integer"
 
         self._state_dim = int(state_dim)
         self._observation_dim = int(observation_dim)
@@ -69,8 +67,8 @@ class Estimator:
             self._number_of_systems,
             self._observation_dim,
         ), (
-            f"argument observation shape {observation.shape} does not match with"
-            f"required observation shape {(self._number_of_systems, self._observation_dim)}."
+            f"observation must be in the shape of {(self._number_of_systems, self._observation_dim) = }. "
+            f"observation given has the shape of {observation.shape}."
         )
         self._update_observation(
             observation=observation,
@@ -116,9 +114,10 @@ class EstimatorCallback(Callback):
         step_skip: int,
         estimator: Estimator,
     ) -> None:
-        assert issubclass(
-            type(estimator), Estimator
-        ), f"estimator must be an instance of Estimator"
+        assert issubclass(type(estimator), Estimator), (
+            f"estimator must be an instance of Estimator or its subclasses. "
+            f"estimator given is an instance of {type(estimator)}."
+        )
         self._estimator = estimator
         super().__init__(step_skip)
 

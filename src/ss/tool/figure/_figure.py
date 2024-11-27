@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Self, Tuple
+from typing import Any, List, Optional, Self, Tuple
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt

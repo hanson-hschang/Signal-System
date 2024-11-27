@@ -5,11 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.estimation.filtering import Filter
-from ss.system.finite_state.markov import (
-    HiddenMarkovModel,
-    one_hot_decoding,
-    one_hot_encoding,
-)
+from ss.system.finite_state.markov import HiddenMarkovModel, one_hot_decoding
 
 
 class HiddenMarkovModelFilter(Filter):
@@ -30,8 +26,8 @@ class HiddenMarkovModelFilter(Filter):
             initial_distribution = np.ones(self._state_dim) / self._state_dim
         initial_distribution = np.array(initial_distribution, dtype=np.float64)
         assert initial_distribution.shape[0] == self._state_dim, (
-            f"initial_distribution should have the same length as state_dim {self._state_dim}."
-            f"The initial_distribution given has shape {initial_distribution.shape}."
+            f"initial_distribution must be in the shape of {(self._state_dim,) = }. "
+            f"initial_distribution given has the shape of {initial_distribution.shape}."
         )
         self._estimated_state[...] = initial_distribution[np.newaxis, :]
 
