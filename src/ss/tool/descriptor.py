@@ -43,13 +43,15 @@ class MultiSystemTensorDescriptor:
         value: NDArray[np.float64] = getattr(obj, self.private_name)
         if getattr(obj, "_number_of_systems") == 1:
             value = value[0]
-        return value.copy()
+        return value
 
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value, dtype=np.float64)
-        if getattr(obj, "_number_of_systems") == 1:
-            value = value[np.newaxis, :]
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
+        if (getattr(obj, "_number_of_systems") == 1) and (
+            (len(shape) - value.ndim) == 1
+        ):
+            value = value[np.newaxis, ...]
         assert (
             value.shape == shape
         ), f"input shape {value.shape} does not match with {self.name} shape {shape}."

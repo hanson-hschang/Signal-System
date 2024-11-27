@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.system.state_vector.examples.mass_spring_damper import (
+from ss.system.finite_state.examples.mass_spring_damper import (
     MassSpringDamperSystem,
 )
 

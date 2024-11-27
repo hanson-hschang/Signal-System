@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.control.cost.quadratic import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
-from ss.system.state_vector.dynamic_system import ContinuousTimeSystem
+from ss.system.finite_state.dynamic_system import ContinuousTimeSystem
 from ss.tool.assertion import (
     isNonNegativeNumber,
     isPositiveInteger,

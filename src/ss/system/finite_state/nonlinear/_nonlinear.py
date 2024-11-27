@@ -3,7 +3,7 @@ from typing import Callable, Optional
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system.state_vector.dynamic_system import ContinuousTimeSystem
+from ss.system.finite_state.dynamic_system import ContinuousTimeSystem
 from ss.tool.assertion.inspect import inspect_arguments
 
 

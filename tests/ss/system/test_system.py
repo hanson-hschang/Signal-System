@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.system.state_vector.dynamic_system import (
+from ss.system.finite_state.dynamic_system import (
     ContinuousTimeSystem,
     DiscreteTimeSystem,
 )

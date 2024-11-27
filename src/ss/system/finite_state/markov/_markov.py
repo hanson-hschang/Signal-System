@@ -4,8 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system.state_vector import SystemCallback
-from ss.system.state_vector.dynamic_system import DiscreteTimeSystem
+from ss.system.finite_state import SystemCallback
+from ss.system.finite_state.dynamic_system import DiscreteTimeSystem
 from ss.tool.assertion.validator import Validator
 
 
