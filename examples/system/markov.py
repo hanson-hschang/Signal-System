@@ -4,7 +4,7 @@ from pathlib import Path
 import click
 from tqdm import tqdm
 
-from ss.system.finite_state.markov import MarkovChain, MarkovChainCallback
+from ss.system.finite_state.markov import HiddenMarkovModel, MarkovChainCallback
 
 
 @click.command()
@@ -43,7 +43,7 @@ def main(
         [0, 1],
     ]
 
-    markov_chain = MarkovChain(
+    markov_chain = HiddenMarkovModel(
         transition_probability_matrix=transition_probability_matrix,
         emission_probability_matrix=emission_probability_matrix,
         number_of_systems=number_of_systems,

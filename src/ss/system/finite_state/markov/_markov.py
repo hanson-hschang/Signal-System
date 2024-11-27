@@ -17,7 +17,7 @@ def _one_hot_encoding(
     return basis[values]
 
 
-class MarkovChain(DiscreteTimeSystem):
+class HiddenMarkovModel(DiscreteTimeSystem):
     class _TransitionProbabilityMatrixValidator(Validator):
         def __init__(
             self,
@@ -186,8 +186,10 @@ class MarkovChain(DiscreteTimeSystem):
             self._emission_probability_matrix, axis=1
         )
 
-    def create_multiple_systems(self, number_of_systems: int) -> "MarkovChain":
-        return MarkovChain(
+    def create_multiple_systems(
+        self, number_of_systems: int
+    ) -> "HiddenMarkovModel":
+        return HiddenMarkovModel(
             transition_probability_matrix=self._transition_probability_matrix,
             emission_probability_matrix=self._emission_probability_matrix,
             number_of_systems=number_of_systems,
@@ -239,13 +241,13 @@ class MarkovChainCallback(SystemCallback):
     def __init__(
         self,
         step_skip: int,
-        system: MarkovChain,
+        system: HiddenMarkovModel,
     ) -> None:
         assert issubclass(
-            type(system), MarkovChain
+            type(system), HiddenMarkovModel
         ), f"system must be an instance of MarkovChain"
         super().__init__(step_skip, system)
-        self._system: MarkovChain = system
+        self._system: HiddenMarkovModel = system
 
     def _record(self, time: float) -> None:
         super()._record(time)
