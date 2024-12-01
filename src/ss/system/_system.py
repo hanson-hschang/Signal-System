@@ -4,7 +4,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ss.tool.assertion import isNonNegativeInteger, isPositiveInteger
+from ss.tool.assertion import is_nonnegative_integer, is_positive_integer
 from ss.tool.callback import Callback
 from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
 
@@ -17,16 +17,16 @@ class System:
         control_dim: int = 0,
         number_of_systems: int = 1,
     ) -> None:
-        assert isPositiveInteger(
+        assert is_positive_integer(
             state_dim
         ), f"state_dim {state_dim} must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             observation_dim
         ), f"observation_dim {observation_dim} must be a positive integer"
-        assert isNonNegativeInteger(
+        assert is_nonnegative_integer(
             control_dim
         ), f"control_dim {control_dim} must be a non-negative integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_systems
         ), f"number_of_systems {number_of_systems} must be a positive integer"
 

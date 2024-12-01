@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib.axes import Axes
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.tool.assertion import is_positive_integer, is_positive_number
 from ss.tool.callback import Callback
 from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
 from ss.tool.figure import TimeTrajectoryFigure
@@ -19,16 +19,16 @@ class Cost:
         number_of_systems: int = 1,
         **kwargs: Any,
     ) -> None:
-        assert isPositiveNumber(
+        assert is_positive_number(
             time_step
         ), f"time_step {time_step} must be a positive number"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             state_dim
         ), f"state_dim {state_dim} must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             control_dim
         ), f"control_dim {control_dim} must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_systems
         ), f"number_of_systems {number_of_systems} must be a positive integer"
 

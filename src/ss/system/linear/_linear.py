@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system import DiscreteTimeSystem
-from ss.tool.assertion import isPositiveNumber
+from ss.tool.assertion import is_positive_number
 from ss.tool.assertion.validator import Validator
 
 
@@ -237,7 +237,7 @@ class ContinuousTimeLinearSystem(DiscreteTimeLinearSystem):
         observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
-        assert isPositiveNumber(
+        assert is_positive_number(
             time_step
         ), f"time_step {time_step} must be a positive number"
         super().__init__(

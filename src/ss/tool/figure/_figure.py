@@ -7,7 +7,7 @@ from matplotlib.axes import Axes
 from matplotlib.collections import QuadMesh
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.tool.assertion import is_positive_integer, is_positive_number
 
 
 class TimeTrajectoryFigure:
@@ -28,20 +28,23 @@ class TimeTrajectoryFigure:
             f"time_trajectory must be monotonically increasing. "
             f"time_trajectory given is {time_trajectory}."
         )
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_systems
         ), f"{number_of_systems = } must be a positive integer."
         assert (
             len(fig_size) == 2
         ), f"{fig_size = } must be a tuple (width, height)."
         assert np.all(
-            [isPositiveNumber(fig_size[0]), isPositiveNumber(fig_size[1])]
+            [is_positive_number(fig_size[0]), is_positive_number(fig_size[1])]
         ), f"values of {fig_size = } must be positive numbers."
         assert (
             len(fig_layout) == 2
         ), f"{fig_layout = } must be a tuple (nrows, ncols)."
         assert np.all(
-            [isPositiveInteger(fig_layout[0]), isPositiveInteger(fig_layout[1])]
+            [
+                is_positive_integer(fig_layout[0]),
+                is_positive_integer(fig_layout[1]),
+            ]
         ), f"values of {fig_layout = } must be positive integers."
 
         self._time_trajectory = time_trajectory

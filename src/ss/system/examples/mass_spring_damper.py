@@ -7,7 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system.linear import ContinuousTimeLinearSystem
-from ss.tool.assertion import isPositiveInteger
+from ss.tool.assertion import is_positive_integer
 from ss.tool.figure import TimeTrajectoryFigure
 
 
@@ -37,7 +37,7 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
         observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_connections
         ), "number_of_connections should be a positive integer"
         assert isinstance(

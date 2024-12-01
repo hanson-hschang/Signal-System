@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import isPositiveInteger
+from ss.tool.assertion import is_positive_integer
 from ss.tool.callback import Callback
 from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
 
@@ -15,16 +15,16 @@ class Estimator:
         horizon_of_observation_history: int = 1,
         number_of_systems: int = 1,
     ) -> None:
-        assert isPositiveInteger(
+        assert is_positive_integer(
             state_dim
         ), f"{state_dim = } must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             observation_dim
         ), f"{observation_dim = } must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             horizon_of_observation_history
         ), f"{horizon_of_observation_history = } must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_systems
         ), f"{number_of_systems = } must be a positive integer"
 

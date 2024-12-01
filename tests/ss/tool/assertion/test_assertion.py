@@ -3,9 +3,9 @@ from typing import Any
 import pytest
 
 from ss.tool.assertion import (
-    isNonNegativeInteger,
-    isPositiveInteger,
-    isPositiveNumber,
+    is_nonnegative_integer,
+    is_positive_integer,
+    is_positive_number,
 )
 
 
@@ -24,9 +24,9 @@ from ss.tool.assertion import (
         ("1", False),
     ],
 )
-def test_isPositiveNumber(input_value: Any, expected_result: bool) -> None:
-    """Test isPositiveNumber function"""
-    assert isPositiveNumber(input_value) == expected_result
+def test_is_positive_number(input_value: Any, expected_result: bool) -> None:
+    """Test is_positive_number function"""
+    assert is_positive_number(input_value) == expected_result
 
 
 @pytest.mark.parametrize(
@@ -44,9 +44,9 @@ def test_isPositiveNumber(input_value: Any, expected_result: bool) -> None:
         ("1", False),
     ],
 )
-def test_isPositiveInteger(input_value: Any, expected_result: bool) -> None:
-    """Test isPositiveInteger function"""
-    assert isPositiveInteger(input_value) == expected_result
+def test_is_positive_integer(input_value: Any, expected_result: bool) -> None:
+    """Test is_positive_integer function"""
+    assert is_positive_integer(input_value) == expected_result
 
 
 @pytest.mark.parametrize(
@@ -64,6 +64,8 @@ def test_isPositiveInteger(input_value: Any, expected_result: bool) -> None:
         ("1", False),
     ],
 )
-def test_isNonNegativeInteger(input_value: Any, expected_result: bool) -> None:
-    """Test isNonNegativeInteger function"""
-    assert isNonNegativeInteger(input_value) == expected_result
+def test_is_nonnegative_integer(
+    input_value: Any, expected_result: bool
+) -> None:
+    """Test is_nonnegative_integer function"""
+    assert is_nonnegative_integer(input_value) == expected_result
