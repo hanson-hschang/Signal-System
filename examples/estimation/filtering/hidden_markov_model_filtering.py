@@ -10,7 +10,7 @@ from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilter,
     HiddenMarkovModelFilterFigure,
 )
-from ss.system.finite_state.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
 
 
 @click.command()

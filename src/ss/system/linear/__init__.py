@@ -1,4 +1,4 @@
-from ss.system.finite_state.linear._linear import (
+from ss.system.linear._linear import (
     ContinuousTimeLinearSystem,
     DiscreteTimeLinearSystem,
 )

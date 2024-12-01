@@ -7,7 +7,7 @@ from matplotlib.axes import Axes
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system.finite_state.nonlinear import ContinuousTimeNonlinearSystem
+from ss.system.nonlinear import ContinuousTimeNonlinearSystem
 from ss.tool.figure import TimeTrajectoryFigure
 
 

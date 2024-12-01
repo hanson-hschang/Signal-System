@@ -6,7 +6,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
-from ss.system.finite_state.linear import ContinuousTimeLinearSystem
+from ss.system.linear import ContinuousTimeLinearSystem
 from ss.tool.assertion import isPositiveInteger
 from ss.tool.figure import TimeTrajectoryFigure
 

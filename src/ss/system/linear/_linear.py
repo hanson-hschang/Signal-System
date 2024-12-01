@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
-from ss.system.finite_state.dynamic_system import DiscreteTimeSystem
+from ss.system import DiscreteTimeSystem
 from ss.tool.assertion import isPositiveNumber
 from ss.tool.assertion.validator import Validator
 

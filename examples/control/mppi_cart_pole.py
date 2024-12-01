@@ -8,8 +8,8 @@ import numpy as np
 from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
-from ss.system.finite_state import SystemCallback
-from ss.system.finite_state.examples.cart_pole import (
+from ss.system import SystemCallback
+from ss.system.examples.cart_pole import (
     CartPoleStateTrajectoryFigure,
     CartPoleSystem,
 )

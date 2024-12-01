@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.system.finite_state.markov import HiddenMarkovModel
+from ss.system.markov import HiddenMarkovModel
 
 
 class TestMarkovChain:

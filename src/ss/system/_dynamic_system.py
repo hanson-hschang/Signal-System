@@ -3,7 +3,7 @@ from typing import Any, Optional, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system.finite_state import System
+from ss.system import System
 from ss.tool.assertion import isPositiveNumber
 from ss.tool.assertion.validator import Validator
 from ss.tool.descriptor import TensorDescriptor

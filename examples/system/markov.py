@@ -4,7 +4,7 @@ from pathlib import Path
 import click
 from tqdm import tqdm
 
-from ss.system.finite_state.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
 
 
 @click.command()

@@ -8,7 +8,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.estimation.filtering import Filter
-from ss.system.finite_state.markov import HiddenMarkovModel, one_hot_decoding
+from ss.system.markov import HiddenMarkovModel, one_hot_decoding
 from ss.tool.figure import TimeTrajectoryFigure
 
 

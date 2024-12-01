@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from scipy.linalg import solve_continuous_are, solve_discrete_are
 
 from ss.control.cost.quadratic import QuadraticCost
-from ss.system.finite_state.linear import (
+from ss.system.linear import (
     ContinuousTimeLinearSystem,
     DiscreteTimeLinearSystem,
 )

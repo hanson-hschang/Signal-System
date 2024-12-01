@@ -1,10 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.system.finite_state.dynamic_system import (
-    ContinuousTimeSystem,
-    DiscreteTimeSystem,
-)
+from ss.system import ContinuousTimeSystem, DiscreteTimeSystem
 
 
 class TestSystem:

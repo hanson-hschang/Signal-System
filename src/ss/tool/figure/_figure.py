@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.collections import QuadMesh
-from matplotlib.colorbar import Colorbar
 from numpy.typing import ArrayLike, NDArray
 
 from ss.tool.assertion import isPositiveInteger, isPositiveNumber
