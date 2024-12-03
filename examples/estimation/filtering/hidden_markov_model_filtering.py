@@ -3,11 +3,14 @@ from pathlib import Path
 
 import click
 import matplotlib.pyplot as plt
+import numpy as np
+from numba import njit
+from numpy.typing import NDArray
 from tqdm import tqdm
 
-from ss.estimation.estimator import EstimatorCallback
 from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilter,
+    HiddenMarkovModelFilterCallback,
     HiddenMarkovModelFilterFigure,
 )
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
@@ -53,10 +56,28 @@ def main(
         number_of_systems=number_of_systems,
     )
     system_callback = MarkovChainCallback(step_skip=step_skip, system=system)
+
+    @njit(cache=True)  # type: ignore
+    def observation_model(
+        estimated_state: NDArray[np.float64],
+        transition_probability_matrix: NDArray[
+            np.float64
+        ] = system.transition_probability_matrix,
+        emission_probability_matrix: NDArray[
+            np.float64
+        ] = system.emission_probability_matrix,
+    ) -> NDArray[np.float64]:
+        estimated_observation = (
+            estimated_state
+            @ transition_probability_matrix
+            @ emission_probability_matrix
+        )
+        return estimated_observation
+
     estimator = HiddenMarkovModelFilter(
-        system=system,
+        system=system, estimation_model=observation_model
     )
-    estimator_callback = EstimatorCallback(
+    estimator_callback = HiddenMarkovModelFilterCallback(
         step_skip=step_skip,
         estimator=estimator,
     )
@@ -93,30 +114,19 @@ def main(
         if number_of_systems == 1
         else estimator_callback["estimated_state"][0]
     )
+    estimated_function_value_trajectory = (
+        estimator_callback["estimated_function_value"]
+        if number_of_systems == 1
+        else estimator_callback["estimated_function_value"][0]
+    )
     HiddenMarkovModelFilterFigure(
         time_trajectory=estimator_callback["time"],
         observation_trajectory=observation_trajectory,
         estimated_state_trajectory=estimated_state_trajectory,
+        estimated_function_value_trajectory=estimated_function_value_trajectory,
     ).plot()
     plt.show()
 
 
-# from matplotlib.colors import Normalize
-# from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-# import numpy as np
-# fig, ax = plt.subplots()
-
-# # Create a scalar mappable for the colorbar
-# norm = Normalize(vmin=0, vmax=1)
-# sm = plt.cm.ScalarMappable(cmap='viridis', norm=norm)
-# # sm.set_array([])
-
-# # Create colorbar
-# plt.colorbar(sm, ax=ax, orientation='horizontal')
-
-# # Hide the main plot
-# ax.set_visible(False)
-# plt.show()
-# quit()
 if __name__ == "__main__":
     main()

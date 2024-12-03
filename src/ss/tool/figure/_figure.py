@@ -129,10 +129,13 @@ class TimeTrajectoryFigure:
             self._time_trajectory[0] - time_horizon * 0.05,
             self._time_trajectory[-1] + time_horizon * 0.05,
         )
+        dimension = probability_trajectory.shape[0]
+        for d in range(dimension - 1):
+            ax.axhline(d + 0.5, color="black", linewidth=0.5, linestyle="--")
 
         time_grid, probability_grid = np.meshgrid(
             self._time_trajectory,
-            np.arange(probability_trajectory.shape[0]),
+            np.arange(dimension),
         )
         image_mesh = ax.pcolormesh(
             time_grid,
@@ -144,4 +147,5 @@ class TimeTrajectoryFigure:
         )
         ax.invert_yaxis()
         ax.set_xlim(time_lim)
+        ax.set_yticks(np.arange(dimension))
         return image_mesh
