@@ -7,7 +7,7 @@ from matplotlib.axes import Axes
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system.state_vector.nonlinear import ContinuousTimeNonlinearSystem
+from ss.system.nonlinear import ContinuousTimeNonlinearSystem
 from ss.tool.figure import TimeTrajectoryFigure
 
 
@@ -168,7 +168,7 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
             self._subplots[1][1],
         ]
 
-    def plot_figure(self) -> Self:
+    def plot(self) -> Self:
         if self._number_of_systems <= 10:
             self._plot_each_system_trajectory()
         else:
@@ -188,7 +188,7 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
                 mean_trajectory=mean_trajectory,
                 std_trajectory=std_trajectory,
             )
-        super().plot_figure()
+        super().plot()
         return self
 
     def _plot_each_system_trajectory(

@@ -1,6 +1,6 @@
 from ss.tool.assertion._assertion import (
-    isNonNegativeInteger,
-    isNonNegativeNumber,
-    isPositiveInteger,
-    isPositiveNumber,
+    is_nonnegative_integer,
+    is_nonnegative_number,
+    is_positive_integer,
+    is_positive_number,
 )

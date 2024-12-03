@@ -1,6 +1,6 @@
 import click
 
-from ss.system.state_vector.examples.cart_pole import CartPoleSystem
+from ss.system.examples.cart_pole import CartPoleSystem
 
 
 @click.command()

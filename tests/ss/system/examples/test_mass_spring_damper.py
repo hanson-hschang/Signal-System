@@ -1,9 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.system.state_vector.examples.mass_spring_damper import (
-    MassSpringDamperSystem,
-)
+from ss.system.examples.mass_spring_damper import MassSpringDamperSystem
 
 
 class TestMassSpringDamperSystem:

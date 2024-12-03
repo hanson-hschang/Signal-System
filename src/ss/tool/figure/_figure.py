@@ -1,12 +1,13 @@
-from typing import Any, Dict, List, Optional, Self, Tuple
+from typing import Any, List, Optional, Self, Tuple
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
+from matplotlib.collections import QuadMesh
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import isPositiveInteger, isPositiveNumber
+from ss.tool.assertion import is_positive_integer, is_positive_number
 
 
 class TimeTrajectoryFigure:
@@ -14,28 +15,37 @@ class TimeTrajectoryFigure:
         self,
         time_trajectory: ArrayLike,
         number_of_systems: int = 1,
-        fig_size: Tuple[int, int] = (12, 8),
+        fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
     ) -> None:
         time_trajectory = np.array(time_trajectory)
-        assert (
-            len(time_trajectory.shape) == 1
-        ), "time_trajectory must be a 1D array."
-        assert np.all(
-            np.diff(time_trajectory) > 0
-        ), "time_trajectory must be monotonically increasing."
-        assert isPositiveInteger(
+        assert time_trajectory.ndim == 1, (
+            f"time_trajectory must be in the shape of (time_horizon,). "
+            f"time_trajectory given has the shape of {time_trajectory.shape}."
+        )
+        assert np.all(np.diff(time_trajectory) > 0), (
+            f"time_trajectory must be monotonically increasing. "
+            f"time_trajectory given is {time_trajectory}."
+        )
+        assert is_positive_integer(
             number_of_systems
-        ), "number_of_systems must be a positive integer."
-        assert len(fig_size) == 2, "fig_size must be a tuple of two values."
-        assert isPositiveNumber(fig_size[0]) and isPositiveNumber(
-            fig_size[1]
-        ), "values of fig_size must be positive numbers."
-        assert len(fig_layout) == 2, "fig_layout must be a tuple of two values."
-        assert isPositiveInteger(fig_layout[0]) and isPositiveInteger(
-            fig_layout[1]
-        ), f"values of fig_layout {fig_layout} must be positive integers."
+        ), f"{number_of_systems = } must be a positive integer."
+        assert (
+            len(fig_size) == 2
+        ), f"{fig_size = } must be a tuple (width, height)."
+        assert np.all(
+            [is_positive_number(fig_size[0]), is_positive_number(fig_size[1])]
+        ), f"values of {fig_size = } must be positive numbers."
+        assert (
+            len(fig_layout) == 2
+        ), f"{fig_layout = } must be a tuple (nrows, ncols)."
+        assert np.all(
+            [
+                is_positive_integer(fig_layout[0]),
+                is_positive_integer(fig_layout[1]),
+            ]
+        ), f"values of {fig_layout = } must be positive integers."
 
         self._time_trajectory = time_trajectory
         self._time_length = time_trajectory.shape[0]
@@ -58,12 +68,13 @@ class TimeTrajectoryFigure:
                     self._fig.add_subplot(self._grid_spec[row, col])
                 )
 
-    def plot_figure(
-        self,
-    ) -> Self:
+        self._sup_xlabel = "Time (sec)"
+        self._color_map = plt.get_cmap("Greys")
+
+    def plot(self) -> Self:
         if self._fig_title is not None:
             self._fig.suptitle(self._fig_title)
-        self._fig.supxlabel("Time (sec)")
+        self._fig.supxlabel(self._sup_xlabel)
         self._fig.tight_layout()
         return self
 
@@ -107,3 +118,34 @@ class TimeTrajectoryFigure:
             mean_trajectory + std_trajectory,
             alpha=self._default_std_alpha,
         )
+
+    def _plot_probability_flow(
+        self,
+        ax: Axes,
+        probability_trajectory: NDArray[np.float64],
+    ) -> QuadMesh:
+        time_horizon = self._time_trajectory[-1] - self._time_trajectory[0]
+        time_lim = (
+            self._time_trajectory[0] - time_horizon * 0.05,
+            self._time_trajectory[-1] + time_horizon * 0.05,
+        )
+        dimension = probability_trajectory.shape[0]
+        for d in range(dimension - 1):
+            ax.axhline(d + 0.5, color="black", linewidth=0.5, linestyle="--")
+
+        time_grid, probability_grid = np.meshgrid(
+            self._time_trajectory,
+            np.arange(dimension),
+        )
+        image_mesh = ax.pcolormesh(
+            time_grid,
+            probability_grid,
+            probability_trajectory,
+            cmap=self._color_map,
+            vmin=0,
+            vmax=1,
+        )
+        ax.invert_yaxis()
+        ax.set_xlim(time_lim)
+        ax.set_yticks(np.arange(dimension))
+        return image_mesh

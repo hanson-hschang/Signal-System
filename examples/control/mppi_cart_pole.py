@@ -8,8 +8,8 @@ import numpy as np
 from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
-from ss.system.state_vector import SystemCallback
-from ss.system.state_vector.examples.cart_pole import (
+from ss.system import SystemCallback
+from ss.system.examples.cart_pole import (
     CartPoleStateTrajectoryFigure,
     CartPoleSystem,
 )
@@ -107,11 +107,11 @@ def main(
     CartPoleStateTrajectoryFigure(
         system_callback["time"],
         system_callback["state"],
-    ).plot_figure()
+    ).plot()
     CostTrajectoryFigure(
         cost_callback["time"],
         cost_callback["cost"],
-    ).plot_figure()
+    ).plot()
     plt.show()
 
 

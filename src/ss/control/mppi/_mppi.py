@@ -6,11 +6,11 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.control.cost.quadratic import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
-from ss.system.state_vector.dynamic_system import ContinuousTimeSystem
+from ss.system import ContinuousTimeSystem
 from ss.tool.assertion import (
-    isNonNegativeNumber,
-    isPositiveInteger,
-    isPositiveNumber,
+    is_nonnegative_number,
+    is_positive_integer,
+    is_positive_number,
 )
 from ss.tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
 
@@ -65,26 +65,26 @@ class ModelPredictivePathIntegralController:
             system.control_dim == cost.control_dim
         ), f"control_dim of system {system.control_dim} must match with the control_dim of cost {cost.control_dim}"
 
-        assert isPositiveInteger(
+        assert is_positive_integer(
             time_horizon
         ), f"time_horizon {time_horizon} must be a positive integer"
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_samples
         ), f"number_of_samples {number_of_samples} must be a positive integer"
-        assert isPositiveNumber(
+        assert is_positive_number(
             temperature
         ), f"temperature {temperature} must be a positive number"
         assert (
-            isPositiveNumber(base_control_confidence)
+            is_positive_number(base_control_confidence)
             and base_control_confidence <= 1
         ), f"base_control_confidence {base_control_confidence} must be a positive number within the range (0, 1]"
         assert (
-            isNonNegativeNumber(exploration_percentage)
+            is_nonnegative_number(exploration_percentage)
             and exploration_percentage < 1
         ), f"exploration_percentage {exploration_percentage} must be a positive number within the range (0, 1)"
         if smoothing_window_size is None:
             smoothing_window_size = int(time_horizon * 0.1) + 1
-        assert isPositiveInteger(
+        assert is_positive_integer(
             smoothing_window_size
         ), f"smoothing_window_size {smoothing_window_size} must be a positive integer"
 
@@ -126,7 +126,7 @@ class ModelPredictivePathIntegralController:
 
     @temperature.setter
     def temperature(self, temperature: float) -> None:
-        assert isPositiveNumber(
+        assert is_positive_number(
             temperature
         ), f"temperature {temperature} must be a positive number"
         self._temperature = temperature
@@ -141,7 +141,7 @@ class ModelPredictivePathIntegralController:
     @base_control_confidence.setter
     def base_control_confidence(self, base_control_confidence: float) -> None:
         assert (
-            isPositiveNumber(base_control_confidence)
+            is_positive_number(base_control_confidence)
             and base_control_confidence <= 1
         ), f"base_control_confidence {base_control_confidence} must be a positive number within the range (0, 1]"
         self._base_control_confidence = base_control_confidence

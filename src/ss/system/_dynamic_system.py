@@ -3,13 +3,14 @@ from typing import Any, Optional, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system.state_vector import System
-from ss.tool.assertion import isPositiveNumber
+from ss.system._system import System
+from ss.tool.assertion import is_positive_number
 from ss.tool.assertion.validator import Validator
 from ss.tool.descriptor import TensorDescriptor
 
 
 class ContinuousTimeSystem(System):
+
     class _NoiseCovarianceValidator(Validator):
         def __init__(
             self,
@@ -51,7 +52,7 @@ class ContinuousTimeSystem(System):
         observation_noise_covariance: Optional[ArrayLike] = None,
         **kwargs: Any,
     ) -> None:
-        assert isPositiveNumber(
+        assert is_positive_number(
             time_step
         ), f"time_step {time_step} must be a positive number"
         self._time_step = time_step

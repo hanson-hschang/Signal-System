@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.system.state_vector.linear import DiscreteTimeLinearSystem
+from ss.system.linear import DiscreteTimeLinearSystem
 
 
 class TestDiscreteTimeLinearSystem:

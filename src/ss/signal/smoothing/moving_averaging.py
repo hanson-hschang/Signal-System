@@ -4,13 +4,13 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import isPositiveInteger
+from ss.tool.assertion import is_positive_integer
 from ss.tool.descriptor import ReadOnlyDescriptor
 
 
 class MovingAveragingSmoother:
     def __init__(self, window_size: int) -> None:
-        assert isPositiveInteger(
+        assert is_positive_integer(
             window_size
         ), f"window_size {window_size} must be a positive integer"
         self._window_size = window_size

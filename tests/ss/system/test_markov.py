@@ -1,28 +1,31 @@
 import numpy as np
 import pytest
 
-from ss.system.state_vector.markov import MarkovChain
+from ss.system.markov import HiddenMarkovModel
 
 
 class TestMarkovChain:
 
     @pytest.fixture
-    def markov_chain(self) -> MarkovChain:
-        """Create a basic markov_chain with default parameters"""
-        return MarkovChain(
+    def hidden_markov_model(self) -> HiddenMarkovModel:
+        """Create a basic hidden_markov_model instance"""
+        return HiddenMarkovModel(
             transition_probability_matrix=np.array([[0.0, 1.0], [1.0, 0.0]]),
             emission_probability_matrix=np.array([[0.5, 0.5], [0.5, 0.5]]),
-            initial_distribution=np.array([0.5, 0.5]),
-            number_of_systems=10,
+            initial_distribution=np.array([1.0, 0.0]),
+            number_of_systems=2,
         )
 
-    def test_initialization(self, markov_chain: MarkovChain) -> None:
-        assert markov_chain.state_dim == 2
-        assert markov_chain.observation_dim == 2
-        assert markov_chain.number_of_systems == 10
+    def test_initialization(
+        self, hidden_markov_model: HiddenMarkovModel
+    ) -> None:
+        assert hidden_markov_model.state_dim == 2
+        assert hidden_markov_model.observation_dim == 2
+        assert hidden_markov_model.number_of_systems == 2
 
-    def test_process(self, markov_chain: MarkovChain) -> None:
-        state = markov_chain.state
-        time = markov_chain.process(0)
+    def test_process(self, hidden_markov_model: HiddenMarkovModel) -> None:
+        time = hidden_markov_model.process(0)
         assert time == 1
-        np.testing.assert_allclose(markov_chain.state, state[:, ::-1])
+        np.testing.assert_allclose(
+            hidden_markov_model.state, [[0.0, 1.0], [0.0, 1.0]]
+        )

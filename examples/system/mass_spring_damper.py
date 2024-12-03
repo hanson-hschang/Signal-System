@@ -3,7 +3,7 @@ from typing import assert_never
 import click
 import numpy as np
 
-from ss.system.state_vector.examples.mass_spring_damper import (
+from ss.system.examples.mass_spring_damper import (
     ControlChoice,
     MassSpringDamperSystem,
     ObservationChoice,

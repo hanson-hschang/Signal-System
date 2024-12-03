@@ -1,4 +1,4 @@
-from ss.system.state_vector.linear._linear import (
+from ss.system.linear._linear import (
     ContinuousTimeLinearSystem,
     DiscreteTimeLinearSystem,
 )

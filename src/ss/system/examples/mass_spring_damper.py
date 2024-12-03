@@ -6,8 +6,8 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
-from ss.system.state_vector.linear import ContinuousTimeLinearSystem
-from ss.tool.assertion import isPositiveInteger
+from ss.system.linear import ContinuousTimeLinearSystem
+from ss.tool.assertion import is_positive_integer
 from ss.tool.figure import TimeTrajectoryFigure
 
 
@@ -37,7 +37,7 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
         observation_noise_covariance: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
-        assert isPositiveInteger(
+        assert is_positive_integer(
             number_of_connections
         ), "number_of_connections should be a positive integer"
         assert isinstance(
@@ -194,8 +194,9 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
             fig_layout=(2, self._number_of_connections),
         )
         assert state_trajectory.shape[2] == self._time_length, (
-            "state_trajectory must have the same length of time_trajectory."
-            "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+            f"state_trajectory must have the same time horizon as time_trajectory. "
+            f"state_trajectory has the time horizon of {state_trajectory.shape[2]} "
+            f"while time_trajectory has the time horizon of {self._time_length}."
         )
 
         self._state_trajectory = state_trajectory
@@ -226,7 +227,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
         )
         return signal_range[0], signal_range[1]
 
-    def plot_figure(self) -> Self:
+    def plot(self) -> Self:
         if self._number_of_systems <= 10:
             self._plot_each_system_trajectory()
         else:
@@ -246,8 +247,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                 mean_trajectory=mean_trajectory,
                 std_trajectory=std_trajectory,
             )
-        super().plot_figure()
-        return self
+        return super().plot()
 
     def _plot_each_system_trajectory(
         self,
