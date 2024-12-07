@@ -39,7 +39,8 @@ class Estimator:
         )
         self._number_of_systems = int(number_of_systems)
         self._estimated_state = np.zeros(
-            (self._number_of_systems, self._state_dim), dtype=np.float64
+            (self._number_of_systems, self._state_dim),
+            dtype=np.float64,
         )
         self._observation_history = np.zeros(
             (
@@ -55,7 +56,8 @@ class Estimator:
     number_of_observation_history = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
     estimated_state = MultiSystemTensorDescriptor(
-        "_number_of_systems", "_state_dim"
+        "_number_of_systems",
+        "_state_dim",
     )
     observation_history = MultiSystemTensorReadOnlyDescriptor(
         "_number_of_systems",
