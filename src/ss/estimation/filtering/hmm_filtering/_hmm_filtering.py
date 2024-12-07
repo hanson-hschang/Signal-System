@@ -11,6 +11,7 @@ from ss.estimation.estimator import EstimatorCallback
 from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel, one_hot_decoding
 from ss.tool.assertion.validator import Validator
+from ss.tool.descriptor import MultiSystemTensorReadOnlyDescriptor
 from ss.tool.figure import TimeTrajectoryFigure
 
 
@@ -53,12 +54,14 @@ class HiddenMarkovModelFilter(Filter):
             estimation_model = _estimation_model
         self._estimation_model = estimation_model
 
-    @property
-    def estimated_function_value(self) -> NDArray[np.float64]:
-        function_value: NDArray[np.float64] = self._estimation_model(
-            self._estimated_state
+        self._estimated_function_value: NDArray[np.float64] = (
+            self._estimation_model(self._estimated_state)
         )
-        return function_value
+        self._function_value_dim = self._estimated_function_value.shape[1]
+
+    estimated_function_value = MultiSystemTensorReadOnlyDescriptor(
+        "_number_of_systems", "_function_value_dim"
+    )
 
     def _compute_estimation_process(self) -> NDArray[np.float64]:
         estimation_process: NDArray[np.float64] = self._estimation_process(
@@ -66,6 +69,12 @@ class HiddenMarkovModelFilter(Filter):
             observation=self._observation_history[:, :, 0],
             transition_probability_matrix=self._system.transition_probability_matrix,
             emission_probability_matrix=self._system.emission_probability_matrix,
+        )
+        # self._estimated_state will only be updated by estimation_process
+        # in the next step in _update method, so the computation of self._estimated_function_value
+        # directly use the estimation_process (instead of self._estimated_state) to avoid one step delay
+        self._estimated_function_value[...] = self._estimation_model(
+            estimation_process
         )
         return estimation_process
 
