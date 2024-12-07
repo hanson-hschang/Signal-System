@@ -4,7 +4,11 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.tool.assertion import is_positive_integer
 from ss.tool.callback import Callback
-from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
+from ss.tool.descriptor import (
+    MultiSystemTensorDescriptor,
+    MultiSystemTensorReadOnlyDescriptor,
+    ReadOnlyDescriptor,
+)
 
 
 class Estimator:
@@ -53,7 +57,7 @@ class Estimator:
     estimated_state = MultiSystemTensorDescriptor(
         "_number_of_systems", "_state_dim"
     )
-    observation_history = MultiSystemTensorDescriptor(
+    observation_history = MultiSystemTensorReadOnlyDescriptor(
         "_number_of_systems",
         "_observation_dim",
         "_horizon_of_observation_history",
