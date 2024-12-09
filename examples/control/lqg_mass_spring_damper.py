@@ -9,7 +9,9 @@ from tqdm import tqdm
 
 from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
-from ss.control.lqg import LQGController
+from ss.control.optimal.lqr import LinearQuadraticRegulatorController
+
+# from ss.control.lqg import LQGController
 from ss.system import SystemCallback
 from ss.system.examples.mass_spring_damper import (
     ControlChoice,
@@ -83,7 +85,7 @@ def main(
         step_skip=step_skip,
         cost=cost,
     )
-    controller = LQGController(
+    controller = LinearQuadraticRegulatorController(
         system=system,
         cost=cost,
     )
@@ -105,15 +107,16 @@ def main(
             current_state = current_state[np.newaxis, :]
 
         # Compute the control for each system
-        control = controller.compute_control()
+        controller.system_state = system.state
+        controller.compute_control()
 
         # Set the control
-        system.control = control.squeeze()
+        system.control = controller.control
         system_callback.record(k, current_time)
 
         # Compute the cost
-        cost.state = current_state.squeeze()
-        cost.control = control.squeeze()
+        cost.state = system.state
+        cost.control = controller.control
         cost_callback.record(k, current_time)
 
         # Update the system
