@@ -6,8 +6,8 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system import DiscreteTimeSystem
-from ss.tool.assertion import is_positive_number
-from ss.tool.assertion.validator import Validator
+from ss.utility.assertion import is_positive_number
+from ss.utility.assertion.validator import Validator
 
 
 class DiscreteTimeLinearSystem(DiscreteTimeSystem):

@@ -7,8 +7,8 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system.linear import ContinuousTimeLinearSystem
-from ss.tool.assertion import is_positive_integer
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.assertion import is_positive_integer
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class ObservationChoice(StrEnum):

@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system import ContinuousTimeSystem
-from ss.tool.assertion.inspect import inspect_arguments
+from ss.utility.assertion.inspect import inspect_arguments
 
 
 class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):

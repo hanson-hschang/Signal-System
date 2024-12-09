@@ -7,7 +7,7 @@ from matplotlib.axes import Axes
 from matplotlib.collections import QuadMesh
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import is_positive_integer, is_positive_number
+from ss.utility.assertion import is_positive_integer, is_positive_number
 
 
 class TimeTrajectoryFigure:

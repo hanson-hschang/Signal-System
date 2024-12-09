@@ -2,8 +2,11 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ss.tool.assertion import is_positive_integer
-from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
+from ss.utility.assertion import is_positive_integer
+from ss.utility.descriptor import (
+    MultiSystemTensorDescriptor,
+    ReadOnlyDescriptor,
+)
 
 
 class Controller:

@@ -4,8 +4,8 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import is_positive_integer
-from ss.tool.descriptor import ReadOnlyDescriptor
+from ss.utility.assertion import is_positive_integer
+from ss.utility.descriptor import ReadOnlyDescriptor
 
 
 class MovingAveragingSmoother:

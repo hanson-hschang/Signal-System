@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system import DiscreteTimeSystem, SystemCallback
-from ss.tool.assertion.validator import Validator
+from ss.utility.assertion.validator import Validator
 
 
 @njit(cache=True)  # type: ignore

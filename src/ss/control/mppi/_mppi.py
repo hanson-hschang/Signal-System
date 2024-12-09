@@ -7,12 +7,12 @@ from numpy.typing import ArrayLike, NDArray
 from ss.control.cost.quadratic import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
 from ss.system import ContinuousTimeSystem
-from ss.tool.assertion import (
+from ss.utility.assertion import (
     is_nonnegative_number,
     is_positive_integer,
     is_positive_number,
 )
-from ss.tool.descriptor import ReadOnlyDescriptor, TensorDescriptor
+from ss.utility.descriptor import ReadOnlyDescriptor, TensorDescriptor
 
 
 class ModelPredictivePathIntegralController:

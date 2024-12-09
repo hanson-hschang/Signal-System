@@ -4,9 +4,9 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system._system import System
-from ss.tool.assertion import is_positive_number
-from ss.tool.assertion.validator import Validator
-from ss.tool.descriptor import TensorDescriptor
+from ss.utility.assertion import is_positive_number
+from ss.utility.assertion.validator import Validator
+from ss.utility.descriptor import TensorDescriptor
 
 
 class ContinuousTimeSystem(System):

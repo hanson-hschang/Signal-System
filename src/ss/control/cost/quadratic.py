@@ -5,8 +5,8 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.control.cost import Cost
-from ss.tool.assertion.validator import Validator
-from ss.tool.descriptor import TensorDescriptor
+from ss.utility.assertion.validator import Validator
+from ss.utility.descriptor import TensorDescriptor
 
 
 class QuadraticCost(Cost):

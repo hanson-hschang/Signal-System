@@ -4,10 +4,13 @@ import numpy as np
 from matplotlib.axes import Axes
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import is_positive_integer, is_positive_number
-from ss.tool.callback import Callback
-from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.assertion import is_positive_integer, is_positive_number
+from ss.utility.callback import Callback
+from ss.utility.descriptor import (
+    MultiSystemTensorDescriptor,
+    ReadOnlyDescriptor,
+)
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class Cost:

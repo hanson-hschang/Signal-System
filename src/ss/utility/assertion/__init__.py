@@ -1,4 +1,4 @@
-from ss.tool.assertion._assertion import (
+from ss.utility.assertion._assertion import (
     is_nonnegative_integer,
     is_nonnegative_number,
     is_positive_integer,

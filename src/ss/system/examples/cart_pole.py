@@ -8,7 +8,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system.nonlinear import ContinuousTimeNonlinearSystem
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class CartPoleSystem(ContinuousTimeNonlinearSystem):
