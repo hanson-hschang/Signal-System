@@ -27,7 +27,10 @@ class LinearQuadraticRegulatorController(Controller):
     ) -> None:
         assert isinstance(
             system, (ContinuousTimeLinearSystem, DiscreteTimeLinearSystem)
-        ), f"{type(system) = } must be an instance of either ContinuousTimeLinearSystem or DiscreteTimeLinearSystem"
+        ), (
+            f"{type(system) = } must be an instance of either "
+            "ContinuousTimeLinearSystem or DiscreteTimeLinearSystem"
+        )
         assert isinstance(
             cost, QuadraticCost
         ), f"{type(cost) = } must be an instance of QuadraticCost"
@@ -39,8 +42,6 @@ class LinearQuadraticRegulatorController(Controller):
             control_dim=system.control_dim,
             number_of_systems=system.number_of_systems,
         )
-        # self._system = system
-        # self._cost = cost
 
         self._horizon = horizon
         self._state_dim = system.state_dim
