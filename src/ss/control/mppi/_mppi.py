@@ -8,12 +8,12 @@ from ss.control import Controller
 from ss.control.cost.quadratic import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
 from ss.system import ContinuousTimeSystem
-from ss.utility.assertion import (
-    is_nonnegative_number,
-    is_positive_integer,
-    is_positive_number,
+from ss.utility.assertion import is_nonnegative_number, is_positive_number
+from ss.utility.assertion.validator import (
+    PositiveIntegerValidator,
+    PositiveNumberValidator,
+    Validator,
 )
-from ss.utility.assertion.validator import Validator
 from ss.utility.descriptor import (
     MultiSystemTensorDescriptor,
     ReadOnlyDescriptor,
@@ -109,65 +109,26 @@ class ModelPredictivePathIntegralController(Controller):
             )
             return False
 
-    class _TimeHorizonValidator(Validator):
+    class _TimeHorizonValidator(PositiveIntegerValidator):
         def __init__(
             self,
             time_horizon: int,
         ) -> None:
-            super().__init__()
-            self._time_horizon = time_horizon
-            self._validate_functions.append(self._validate_value_range)
+            super().__init__(time_horizon, "time_horizon")
 
-        def _validate_value_range(self) -> bool:
-            if is_positive_integer(self._time_horizon):
-                return True
-            self._errors.append(
-                f"time_horizon = {self._time_horizon} must be a positive integer"
-            )
-            return False
-
-        def get_value(self) -> int:
-            return self._time_horizon
-
-    class _NumberOfSamplesValidator(Validator):
+    class _NumberOfSamplesValidator(PositiveIntegerValidator):
         def __init__(
             self,
             number_of_samples: int,
         ) -> None:
-            super().__init__()
-            self._number_of_samples = number_of_samples
-            self._validate_functions.append(self._validate_value_range)
+            super().__init__(number_of_samples, "number_of_samples")
 
-        def _validate_value_range(self) -> bool:
-            if is_positive_integer(self._number_of_samples):
-                return True
-            self._errors.append(
-                f"number_of_samples = {self._number_of_samples} must be a positive integer"
-            )
-            return False
-
-        def get_value(self) -> int:
-            return self._number_of_samples
-
-    class _TemperatureValidator(Validator):
+    class _TemperatureValidator(PositiveNumberValidator):
         def __init__(
             self,
             temperature: float,
         ) -> None:
-            super().__init__()
-            self._temperature = temperature
-            self._validate_functions.append(self._validate_value_range)
-
-        def _validate_value_range(self) -> bool:
-            if is_positive_number(self._temperature):
-                return True
-            self._errors.append(
-                f"temperature = {self._temperature} must be a positive number"
-            )
-            return False
-
-        def get_value(self) -> float:
-            return self._temperature
+            super().__init__(temperature, "temperature")
 
     class _BaseControlConfidenceValidator(Validator):
         def __init__(
@@ -214,28 +175,15 @@ class ModelPredictivePathIntegralController(Controller):
         def get_value(self) -> float:
             return self._exploration_percentage
 
-    class _SmoothingWindowSizeValidator(Validator):
+    class _SmoothingWindowSizeValidator(PositiveIntegerValidator):
         def __init__(
             self,
             smoothing_window_size: Optional[int],
             time_horizon: int,
         ) -> None:
-            super().__init__()
             if smoothing_window_size is None:
                 smoothing_window_size = int(time_horizon * 0.1) + 1
-            self._smoothing_window_size = smoothing_window_size
-            self._validate_functions.append(self._validate_value_range)
-
-        def _validate_value_range(self) -> bool:
-            if is_positive_integer(self._smoothing_window_size):
-                return True
-            self._errors.append(
-                f"smoothing_window_size = {self._smoothing_window_size} must be a positive integer"
-            )
-            return False
-
-        def get_value(self) -> int:
-            return self._smoothing_window_size
+            super().__init__(smoothing_window_size, "smoothing_window_size")
 
     def __init__(
         self,
