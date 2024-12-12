@@ -6,8 +6,8 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system import DiscreteTimeSystem
-from ss.tool.assertion import is_positive_number
-from ss.tool.assertion.validator import Validator
+from ss.utility.assertion import is_positive_number
+from ss.utility.assertion.validator import Validator
 
 
 class DiscreteTimeLinearSystem(DiscreteTimeSystem):
@@ -17,14 +17,16 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             self._state_space_matrix_A = np.array(
                 state_space_matrix_A, dtype=np.float64
             )
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._state_space_matrix_A.shape
-            if not (len(shape) == 2 and (shape[0] == shape[1])):
-                self._errors.append(
-                    "state_space_matrix_A should be a square matrix"
-                )
+            if (len(shape) == 2) and (shape[0] == shape[1]):
+                return True
+            self._errors.append(
+                "state_space_matrix_A should be a square matrix"
+            )
+            return False
 
         def get_matrix(self) -> NDArray[np.float64]:
             return self._state_space_matrix_A
@@ -42,14 +44,16 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
                 state_space_matrix_B, dtype=np.float64
             )
             self._state_dim = state_dim
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._state_space_matrix_B.shape
-            if not (len(shape) == 2 and (shape[0] == self._state_dim)):
-                self._errors.append(
-                    "state_space_matrix_A and state_space_matrix_B should share the same number of rows (state_dim)"
-                )
+            if (len(shape) == 2) and (shape[0] == self._state_dim):
+                return True
+            self._errors.append(
+                "state_space_matrix_A and state_space_matrix_B should share the same number of rows (state_dim)"
+            )
+            return False
 
         def get_matrix(self) -> NDArray[np.float64]:
             return self._state_space_matrix_B
@@ -63,14 +67,16 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
                 state_space_matrix_C, dtype=np.float64
             )
             self._state_dim = state_dim
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._state_space_matrix_C.shape
-            if not (len(shape) == 2 and (shape[1] == self._state_dim)):
-                self._errors.append(
-                    "state_space_matrix_A and state_space_matrix_C should share the same number of columns (state_dim)"
-                )
+            if (len(shape) == 2) and (shape[1] == self._state_dim):
+                return True
+            self._errors.append(
+                "state_space_matrix_A and state_space_matrix_C should share the same number of columns (state_dim)"
+            )
+            return False
 
         def get_matrix(self) -> NDArray[np.float64]:
             return self._state_space_matrix_C
@@ -121,9 +127,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     def state_space_matrix_C(self) -> NDArray[np.float64]:
         return self._state_space_matrix_C
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "DiscreteTimeLinearSystem":
+    def duplicate(self, number_of_systems: int) -> "DiscreteTimeLinearSystem":
         """
         Create multiple systems based on the current system.
 

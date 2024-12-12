@@ -96,26 +96,19 @@ def main(
 
         # Get the current state
         current_state = system.state
-        if len(current_state.shape) == 1:
-            current_state = current_state[np.newaxis, :]
 
-        # Initialize control placeholder
-        control = np.zeros_like(system.control)
-        if len(control.shape) == 1:
-            control = control[np.newaxis, :]
-        for i in range(number_of_systems):
-            # Compute the control for each system
-            controller.reset_systems(current_state[i, :])
-            control_trajectory = controller.compute_control()
-            control[i, :] = control_trajectory[:, 0]
+        # Compute the control for each system
+        controller.system_state = current_state
+        controller.compute_control()
+        control = controller.control
 
         # Set the control
-        system.control = control.squeeze()
+        system.control = control
         system_callback.record(k, current_time)
 
         # Compute the cost
-        cost.state = current_state.squeeze()
-        cost.control = control.squeeze()
+        cost.state = current_state
+        cost.control = control
         cost_callback.record(k, current_time)
 
         # Update the system

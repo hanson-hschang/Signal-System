@@ -8,7 +8,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system.nonlinear import ContinuousTimeNonlinearSystem
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class CartPoleSystem(ContinuousTimeNonlinearSystem):
@@ -103,9 +103,7 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
             number_of_systems=number_of_systems,
         )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "CartPoleSystem":
+    def duplicate(self, number_of_systems: int) -> "CartPoleSystem":
         return self.__class__(
             cart_mass=self._cart_mass,
             pole_mass=self._pole_mass,

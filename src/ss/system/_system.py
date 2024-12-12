@@ -4,9 +4,12 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from ss.tool.assertion import is_nonnegative_integer, is_positive_integer
-from ss.tool.callback import Callback
-from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
+from ss.utility.assertion import is_nonnegative_integer, is_positive_integer
+from ss.utility.callback import Callback
+from ss.utility.descriptor import (
+    MultiSystemTensorDescriptor,
+    ReadOnlyDescriptor,
+)
 
 
 class System:
@@ -51,7 +54,7 @@ class System:
     state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
     control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
 
-    def create_multiple_systems(self, number_of_systems: int) -> "System":
+    def duplicate(self, number_of_systems: int) -> "System":
         """
         Create multiple systems based on the current system.
 

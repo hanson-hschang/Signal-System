@@ -4,9 +4,9 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system._system import System
-from ss.tool.assertion import is_positive_number
-from ss.tool.assertion.validator import Validator
-from ss.tool.descriptor import TensorDescriptor
+from ss.utility.assertion import is_positive_number
+from ss.utility.assertion.validator import Validator
+from ss.utility.descriptor import TensorDescriptor
 
 
 class ContinuousTimeSystem(System):
@@ -26,17 +26,16 @@ class ContinuousTimeSystem(System):
             )
             self._dimension = dimension
             self._name = name if name is not None else "noise_covariance"
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._noise_covariance.shape
-            if not (
-                len(shape) == 2 and (shape[0] == shape[1] == self._dimension)
-            ):
-                self._errors.append(
-                    self._name
-                    + f" should be a square matrix and have shape ({self._dimension}, {self._dimension})"
-                )
+            if (len(shape) == 2) and (shape[0] == shape[1] == self._dimension):
+                return True
+            self._errors.append(
+                f"{self._name} should be a square matrix and have shape ({self._dimension}, {self._dimension})"
+            )
+            return False
 
         def get_noise_covariance(self) -> NDArray[np.float64]:
             return self._noise_covariance
@@ -79,9 +78,7 @@ class ContinuousTimeSystem(System):
         "_observation_dim", "_observation_dim"
     )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "ContinuousTimeSystem":
+    def duplicate(self, number_of_systems: int) -> "ContinuousTimeSystem":
         """
         Create multiple systems based on the current system.
 
@@ -165,9 +162,7 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
             **kwargs,
         )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "DiscreteTimeSystem":
+    def duplicate(self, number_of_systems: int) -> "DiscreteTimeSystem":
         """
         Create multiple systems based on the current system.
 

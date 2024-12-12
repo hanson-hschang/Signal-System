@@ -7,8 +7,8 @@ from numpy.typing import ArrayLike, NDArray
 from scipy.linalg import expm
 
 from ss.system.linear import ContinuousTimeLinearSystem
-from ss.tool.assertion import is_positive_integer
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.assertion import is_positive_integer
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class ObservationChoice(StrEnum):
@@ -128,9 +128,7 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
             number_of_systems=number_of_systems,
         )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "MassSpringDamperSystem":
+    def duplicate(self, number_of_systems: int) -> "MassSpringDamperSystem":
         """
         Create multiple systems based on the current system.
 

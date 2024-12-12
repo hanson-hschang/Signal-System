@@ -1,4 +1,4 @@
-from ss.estimation.estimator import Estimator
+from ss.estimation import Estimator
 
 
 class Filter(Estimator):

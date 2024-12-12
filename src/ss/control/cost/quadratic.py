@@ -5,8 +5,8 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.control.cost import Cost
-from ss.tool.assertion.validator import Validator
-from ss.tool.descriptor import TensorDescriptor
+from ss.utility.assertion.validator import Validator
+from ss.utility.descriptor import TensorDescriptor
 
 
 class QuadraticCost(Cost):
@@ -14,12 +14,14 @@ class QuadraticCost(Cost):
         def __init__(self, cost_weight: ArrayLike) -> None:
             super().__init__()
             self._cost_weight = np.array(cost_weight, dtype=np.float64)
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._cost_weight.shape
-            if not (len(shape) == 2 and (shape[0] == shape[1])):
-                self._errors.append("cost_weight should be a square matrix")
+            if (len(shape) == 2) and (shape[0] == shape[1]):
+                return True
+            self._errors.append("cost_weight should be a square matrix")
+            return False
 
         def get_weight(self) -> NDArray[np.float64]:
             return self._cost_weight
@@ -33,12 +35,14 @@ class QuadraticCost(Cost):
                 cost_weight = np.zeros((dimension, dimension))
             self._cost_weight = np.array(cost_weight, dtype=np.float64)
             self._dimension = dimension
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._cost_weight.shape
-            if not (len(shape) == 2 and (shape[0] == shape[1])):
-                self._errors.append("cost_weight should be a square matrix")
+            if (len(shape) == 2) and (shape[0] == shape[1]):
+                return True
+            self._errors.append("cost_weight should be a square matrix")
+            return False
 
         def get_weight(self) -> NDArray[np.float64]:
             return self._cost_weight
@@ -54,14 +58,16 @@ class QuadraticCost(Cost):
                 intrinsic_vector, dtype=np.float64
             )
             self._dimension = dimension
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._intrinsic_vector.shape
-            if not (len(shape) == 1 and (shape[0] == self._dimension)):
-                self._errors.append(
-                    f"length of intrinsic_vector should be equal to dimension {self._dimension}"
-                )
+            if (len(shape) == 1) and (shape[0] == self._dimension):
+                return True
+            self._errors.append(
+                f"length of intrinsic_vector should be equal to dimension {self._dimension}"
+            )
+            return False
 
         def get_vector(self) -> NDArray[np.float64]:
             return self._intrinsic_vector
@@ -87,17 +93,14 @@ class QuadraticCost(Cost):
         control_dim = self._running_cost_control_weight.shape[0]
 
         self._terminal_cost_state_weight = self._TerminalCostWeightValidator(
-            state_dim,
-            terminal_cost_state_weight,
+            state_dim, terminal_cost_state_weight
         ).get_weight()
         self._terminal_cost_control_weight = self._TerminalCostWeightValidator(
-            control_dim,
-            terminal_cost_control_weight,
+            control_dim, terminal_cost_control_weight
         ).get_weight()
 
         self._intrinsic_state = self._IntrinsicVectorValidator(
-            state_dim,
-            intrinsic_state,
+            state_dim, intrinsic_state
         ).get_vector()
         self._intrinsic_control = self._IntrinsicVectorValidator(
             control_dim, intrinsic_control
@@ -121,7 +124,7 @@ class QuadraticCost(Cost):
     intrinsic_state = TensorDescriptor("_state_dim")
     intrinsic_control = TensorDescriptor("_control_dim")
 
-    def create_multiple_costs(self, number_of_systems: int) -> "QuadraticCost":
+    def duplicate(self, number_of_systems: int) -> "QuadraticCost":
         """
         Create multiple costs.
 

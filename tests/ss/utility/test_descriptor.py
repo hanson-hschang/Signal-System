@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.tool.descriptor import TensorDescriptor
+from ss.utility.descriptor import TensorDescriptor
 
 
 class VectorClass:

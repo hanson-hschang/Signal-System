@@ -7,12 +7,12 @@ from matplotlib.colors import Normalize
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.estimation.estimator import EstimatorCallback
+from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel, one_hot_decoding
-from ss.tool.assertion.validator import Validator
-from ss.tool.descriptor import MultiSystemTensorReadOnlyDescriptor
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.assertion.validator import Validator
+from ss.utility.descriptor import MultiSystemTensorReadOnlyDescriptor
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class HiddenMarkovModelFilter(Filter):

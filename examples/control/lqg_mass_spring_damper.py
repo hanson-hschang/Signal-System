@@ -4,12 +4,11 @@ from pathlib import Path
 import click
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.linalg import solve_discrete_are
 from tqdm import tqdm
 
 from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
-from ss.control.lqg import LQGController
+from ss.control.optimal.lqg import LinearQuadraticGaussianController
 from ss.system import SystemCallback
 from ss.system.examples.mass_spring_damper import (
     ControlChoice,
@@ -83,37 +82,29 @@ def main(
         step_skip=step_skip,
         cost=cost,
     )
-    controller = LQGController(
+    controller = LinearQuadraticGaussianController(
         system=system,
         cost=cost,
     )
-
-    # # Solve the CARE
-    # matrix_P = solve_discrete_are(
-    #     a=system._state_space_matrix_A,
-    #     b=system._state_space_matrix_B,
-    #     q=cost.running_cost_state_weight * time_step,
-    #     r=cost.running_cost_control_weight * time_step,
-    # )
 
     current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
 
         # Get the current state
         current_state = system.state
-        if len(current_state.shape) == 1:
-            current_state = current_state[np.newaxis, :]
 
         # Compute the control for each system
-        control = controller.compute_control()
+        controller.system_state = current_state
+        controller.compute_control()
+        control = controller.control
 
         # Set the control
-        system.control = control.squeeze()
+        system.control = control
         system_callback.record(k, current_time)
 
         # Compute the cost
-        cost.state = current_state.squeeze()
-        cost.control = control.squeeze()
+        cost.state = current_state
+        cost.control = control
         cost_callback.record(k, current_time)
 
         # Update the system

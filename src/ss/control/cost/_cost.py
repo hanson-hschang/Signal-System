@@ -4,13 +4,85 @@ import numpy as np
 from matplotlib.axes import Axes
 from numpy.typing import ArrayLike, NDArray
 
-from ss.tool.assertion import is_positive_integer, is_positive_number
-from ss.tool.callback import Callback
-from ss.tool.descriptor import MultiSystemTensorDescriptor, ReadOnlyDescriptor
-from ss.tool.figure import TimeTrajectoryFigure
+from ss.utility.assertion import is_positive_integer, is_positive_number
+from ss.utility.assertion.validator import Validator
+from ss.utility.callback import Callback
+from ss.utility.descriptor import (
+    MultiSystemTensorDescriptor,
+    ReadOnlyDescriptor,
+)
+from ss.utility.figure import TimeTrajectoryFigure
 
 
 class Cost:
+    class _TimeStepValidator(Validator):
+        def __init__(self, time_step: float) -> None:
+            super().__init__()
+            self._time_step = time_step
+            self._validate_functions.append(self._validate_value_range)
+
+        def _validate_value_range(self) -> bool:
+            if is_positive_number(self._time_step):
+                return True
+            self._errors.append(
+                f"time_step = {self._time_step} must be a positive number"
+            )
+            return False
+
+        def get_value(self) -> float:
+            return self._time_step
+
+    class _StateDimValidator(Validator):
+        def __init__(self, state_dim: int) -> None:
+            super().__init__()
+            self._state_dim = state_dim
+            self._validate_functions.append(self._validate_value_range)
+
+        def _validate_value_range(self) -> bool:
+            if is_positive_integer(self._state_dim):
+                return True
+            self._errors.append(
+                f"state_dim = {self._state_dim} must be a positive integer"
+            )
+            return False
+
+        def get_value(self) -> int:
+            return self._state_dim
+
+    class _ControlDimValidator(Validator):
+        def __init__(self, control_dim: int) -> None:
+            super().__init__()
+            self._control_dim = control_dim
+            self._validate_functions.append(self._validate_value_range)
+
+        def _validate_value_range(self) -> bool:
+            if is_positive_integer(self._control_dim):
+                return True
+            self._errors.append(
+                f"control_dim = {self._control_dim} must be a positive integer"
+            )
+            return False
+
+        def get_value(self) -> int:
+            return self._control_dim
+
+    class _NumberOfSystemsValidator(Validator):
+        def __init__(self, number_of_systems: int) -> None:
+            super().__init__()
+            self._number_of_systems = number_of_systems
+            self._validate_functions.append(self._validate_value_range)
+
+        def _validate_value_range(self) -> bool:
+            if is_positive_integer(self._number_of_systems):
+                return True
+            self._errors.append(
+                f"number_of_systems = {self._number_of_systems} must be a positive integer"
+            )
+            return False
+
+        def get_value(self) -> int:
+            return self._number_of_systems
+
     def __init__(
         self,
         time_step: float,
@@ -19,23 +91,12 @@ class Cost:
         number_of_systems: int = 1,
         **kwargs: Any,
     ) -> None:
-        assert is_positive_number(
-            time_step
-        ), f"time_step {time_step} must be a positive number"
-        assert is_positive_integer(
-            state_dim
-        ), f"state_dim {state_dim} must be a positive integer"
-        assert is_positive_integer(
-            control_dim
-        ), f"control_dim {control_dim} must be a positive integer"
-        assert is_positive_integer(
+        self._time_step = self._TimeStepValidator(time_step).get_value()
+        self._state_dim = self._StateDimValidator(state_dim).get_value()
+        self._control_dim = self._ControlDimValidator(control_dim).get_value()
+        self._number_of_systems = self._NumberOfSystemsValidator(
             number_of_systems
-        ), f"number_of_systems {number_of_systems} must be a positive integer"
-
-        self._time_step = time_step
-        self._state_dim = int(state_dim)
-        self._control_dim = int(control_dim)
-        self._number_of_systems = int(number_of_systems)
+        ).get_value()
 
         self._state = np.zeros(
             (self._number_of_systems, self._state_dim), dtype=np.float64
@@ -54,7 +115,7 @@ class Cost:
     state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
     control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
 
-    def create_multiple_costs(self, number_of_systems: int) -> "Cost":
+    def duplicate(self, number_of_systems: int) -> "Cost":
         """
         Create multiple costs.
 

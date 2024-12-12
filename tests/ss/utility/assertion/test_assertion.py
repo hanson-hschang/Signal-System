@@ -2,7 +2,7 @@ from typing import Any
 
 import pytest
 
-from ss.tool.assertion import (
+from ss.utility.assertion import (
     is_nonnegative_integer,
     is_positive_integer,
     is_positive_number,

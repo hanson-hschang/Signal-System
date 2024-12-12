@@ -24,5 +24,5 @@ class TestMassSpringDamperSystem:
     def test_create_multiple_systems(
         self, system: MassSpringDamperSystem
     ) -> None:
-        multi_system = system.create_multiple_systems(number_of_systems=2)
+        multi_system = system.duplicate(number_of_systems=2)
         assert multi_system.number_of_systems == 2
