@@ -2,7 +2,7 @@ from typing import Optional
 
 import numpy as np
 from numba import njit
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from ss.control import Controller
 from ss.control.cost.quadratic import QuadraticCost
