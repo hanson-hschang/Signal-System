@@ -2,7 +2,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
-from ss.utility.assertion import is_positive_integer
+from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
     MultiSystemTensorDescriptor,
@@ -12,6 +12,24 @@ from ss.utility.descriptor import (
 
 
 class Estimator:
+    class _StateDimValidator(PositiveIntegerValidator):
+        def __init__(self, state_dim: int) -> None:
+            super().__init__(state_dim, "state_dim")
+
+    class _ObservationDimValidator(PositiveIntegerValidator):
+        def __init__(self, observation_dim: int) -> None:
+            super().__init__(observation_dim, "observation_dim")
+
+    class _HorizonOfObservationHistoryValidator(PositiveIntegerValidator):
+        def __init__(self, horizon_of_observation_history: int) -> None:
+            super().__init__(
+                horizon_of_observation_history, "horizon_of_observation_history"
+            )
+
+    class _NumberOfSystemsValidator(PositiveIntegerValidator):
+        def __init__(self, number_of_systems: int) -> None:
+            super().__init__(number_of_systems, "number_of_systems")
+
     def __init__(
         self,
         state_dim: int,
@@ -19,25 +37,19 @@ class Estimator:
         horizon_of_observation_history: int = 1,
         number_of_systems: int = 1,
     ) -> None:
-        assert is_positive_integer(
-            state_dim
-        ), f"{state_dim = } must be a positive integer"
-        assert is_positive_integer(
+        self._state_dim = self._StateDimValidator(state_dim).get_value()
+        self._observation_dim = self._ObservationDimValidator(
             observation_dim
-        ), f"{observation_dim = } must be a positive integer"
-        assert is_positive_integer(
-            horizon_of_observation_history
-        ), f"{horizon_of_observation_history = } must be a positive integer"
-        assert is_positive_integer(
-            number_of_systems
-        ), f"{number_of_systems = } must be a positive integer"
-
-        self._state_dim = int(state_dim)
-        self._observation_dim = int(observation_dim)
-        self._horizon_of_observation_history = int(
-            horizon_of_observation_history
+        ).get_value()
+        self._horizon_of_observation_history = (
+            self._HorizonOfObservationHistoryValidator(
+                horizon_of_observation_history
+            ).get_value()
         )
-        self._number_of_systems = int(number_of_systems)
+        self._number_of_systems = self._NumberOfSystemsValidator(
+            number_of_systems
+        ).get_value()
+
         self._estimated_state = np.zeros(
             (self._number_of_systems, self._state_dim),
             dtype=np.float64,
