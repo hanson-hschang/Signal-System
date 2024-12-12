@@ -26,17 +26,16 @@ class ContinuousTimeSystem(System):
             )
             self._dimension = dimension
             self._name = name if name is not None else "noise_covariance"
-            self._validate_shape()
+            self._validate_functions.append(self._validate_shape)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._noise_covariance.shape
-            if not (
-                len(shape) == 2 and (shape[0] == shape[1] == self._dimension)
-            ):
-                self._errors.append(
-                    self._name
-                    + f" should be a square matrix and have shape ({self._dimension}, {self._dimension})"
-                )
+            if (len(shape) == 2) and (shape[0] == shape[1] == self._dimension):
+                return True
+            self._errors.append(
+                f"{self._name} should be a square matrix and have shape ({self._dimension}, {self._dimension})"
+            )
+            return False
 
         def get_noise_covariance(self) -> NDArray[np.float64]:
             return self._noise_covariance

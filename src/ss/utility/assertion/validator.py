@@ -1,4 +1,4 @@
-from typing import Any, List, Type, TypeVar
+from typing import Any, Callable, List, Type, TypeVar
 
 # Create a TypeVar for the Validator class
 T = TypeVar("T", bound="Validator")
@@ -17,7 +17,8 @@ class ValidatorMeta(type):  # pragma: no cover
 class Validator(metaclass=ValidatorMeta):
     def __init__(self) -> None:
         self._errors: List[str] = []
+        self._validate_functions: List[Callable[[], bool]] = []
 
     def __post_init__(self) -> None:
-        is_valid: bool = len(self._errors) == 0
-        assert is_valid, self._errors
+        for validate in self._validate_functions:
+            assert validate(), self._errors

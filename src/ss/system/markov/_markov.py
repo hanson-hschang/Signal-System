@@ -39,27 +39,33 @@ class HiddenMarkovModel(DiscreteTimeSystem):
                 transition_probability_matrix, dtype=np.float64
             )
             self._state_dim = state_dim
-            self._validate_shape()
-            self._validate_row_sum()
+            self._validate_functions.append(self._validate_shape)
+            self._validate_functions.append(self._validate_row_sum)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._transition_probability_matrix.shape
+            is_valid = True
             if not (len(shape) == 2 and (shape[0] == shape[1])):
                 self._errors.append(
                     "transition_probability_matrix should be a square matrix"
                 )
+                is_valid = False
             if self._state_dim is not None and shape[0] != self._state_dim:
                 self._errors.append(
                     f"transition_probability_matrix should have the shape as (state_dim, state_dim) with state_dim={self._state_dim}."
                     f"The transition_probability_matrix given has the shape {shape}."
                 )
+                is_valid = False
+            return is_valid
 
-        def _validate_row_sum(self) -> None:
+        def _validate_row_sum(self) -> bool:
             row_sum = np.sum(self._transition_probability_matrix, axis=1)
-            if not np.allclose(row_sum, np.ones_like(row_sum)):
-                self._errors.append(
-                    "transition_probability_matrix should have row sum equal to 1"
-                )
+            if np.allclose(row_sum, np.ones_like(row_sum)):
+                return True
+            self._errors.append(
+                "transition_probability_matrix should have row sum equal to 1"
+            )
+            return False
 
         def get_matrix(self) -> NDArray[np.float64]:
             return self._transition_probability_matrix
@@ -73,22 +79,26 @@ class HiddenMarkovModel(DiscreteTimeSystem):
                 emission_probability_matrix, dtype=np.float64
             )
             self._state_dim = state_dim
-            self._validate_shape()
-            self._validate_row_sum()
+            self._validate_functions.append(self._validate_shape)
+            self._validate_functions.append(self._validate_row_sum)
 
-        def _validate_shape(self) -> None:
+        def _validate_shape(self) -> bool:
             shape = self._emission_probability_matrix.shape
-            if not (len(shape) == 2 and (shape[0] == self._state_dim)):
-                self._errors.append(
-                    "transition_probability_matrix and emission_probability_matrix should have the same number of rows (state_dim)"
-                )
+            if len(shape) == 2 and (shape[0] == self._state_dim):
+                return True
+            self._errors.append(
+                "transition_probability_matrix and emission_probability_matrix should have the same number of rows (state_dim)"
+            )
+            return False
 
-        def _validate_row_sum(self) -> None:
+        def _validate_row_sum(self) -> bool:
             row_sum = np.sum(self._emission_probability_matrix, axis=1)
-            if not np.allclose(row_sum, np.ones_like(row_sum)):
-                self._errors.append(
-                    "emission_probability_matrix should have row sum equal to 1"
-                )
+            if np.allclose(row_sum, np.ones_like(row_sum)):
+                return True
+            self._errors.append(
+                "emission_probability_matrix should have row sum equal to 1"
+            )
+            return False
 
         def get_matrix(self) -> NDArray[np.float64]:
             return self._emission_probability_matrix

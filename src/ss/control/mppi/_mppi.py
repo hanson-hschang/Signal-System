@@ -52,13 +52,15 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._system = system
-            self._validate_type()
+            self._validate_functions.append(self._validate_type)
 
-        def _validate_type(self) -> None:
-            if not issubclass(type(self._system), ContinuousTimeSystem):
-                self._errors.append(
-                    f"system = {self._system} must be an instance of ContinuousTimeSystem"
-                )
+        def _validate_type(self) -> bool:
+            if issubclass(type(self._system), ContinuousTimeSystem):
+                return True
+            self._errors.append(
+                f"system = {self._system} must be an instance of ContinuousTimeSystem"
+            )
+            return False
 
     class _CostValidator(Validator):
         def __init__(
@@ -67,13 +69,15 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._cost = cost
-            self._validate_type()
+            self._validate_functions.append(self._validate_type)
 
-        def _validate_type(self) -> None:
-            if not issubclass(type(self._cost), QuadraticCost):
-                self._errors.append(
-                    f"cost = {self._cost} must be an instance of QuadraticCost"
-                )
+        def _validate_type(self) -> bool:
+            if issubclass(type(self._cost), QuadraticCost):
+                return True
+            self._errors.append(
+                f"cost = {self._cost} must be an instance of QuadraticCost"
+            )
+            return False
 
     class _DimensionValidator(Validator):
         def __init__(
@@ -82,21 +86,28 @@ class ModelPredictivePathIntegralController(Controller):
             cost: QuadraticCost,
         ) -> None:
             super().__init__()
-            self._validate_same_dim(system.state_dim, cost.state_dim, "state")
-            self._validate_same_dim(
-                system.control_dim, cost.control_dim, "control"
-            )
+            self._system_state_dim = system.state_dim
+            self._system_control_dim = system.control_dim
+            self._cost_state_dim = cost.state_dim
+            self._cost_control_dim = cost.control_dim
+            self._validate_functions.append(self._validate_state_dim)
+            self._validate_functions.append(self._validate_control_dim)
 
-        def _validate_same_dim(
-            self,
-            system_dim: int,
-            cost_dim: int,
-            name: str,
-        ) -> None:
-            if not (system_dim == cost_dim):
-                self._errors.append(
-                    f"system.{name}_dim = {system_dim = } must be the same as cost.{name}_dim = {cost_dim}"
-                )
+        def _validate_state_dim(self) -> bool:
+            if self._system_state_dim == self._cost_state_dim:
+                return True
+            self._errors.append(
+                f"system.state_dim = {self._system_state_dim} must be the same as cost.state_dim = {self._cost_state_dim}"
+            )
+            return False
+
+        def _validate_control_dim(self) -> bool:
+            if self._system_control_dim == self._cost_control_dim:
+                return True
+            self._errors.append(
+                f"system.control_dim = {self._system_control_dim} must be the same as cost.control_dim = {self._cost_control_dim}"
+            )
+            return False
 
     class _TimeHorizonValidator(Validator):
         def __init__(
@@ -105,13 +116,15 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._time_horizon = time_horizon
-            self._validate_value_range()
+            self._validate_functions.append(self._validate_value_range)
 
-        def _validate_value_range(self) -> None:
-            if not is_positive_integer(self._time_horizon):
-                self._errors.append(
-                    f"time_horizon = {self._time_horizon} must be a positive integer"
-                )
+        def _validate_value_range(self) -> bool:
+            if is_positive_integer(self._time_horizon):
+                return True
+            self._errors.append(
+                f"time_horizon = {self._time_horizon} must be a positive integer"
+            )
+            return False
 
         def get_value(self) -> int:
             return self._time_horizon
@@ -123,13 +136,15 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._number_of_samples = number_of_samples
-            self._validate_value_range()
+            self._validate_functions.append(self._validate_value_range)
 
-        def _validate_value_range(self) -> None:
-            if not is_positive_integer(self._number_of_samples):
-                self._errors.append(
-                    f"number_of_samples = {self._number_of_samples} must be a positive integer"
-                )
+        def _validate_value_range(self) -> bool:
+            if is_positive_integer(self._number_of_samples):
+                return True
+            self._errors.append(
+                f"number_of_samples = {self._number_of_samples} must be a positive integer"
+            )
+            return False
 
         def get_value(self) -> int:
             return self._number_of_samples
@@ -141,12 +156,15 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._temperature = temperature
+            self._validate_functions.append(self._validate_value_range)
 
-        def _validate_value_range(self) -> None:
-            if not is_positive_number(self._temperature):
-                self._errors.append(
-                    f"temperature = {self._temperature} must be a positive number"
-                )
+        def _validate_value_range(self) -> bool:
+            if is_positive_number(self._temperature):
+                return True
+            self._errors.append(
+                f"temperature = {self._temperature} must be a positive number"
+            )
+            return False
 
         def get_value(self) -> float:
             return self._temperature
@@ -158,16 +176,17 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._base_control_confidence = base_control_confidence
-            self._validate_value_range()
+            self._validate_functions.append(self._validate_value_range)
 
-        def _validate_value_range(self) -> None:
-            if not (
-                is_positive_number(self._base_control_confidence)
-                and (self._base_control_confidence <= 1)
+        def _validate_value_range(self) -> bool:
+            if is_positive_number(self._base_control_confidence) and (
+                self._base_control_confidence <= 1
             ):
-                self._errors.append(
-                    f"base_control_confidence = {self._base_control_confidence} must be a positive number within the range (0, 1]"
-                )
+                return True
+            self._errors.append(
+                f"base_control_confidence = {self._base_control_confidence} must be a positive number within the range (0, 1]"
+            )
+            return False
 
         def get_value(self) -> float:
             return self._base_control_confidence
@@ -179,16 +198,18 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             super().__init__()
             self._exploration_percentage = exploration_percentage
-            self._validate_value_range()
+            self._validate_functions.append(self._validate_value_range)
 
-        def _validate_value_range(self) -> None:
-            if not (
+        def _validate_value_range(self) -> bool:
+            if (
                 is_nonnegative_number(self._exploration_percentage)
                 and self._exploration_percentage < 1
             ):
-                self._errors.append(
-                    f"exploration_percentage = {self._exploration_percentage} must be a positive number within the range (0, 1)"
-                )
+                return True
+            self._errors.append(
+                f"exploration_percentage = {self._exploration_percentage} must be a positive number within the range (0, 1)"
+            )
+            return False
 
         def get_value(self) -> float:
             return self._exploration_percentage
@@ -203,13 +224,15 @@ class ModelPredictivePathIntegralController(Controller):
             if smoothing_window_size is None:
                 smoothing_window_size = int(time_horizon * 0.1) + 1
             self._smoothing_window_size = smoothing_window_size
-            self._validate_value_range()
+            self._validate_functions.append(self._validate_value_range)
 
-        def _validate_value_range(self) -> None:
-            if not is_positive_integer(self._smoothing_window_size):
-                self._errors.append(
-                    f"smoothing_window_size = {self._smoothing_window_size} must be a positive integer"
-                )
+        def _validate_value_range(self) -> bool:
+            if is_positive_integer(self._smoothing_window_size):
+                return True
+            self._errors.append(
+                f"smoothing_window_size = {self._smoothing_window_size} must be a positive integer"
+            )
+            return False
 
         def get_value(self) -> int:
             return self._smoothing_window_size
