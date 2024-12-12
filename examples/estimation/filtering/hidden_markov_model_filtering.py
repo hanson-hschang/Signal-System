@@ -84,16 +84,23 @@ def main(
 
     current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
+
+        # Compute the estimation
+        estimator.update(observation=system.observe())
+        estimator.estimate()
+
+        # Record the system and the estimator
         system_callback.record(k, current_time)
         estimator_callback.record(k, current_time)
 
+        # Update the system
         current_time = system.process(current_time)
 
-        estimator.update(
-            observation=system.observe(),
-        )
-        estimator.estimate()
+    # Compute the estimation
+    estimator.update(observation=system.observe())
+    estimator.estimate()
 
+    # Record the system and the estimator
     system_callback.record(simulation_time_steps, current_time)
     estimator_callback.record(simulation_time_steps, current_time)
 
