@@ -23,7 +23,7 @@ class LinearQuadraticRegulatorController(Controller):
         self,
         system: Union[ContinuousTimeLinearSystem, DiscreteTimeLinearSystem],
         cost: QuadraticCost,
-        horizon: int = 0,
+        time_horizon: int = 0,
     ) -> None:
         assert isinstance(
             system, (ContinuousTimeLinearSystem, DiscreteTimeLinearSystem)
@@ -34,16 +34,24 @@ class LinearQuadraticRegulatorController(Controller):
         assert isinstance(
             cost, QuadraticCost
         ), f"{type(cost) = } must be an instance of QuadraticCost"
+
+        assert (
+            system.state_dim == cost.state_dim
+        ), f"{system.state_dim = } must be the same as {cost.state_dim = }"
+        assert (
+            system.control_dim == cost.control_dim
+        ), f"{system.control_dim = } must be the same as {cost.control_dim = }"
+
         assert is_nonnegative_integer(
-            horizon
-        ), f"{horizon = } must be a nonnegative integer"
+            time_horizon
+        ), f"{time_horizon = } must be a nonnegative integer"
 
         super().__init__(
             control_dim=system.control_dim,
             number_of_systems=system.number_of_systems,
         )
 
-        self._horizon = horizon
+        self._time_horizon = time_horizon
         self._state_dim = system.state_dim
         self._system_state = np.zeros_like(system.state)
 
@@ -52,8 +60,8 @@ class LinearQuadraticRegulatorController(Controller):
             dtype=np.float64,
         )
 
-        if self._horizon == 0:
-            # Infinite horizon case:
+        if self._time_horizon == 0:
+            # Infinite time horizon case:
             # The optimal gain is the negative of running_cost_control_weight @ B @ solution_are
             # where solution_are is the solution to the algebraic Riccati equation
             if isinstance(system, ContinuousTimeLinearSystem):
@@ -77,11 +85,11 @@ class LinearQuadraticRegulatorController(Controller):
                 self._compute_infinite_horizon_optimal_control
             )
         else:
-            # Finite horizon case:
+            # Finite time horizon case:
             # TODO: Implement finite horizon LQR
             pass
 
-    horizon = ReadOnlyDescriptor[int]()
+    time_horizon = ReadOnlyDescriptor[int]()
     system_state = MultiSystemTensorDescriptor(
         "_number_of_systems",
         "_state_dim",

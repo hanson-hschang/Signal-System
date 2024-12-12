@@ -57,7 +57,7 @@ class Cost:
     state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
     control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
 
-    def create_multiple_costs(self, number_of_systems: int) -> "Cost":
+    def duplicate(self, number_of_systems: int) -> "Cost":
         """
         Create multiple costs.
 

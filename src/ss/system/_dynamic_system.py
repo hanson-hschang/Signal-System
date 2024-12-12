@@ -79,9 +79,7 @@ class ContinuousTimeSystem(System):
         "_observation_dim", "_observation_dim"
     )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "ContinuousTimeSystem":
+    def duplicate(self, number_of_systems: int) -> "ContinuousTimeSystem":
         """
         Create multiple systems based on the current system.
 
@@ -165,9 +163,7 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
             **kwargs,
         )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "DiscreteTimeSystem":
+    def duplicate(self, number_of_systems: int) -> "DiscreteTimeSystem":
         """
         Create multiple systems based on the current system.
 

@@ -54,7 +54,7 @@ class System:
     state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
     control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
 
-    def create_multiple_systems(self, number_of_systems: int) -> "System":
+    def duplicate(self, number_of_systems: int) -> "System":
         """
         Create multiple systems based on the current system.
 

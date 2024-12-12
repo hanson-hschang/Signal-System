@@ -77,26 +77,30 @@ def main(
         current_state = system.state
 
         # Compute the control
-        controller.reset_systems(current_state)
-        control_trajectory = controller.compute_control()
-        # controller.control_trajectory = np.clip(
-        #     control_trajectory, -100.0, 100.0
+        controller.system_state = current_state
+        controller.compute_control()
+        control = controller.control
+        # control = np.clip(
+        #     control, -100.0, 100.0
         # )
-        control = control_trajectory[:, 0]
 
         # Apply the control
         system.control = control
         system_callback.record(k, current_time)
-        current_time = system.process(current_time)
 
         # Compute the cost
         cost.state = current_state
         cost.control = control
         cost_callback.record(k, current_time)
 
+        # Update the system
+        current_time = system.process(current_time)
+
     # Compute the terminal cost
-    # cost.set_terminal()
-    # cost_callback.make_callback(simulation_time_steps, time)
+    cost.set_terminal()
+    cost.state = system.state
+    cost_callback.record(simulation_time_steps, current_time)
+    system_callback.record(simulation_time_steps, current_time)
 
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
     data_folder_directory = parent_directory / Path(__file__).stem

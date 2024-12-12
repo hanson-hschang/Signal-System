@@ -58,7 +58,7 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         )
         self._set_compute_state_process(control_flag=(control_dim > 0))
 
-    def create_multiple_systems(
+    def duplicate(
         self, number_of_systems: int
     ) -> "ContinuousTimeNonlinearSystem":
         """
@@ -159,7 +159,7 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
             observation_noise_covariance=observation_noise_covariance,
         )
 
-    def create_multiple_systems(
+    def duplicate(
         self, number_of_systems: int
     ) -> "DiscreteTimeNonlinearSystem":
         """

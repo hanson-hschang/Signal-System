@@ -121,7 +121,7 @@ class QuadraticCost(Cost):
     intrinsic_state = TensorDescriptor("_state_dim")
     intrinsic_control = TensorDescriptor("_control_dim")
 
-    def create_multiple_costs(self, number_of_systems: int) -> "QuadraticCost":
+    def duplicate(self, number_of_systems: int) -> "QuadraticCost":
         """
         Create multiple costs.
 

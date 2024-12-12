@@ -128,9 +128,7 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
             number_of_systems=number_of_systems,
         )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "MassSpringDamperSystem":
+    def duplicate(self, number_of_systems: int) -> "MassSpringDamperSystem":
         """
         Create multiple systems based on the current system.
 

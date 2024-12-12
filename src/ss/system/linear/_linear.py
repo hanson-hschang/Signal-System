@@ -121,9 +121,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     def state_space_matrix_C(self) -> NDArray[np.float64]:
         return self._state_space_matrix_C
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "DiscreteTimeLinearSystem":
+    def duplicate(self, number_of_systems: int) -> "DiscreteTimeLinearSystem":
         """
         Create multiple systems based on the current system.
 

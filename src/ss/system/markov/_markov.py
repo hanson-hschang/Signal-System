@@ -196,9 +196,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._emission_probability_matrix, axis=1
         )
 
-    def create_multiple_systems(
-        self, number_of_systems: int
-    ) -> "HiddenMarkovModel":
+    def duplicate(self, number_of_systems: int) -> "HiddenMarkovModel":
         return HiddenMarkovModel(
             transition_probability_matrix=self._transition_probability_matrix,
             emission_probability_matrix=self._emission_probability_matrix,
