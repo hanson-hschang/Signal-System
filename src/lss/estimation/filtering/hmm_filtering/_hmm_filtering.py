@@ -1,7 +1,14 @@
+from typing import Tuple, Union
+
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 from torch import nn
+
+from lss.utility.descriptor import TensorReadOnlyDescriptor
+from ss.utility.assertion.validator import FilePathValidator
 
 
 @dataclass
@@ -51,23 +58,13 @@ class LearningHiddenMarkovModelFilterLayer(nn.Module):
         return sum
 
 
-class LearningHiddenMarkovModelFilter(nn.Module):
+class LearningTransitionProcess(nn.Module):
     def __init__(
         self,
         params: LearningHiddenMarkovModelFilterParameters,
     ) -> None:
         super().__init__()
         self._params = params
-        self._observation_history = torch.zeros(
-            (
-                self._params.observation_dim,
-                self._params.horizon_of_observation_history,
-            ),
-            dtype=torch.float64,
-        )
-        self.emission_layer = nn.Linear(
-            self._params.state_dim, self._params.observation_dim
-        )
         self.layers = nn.ModuleList()
         for layer_id in range(self._params.layer_dim):
             self.layers.append(
@@ -79,16 +76,193 @@ class LearningHiddenMarkovModelFilter(nn.Module):
             x = layer(x)
         return x
 
-    @torch.no_grad()
-    def update(self, observation: torch.Tensor) -> None:
-        self._observation_history = torch.roll(
-            self._observation_history, 1, dims=1
+
+class LearningHiddenMarkovModelFilter(nn.Module):
+    def __init__(
+        self,
+        params: LearningHiddenMarkovModelFilterParameters,
+    ) -> None:
+        super().__init__()
+        self._params = params
+        self._model_file_extension = ".pt"
+
+        # Define the dimensions of the state and observation
+        self._state_dim = params.state_dim
+        self._observation_dim = params.observation_dim
+
+        # Define learnable parameters including the initial state, emission layer, and transition layer
+        self._initial_state = nn.Parameter(
+            torch.randn(self._state_dim, dtype=torch.float64)
         )
-        self._observation_history[:, 0] = observation
+        self._emission_layer = nn.Linear(
+            self._observation_dim,
+            self._state_dim,
+            bias=False,
+            dtype=torch.float64,
+        )
+        self._transition_layer = LearningTransitionProcess(params)
+
+        # Initialize the estimated next state, and next observation
+        with torch.no_grad():
+            self._estimated_next_state = F.softmax(self._initial_state, dim=0)
+            self._estimated_next_observation = torch.matmul(
+                F.softmax(self._emission_layer.weight, dim=1).T,
+                self._estimated_next_state,
+            )
+
+    estimated_next_state = TensorReadOnlyDescriptor("_state_dim")
+    estimated_next_observation = TensorReadOnlyDescriptor("_observation_dim")
+
+    @property
+    def emission_matrix(self) -> torch.Tensor:
+        with torch.no_grad():
+            _emission_matrix = F.softmax(self._emission_layer.weight, dim=1)
+        return _emission_matrix.detach()
+
+    def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
+        """
+        forward method for the LearningHiddenMarkovModelFilter class
+
+        Parameters
+        ----------
+        observation_trajectory : torch.Tensor
+            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+
+        Returns
+        -------
+        estimated_next_observation_trajectory: torch.Tensor
+            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+        """
+        estimated_next_observation_trajectory, _ = self._forward(
+            observation_trajectory
+        )
+        return estimated_next_observation_trajectory
+
+    def _forward(
+        self,
+        observation_trajectory: torch.Tensor,
+        use_initial_state: bool = True,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        _forward method for the LearningHiddenMarkovModelFilter class
+
+        Parameters
+        ----------
+        observation_trajectory : torch.Tensor
+            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+        use_initial_state : bool
+            whether to use the member _initial_state or the _estimated_next_state
+
+        Returns
+        -------
+        estimated_next_observation_trajectory: torch.Tensor
+            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+        estimated_next_state: torch.Tensor
+            shape (batch_size, state_dim)
+        """
+        # Get the dimensions of the observation_trajectory
+        batch_size, _, horizon_of_observation_trajectory = (
+            observation_trajectory.shape
+        )
+
+        # Get emission_matrix
+        emission_matrix = F.softmax(
+            self._emission_layer.weight,
+            dim=1,
+        )  # (state_dim, observation_dim)
+
+        # Get indices of 1s in one-hot encoding
+        observation_value_trajectory = torch.argmax(
+            observation_trajectory, dim=1
+        )  # (batch_size, horizon_of_observation_trajectory)
+
+        # Get emission probabilities for each observation in the trajectory
+        emission_trajectory = torch.transpose(
+            emission_matrix[:, observation_value_trajectory], 0, 1
+        )  # (batch_size, state_dim, horizon_of_observation_trajectory)
+
+        # Initialize the estimated_next_state_trajectory
+        # (This is the output of this forward method)
+        estimated_next_observation_trajectory = torch.zeros(
+            (
+                batch_size,
+                self._observation_dim,
+                horizon_of_observation_trajectory,
+            ),
+            dtype=torch.float64,
+        )
+
+        # Initialize the previous_estimated_next_state (with the self._initial_state)
+        # (This is used for the iteration over the horizon_of_observation_trajectory)
+        estimated_next_state = (
+            F.softmax(self._initial_state, dim=0)
+            if use_initial_state
+            else self._estimated_next_state
+        )
+        previous_estimated_next_state = estimated_next_state.repeat(
+            batch_size, 1
+        )  # (batch_size, state_dim)
+
+        # Compute the estimated_next_observation_trajectory
+        for k in range(horizon_of_observation_trajectory):
+
+            # Compute the conditional probability of the estimated_state given the observation
+            estimated_state = F.normalize(
+                previous_estimated_next_state * emission_trajectory[:, :, k],
+                p=1,
+                dim=1,
+            )
+
+            # Apply the transition matrix
+            estimated_next_state = self._transition_layer(estimated_state)
+
+            # Compute and record the estimated next observation
+            estimated_next_observation_trajectory[:, :, k] = torch.matmul(
+                estimated_next_state, emission_matrix
+            )
+
+            # Update the previous_estimated_next_state with the value of
+            # the estimated_next_state for the next iteration
+            previous_estimated_next_state = estimated_next_state
+
+        return estimated_next_observation_trajectory, estimated_next_state
+
+    @torch.no_grad()
+    def update(self, observation_trajectory: torch.Tensor) -> None:
+        if observation_trajectory.ndim == 1:
+            observation_trajectory = observation_trajectory.unsqueeze(1)
+        assert (observation_trajectory.ndim == 2) and (
+            observation_trajectory.shape[0] == self._observation_dim
+        ), (
+            f"observation_trajectory must be in the shape of (observation_dim, horizon_of_observation_trajectory). "
+            f"observation_trajectory given has the shape of {observation_trajectory.shape}."
+        )
+
+        _, estimated_next_state = self._forward(
+            observation_trajectory.unsqueeze(0),
+            use_initial_state=False,
+        )
+        self._estimated_next_state = estimated_next_state.squeeze(0)
 
     @torch.inference_mode()
     def estimate(
         self,
-    ) -> torch.Tensor:
-        x: torch.Tensor = self(self._observation_history)[:, 0]
-        return x
+    ) -> None:
+        # Compute the estimated next observation
+        self._estimated_next_observation = torch.matmul(
+            self._estimated_next_state,
+            self.emission_matrix,
+        )
+
+    def save(self, filename: Union[str, Path]) -> None:
+        filepath = FilePathValidator(
+            filename, self._model_file_extension
+        ).get_filepath()
+        torch.save(self.state_dict(), filepath)
+
+    # @classmethod
+    # def load(cls, path: Union[str, Path]) -> "LearningHiddenMarkovModelFilter":
+    #     path = Path(path)
+    #     model = cls()
+    #     model.load_state_dict(torch.load(path))
+    #     return model

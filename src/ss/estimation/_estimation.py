@@ -107,12 +107,11 @@ class Estimator:
                     observation_history[i, m, :], 1
                 )
 
-    def estimate(self) -> NDArray[np.float64]:
+    def estimate(self) -> None:
         self._update(
             self._estimated_state,
             self._compute_estimation_process(),
         )
-        return self._estimated_state
 
     @staticmethod
     @njit(cache=True)  # type: ignore

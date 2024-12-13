@@ -15,7 +15,7 @@ class Callback:
         self,
         step_skip: int,
     ) -> None:
-        self._file_extension = ".hdf5"
+        self._data_file_extension = ".hdf5"
         self.sample_every = step_skip
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
         self._meta_info: DefaultDict[str, Any] = defaultdict()
@@ -55,7 +55,7 @@ class Callback:
             The path to the file to save the callback parameters.
         """
         filepath = FilePathValidator(
-            filename, self._file_extension
+            filename, self._data_file_extension
         ).get_filepath()
 
         with h5py.File(filepath, "w") as f:

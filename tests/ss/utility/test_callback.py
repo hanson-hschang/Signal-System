@@ -25,5 +25,5 @@ class TestCallback:
 
     def test_save(self, callback: Callback, tmp_path: Path) -> None:
         callback.record(current_step=10, time=0.1)
-        callback.save(filename=tmp_path / "test.h5")
-        assert (tmp_path / "test.h5").exists()
+        callback.save(filename=tmp_path / "test.hdf5")
+        assert (tmp_path / "test.hdf5").exists()
