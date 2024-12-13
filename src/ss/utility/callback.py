@@ -7,12 +7,15 @@ import h5py
 import numpy as np
 from numpy.typing import NDArray
 
+from ss.utility.assertion.validator import FilePathValidator
+
 
 class Callback:
     def __init__(
         self,
         step_skip: int,
     ) -> None:
+        self._file_extension = ".hdf5"
         self.sample_every = step_skip
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
         self._meta_info: DefaultDict[str, Any] = defaultdict()
@@ -51,11 +54,9 @@ class Callback:
         filename: str or Path
             The path to the file to save the callback parameters.
         """
-        assert isinstance(
-            filename, (str, Path)
-        ), "filename must be a string or Path."
-        filepath = Path(filename) if isinstance(filename, str) else filename
-        filepath.parent.mkdir(parents=True, exist_ok=True)
+        filepath = FilePathValidator(
+            filename, self._file_extension
+        ).get_filepath()
 
         with h5py.File(filepath, "w") as f:
 

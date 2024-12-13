@@ -10,7 +10,14 @@ from typing import (
     overload,
 )
 
+import os
+from pathlib import Path
+
 from ss.utility.assertion import (
+    check_filepath_existence,
+    check_parent_directory_existence,
+    is_extension_valid,
+    is_filepath_valid,
     is_integer,
     is_nonnegative_integer,
     is_nonnegative_number,
@@ -116,3 +123,93 @@ class PositiveNumberValidator(BasicScalarValidator):
 class NonnegativeNumberValidator(BasicScalarValidator):
     def __init__(self, value: Union[int, float], name: str) -> None:
         super().__init__(value, name, is_nonnegative_number)
+
+
+class FilePathExistenceValidator(Validator):
+    def __init__(self, filename: Union[str, Path], extension: str) -> None:
+        super().__init__()
+        self._filename = filename
+        self._extension = extension
+        self._validate_functions.append(self._validate_filepath_existence)
+
+    def _validate_filepath_existence(self) -> bool:
+        # Check if the extension is valid
+        if not is_extension_valid(self._extension):
+            self._errors.append(
+                f"extension = '{self._extension}' must start with a '.'."
+            )
+            return False
+
+        # Check if the filename is a valid filepath and exists
+        if check_filepath_existence(self._filename, self._extension):
+            return True
+
+        # If not, show an error message and return False
+        self._errors.append(
+            f"filename must has the correct extension: {self._extension} and exist. "
+            f"filename provided is {self._filename}."
+        )
+        return False
+
+    def get_filepath(self) -> Path:
+        return Path(self._filename)
+
+
+class FilePathValidator(Validator):
+    def __init__(self, filename: Union[str, Path], extension: str) -> None:
+        super().__init__()
+        self._filename = filename
+        self._extension = extension
+        self._validate_functions.append(self._validate_filepath)
+
+    def _validate_filepath(self) -> bool:
+        # Check if the extension is valid
+        if not is_extension_valid(self._extension):
+            self._errors.append(
+                f"extension = '{self._extension}' must start with a '.'."
+            )
+            return False
+
+        # Check if the filename is a valid filepath
+        if is_filepath_valid(self._filename, self._extension):
+            return True
+
+        # If not, check if the parent directory exists
+        if check_parent_directory_existence(self._filename):
+            # The parent directory exists, but the filename is invalid
+            # show an error message and return False
+            self._errors.append(
+                "filename must be a valid filepath (str or Path) "
+                f"with the correct extension: '{self._extension}'. "
+                f"filename provided is '{self._filename}'."
+            )
+            return False
+
+        # The parent directory does not exist, ask the user if they want to create it
+        folder_name = Path(self._filename).parent
+        response = (
+            input(
+                f"folder: '{folder_name}' does not exist. "
+                "Would you like to create the folder? (y/n): "
+            )
+            .lower()
+            .strip()
+        )
+
+        # If the user responds with 'y' or 'yes', create the folder and return True
+        if response in ["y", "yes"]:
+            folder_name.mkdir(parents=True, exist_ok=True)
+            print(f"Folder '{folder_name}' created successfully.")
+            return True
+
+        # If the user does not want to create the folder, show an error message and return False
+        self._errors.append(
+            f"folder: '{folder_name}' does not exist. "
+            "filename must be a valid filepath (str or Path) "
+            f"with the correct extension: '{self._extension}'. "
+            f"filename provided is '{self._filename}'."
+        )
+        return False
+
+    def get_filepath(self) -> Path:
+        return Path(self._filename)
