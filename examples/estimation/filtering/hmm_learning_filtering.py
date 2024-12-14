@@ -5,9 +5,10 @@ from pathlib import Path
 
 import click
 import torch
+from torch import optim
 
 from lss import Mode
-from lss.estimation.filtering.hmm_filtering import (
+from lss.estimation.filtering.hmm import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
 )
@@ -19,24 +20,31 @@ def train(
     data_filename: Path,
 ) -> None:
 
+    data = Data.load_from_file(data_filename)
+    observation = data["observation"]
+
     params = LearningHiddenMarkovModelFilterParameters(
-        state_dim=1,
-        observation_dim=2,
-        horizon_of_observation_history=5,
+        state_dim=5,
+        observation_dim=(
+            observation.shape[0]
+            if data.meta_info["number_of_systems"] == 1
+            else observation.shape[1]
+        ),
+        feature_dim=1,
+        layer_dim=1,
     )
     filter = LearningHiddenMarkovModelFilter(params)
+    optimizer = optim.Adam(filter.parameters(), lr=0.001)
 
-    data = Data.load_from_file(data_filename)
-
-    print(data["observation"].shape)
-
-    print(data.meta_info)
-
-    # x = torch.tensor([1.0, 2.0])
-    # for _ in range(5):
-    #     filter.update(observation_trajectory=x)
-    #     filter.estimate()
-    #     print(filter.estimated_next_observation)
+    initial_length = 100
+    filter.update(
+        observation_trajectory=torch.tensor(observation[0, :, :initial_length])
+    )
+    for i in range(5):
+        filter.update(torch.tensor(observation[0, :, initial_length + i]))
+        print(filter._estimated_next_state)
+        filter.estimate()
+        print(filter.estimated_next_observation)
 
     # filter.save(model_filename)
 

@@ -104,6 +104,11 @@ def main(
     system_callback.record(simulation_time_steps, current_time)
     estimator_callback.record(simulation_time_steps, current_time)
 
+    # Add meta info to callbacks
+    meta_info = dict(number_of_systems=number_of_systems)
+    system_callback.add_meta_info(meta_info)
+    estimator_callback.add_meta_info(meta_info)
+
     # Save the data
     parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
     data_folder_directory = parent_directory / Path(__file__).stem

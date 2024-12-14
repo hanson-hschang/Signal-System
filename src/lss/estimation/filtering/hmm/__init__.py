@@ -1,4 +1,4 @@
-from lss.estimation.filtering.hmm_filtering._hmm_filtering import (
+from lss.estimation.filtering.hmm._hmm import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
 )

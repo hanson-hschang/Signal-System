@@ -16,7 +16,6 @@ class LearningHiddenMarkovModelFilterParameters(BaseLearningParameters):
     observation_dim: int
     feature_dim: int = 1
     layer_dim: int = 1
-    horizon_of_observation_history: int = 1
 
 
 class LearningHiddenMarkovModelFilterBlock(nn.Module):
