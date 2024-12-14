@@ -8,7 +8,6 @@ class TestMarkovChain:
 
     @pytest.fixture
     def hidden_markov_model(self) -> HiddenMarkovModel:
-        """Create a basic hidden_markov_model instance"""
         return HiddenMarkovModel(
             transition_probability_matrix=np.array([[0.0, 1.0], [1.0, 0.0]]),
             emission_probability_matrix=np.array([[0.5, 0.5], [0.5, 0.5]]),

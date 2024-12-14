@@ -6,7 +6,6 @@ from ss.utility.assertion.inspect import inspect_arguments
 
 
 def test_inspect_arguments() -> None:
-    """Test the inspect_arguments function"""
 
     def func(
         a: NDArray[np.float64], b: NDArray[np.float64]

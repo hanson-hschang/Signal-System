@@ -25,7 +25,6 @@ from ss.utility.assertion import (
     ],
 )
 def test_is_positive_number(input_value: Any, expected_result: bool) -> None:
-    """Test is_positive_number function"""
     assert is_positive_number(input_value) == expected_result
 
 
@@ -45,7 +44,6 @@ def test_is_positive_number(input_value: Any, expected_result: bool) -> None:
     ],
 )
 def test_is_positive_integer(input_value: Any, expected_result: bool) -> None:
-    """Test is_positive_integer function"""
     assert is_positive_integer(input_value) == expected_result
 
 
@@ -67,5 +65,4 @@ def test_is_positive_integer(input_value: Any, expected_result: bool) -> None:
 def test_is_nonnegative_integer(
     input_value: Any, expected_result: bool
 ) -> None:
-    """Test is_nonnegative_integer function"""
     assert is_nonnegative_integer(input_value) == expected_result

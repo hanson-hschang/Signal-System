@@ -8,7 +8,6 @@ class TestMassSpringDamperSystem:
 
     @pytest.fixture
     def system(self) -> MassSpringDamperSystem:
-        """Create multiple mass spring damper systems"""
         return MassSpringDamperSystem(
             number_of_connections=2,
         )

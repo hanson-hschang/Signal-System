@@ -8,7 +8,6 @@ class TestController:
 
     @pytest.fixture
     def controller(self) -> Controller:
-        """Create a basic controller with default parameters"""
         return Controller(
             control_dim=2,
             number_of_systems=1,
@@ -16,7 +15,6 @@ class TestController:
 
     @pytest.fixture
     def multi_system_controller(self) -> Controller:
-        """Create a basic controller with multiple systems"""
         return Controller(
             control_dim=2,
             number_of_systems=3,
@@ -41,7 +39,6 @@ class TestController:
     def test_multi_system_controller(
         self, multi_system_controller: Controller
     ) -> None:
-        """Test the multi-system controller"""
         multi_system_controller.compute_control()
         assert multi_system_controller.control.shape == (3, 2)
         assert np.allclose(multi_system_controller.control, np.zeros((3, 2)))

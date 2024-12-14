@@ -10,10 +10,7 @@ class TestCallback:
 
     @pytest.fixture
     def callback(self) -> Callback:
-        """Create a basic callback with default parameters"""
-        return Callback(
-            step_skip=10,
-        )
+        return Callback(step_skip=10)
 
     def test_record(self, callback: Callback) -> None:
         callback.record(current_step=10, time=0.1)

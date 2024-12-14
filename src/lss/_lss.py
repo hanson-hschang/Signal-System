@@ -15,6 +15,9 @@ class Mode(StrEnum):
     INFERENCE = "INFERENCE"
 
 
+BLP = TypeVar("BLP", bound="BaseLearningParameters")
+
+
 @dataclass
 class BaseLearningParameters:
     pass

@@ -13,7 +13,6 @@ class TestNonlinearSystem:
 
     @pytest.fixture
     def nonlinear_control_system(self) -> ContinuousTimeNonlinearSystem:
-        """Create a basic nonlinear system with control input"""
 
         @njit(cache=True)  # type: ignore
         def process_function(
@@ -49,7 +48,6 @@ class TestNonlinearSystem:
 
     @pytest.fixture
     def stochastic_nonlinear_system(self) -> ContinuousTimeNonlinearSystem:
-        """Create a basic stochastic nonlinear system with default parameters"""
 
         @njit(cache=True)  # type: ignore
         def process_function(state: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -78,7 +76,6 @@ class TestNonlinearSystem:
     def stochastic_discrete_time_nonlinear_system(
         self,
     ) -> DiscreteTimeNonlinearSystem:
-        """Create a basic stochastic discrete time nonlinear system with default parameters"""
 
         @njit(cache=True)  # type: ignore
         def process_function(state: NDArray[np.float64]) -> NDArray[np.float64]:
@@ -106,7 +103,6 @@ class TestNonlinearSystem:
     def discrete_time_nonlinear_control_system(
         self,
     ) -> DiscreteTimeNonlinearSystem:
-        """Create a basic discrete time nonlinear system with control input"""
 
         @njit(cache=True)  # type: ignore
         def process_function(
@@ -134,7 +130,6 @@ class TestNonlinearSystem:
     def test_nonlinear_system_with_control(
         self, nonlinear_control_system: ContinuousTimeNonlinearSystem
     ) -> None:
-        """Test the nonlinear system with control input"""
         observation = nonlinear_control_system.observe()
 
         assert observation.shape == (1,)
@@ -151,7 +146,6 @@ class TestNonlinearSystem:
     def test_stochastic_nonlinear_system(
         self, stochastic_nonlinear_system: ContinuousTimeNonlinearSystem
     ) -> None:
-        """Test the nonlinear system"""
         observation = stochastic_nonlinear_system.observe()
 
         assert observation.shape == (1,)
@@ -169,7 +163,6 @@ class TestNonlinearSystem:
         self,
         stochastic_discrete_time_nonlinear_system: DiscreteTimeNonlinearSystem,
     ) -> None:
-        """Test the discrete time nonlinear system"""
         observation = stochastic_discrete_time_nonlinear_system.observe()
 
         assert observation.shape == (1,)
@@ -189,7 +182,6 @@ class TestNonlinearSystem:
         self,
         discrete_time_nonlinear_control_system: DiscreteTimeNonlinearSystem,
     ) -> None:
-        """Test the discrete time nonlinear system with control input"""
         observation = discrete_time_nonlinear_control_system.observe()
 
         assert observation.shape == (1,)

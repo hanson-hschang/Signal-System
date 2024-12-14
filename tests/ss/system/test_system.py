@@ -8,7 +8,6 @@ class TestSystem:
 
     @pytest.fixture
     def continuous_time_system(self) -> ContinuousTimeSystem:
-        """Create a basic system with default parameters"""
         return ContinuousTimeSystem(
             time_step=0.1,
             state_dim=2,
@@ -19,7 +18,6 @@ class TestSystem:
 
     @pytest.fixture
     def discrete_time_control_system(self) -> DiscreteTimeSystem:
-        """Create a basic control_system with default parameters"""
         return DiscreteTimeSystem(
             state_dim=2,
             observation_dim=1,
@@ -31,7 +29,6 @@ class TestSystem:
     def test_continuous_time_system(
         self, continuous_time_system: ContinuousTimeSystem
     ) -> None:
-        """Test the continuous time system"""
         observation = continuous_time_system.observe()
 
         # assert continuous_time_system.state.shape == (4, 2)
@@ -57,7 +54,6 @@ class TestSystem:
     def test_discrete_time_control_system(
         self, discrete_time_control_system: DiscreteTimeSystem
     ) -> None:
-        """Test the discrete time control system"""
         assert discrete_time_control_system.process_noise_covariance.shape == (
             2,
             2,
