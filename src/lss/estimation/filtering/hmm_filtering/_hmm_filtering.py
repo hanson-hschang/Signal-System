@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,6 +18,12 @@ class LearningHiddenMarkovModelFilterParameters:
     feature_dim: int = 1
     layer_dim: int = 1
     horizon_of_observation_history: int = 1
+
+
+# Allow the LearningHiddenMarkovModelFilterParameters to be pickled (saved and loaded)
+torch.serialization.add_safe_globals(
+    [LearningHiddenMarkovModelFilterParameters]
+)
 
 
 class LearningHiddenMarkovModelFilterBlock(nn.Module):
@@ -78,13 +84,14 @@ class LearningTransitionProcess(nn.Module):
 
 
 class LearningHiddenMarkovModelFilter(nn.Module):
+    _model_file_extension = (".pt", ".pth")
+
     def __init__(
         self,
         params: LearningHiddenMarkovModelFilterParameters,
     ) -> None:
         super().__init__()
         self._params = params
-        self._model_file_extension = (".pt", ".pth")
 
         # Define the dimensions of the state and observation
         self._state_dim = params.state_dim
@@ -254,15 +261,22 @@ class LearningHiddenMarkovModelFilter(nn.Module):
             self.emission_matrix,
         )
 
-    def save(self, filename: Union[str, Path]) -> None:
+    def save(self, filename: Union[str, Path], **checkpoint_info: Any) -> None:
         filepath = FilePathValidator(
             filename, self._model_file_extension
         ).get_filepath()
-        torch.save(self.state_dict(), filepath)
+        checkpoint_info["params"] = self._params
+        checkpoint_info["model_state_dict"] = self.state_dict()
+        torch.save(checkpoint_info, filepath)
 
-    # @classmethod
-    # def load(cls, path: Union[str, Path]) -> "LearningHiddenMarkovModelFilter":
-    #     path = Path(path)
-    #     model = cls()
-    #     model.load_state_dict(torch.load(path))
-    #     return model
+    @classmethod
+    def load(
+        cls, filename: Union[str, Path]
+    ) -> "LearningHiddenMarkovModelFilter":
+        filepath = FilePathValidator(
+            filename, cls._model_file_extension
+        ).get_filepath()
+        checkpoint_info = torch.load(filepath, weights_only=True)
+        model = cls(checkpoint_info["params"])
+        model.load_state_dict(checkpoint_info["model_state_dict"])
+        return model

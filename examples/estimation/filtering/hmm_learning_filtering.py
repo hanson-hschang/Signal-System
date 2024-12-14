@@ -37,7 +37,14 @@ def train(
 def inference(
     model_filename: Path,
 ) -> None:
-    pass
+
+    filter = LearningHiddenMarkovModelFilter.load(model_filename)
+
+    x = torch.tensor([1.0, 2.0])
+    for _ in range(5):
+        filter.update(observation_trajectory=x)
+        filter.estimate()
+        print(filter.estimated_next_observation)
 
 
 @click.command()
