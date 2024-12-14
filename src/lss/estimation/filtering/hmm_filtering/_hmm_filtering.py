@@ -1,7 +1,6 @@
-from typing import Any, Tuple, Union
+from typing import Tuple
 
 from dataclasses import dataclass
-from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -9,7 +8,6 @@ from torch import nn
 
 from lss import BaseLearningModule, BaseLearningParameters
 from lss.utility.descriptor import TensorReadOnlyDescriptor
-from ss.utility.assertion.validator import FilePathValidator
 
 
 @dataclass

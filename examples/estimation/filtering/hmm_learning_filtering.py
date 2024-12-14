@@ -11,6 +11,7 @@ from lss.estimation.filtering.hmm_filtering import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
 )
+from ss.utility.data import Data
 
 
 def train(
@@ -25,13 +26,19 @@ def train(
     )
     filter = LearningHiddenMarkovModelFilter(params)
 
-    x = torch.tensor([1.0, 2.0])
-    for _ in range(5):
-        filter.update(observation_trajectory=x)
-        filter.estimate()
-        print(filter.estimated_next_observation)
+    data = Data.load_from_file(data_filename)
 
-    filter.save(model_filename)
+    print(data["observation"].shape)
+
+    print(data.meta_info)
+
+    # x = torch.tensor([1.0, 2.0])
+    # for _ in range(5):
+    #     filter.update(observation_trajectory=x)
+    #     filter.estimate()
+    #     print(filter.estimated_next_observation)
+
+    # filter.save(model_filename)
 
 
 def inference(
@@ -69,7 +76,7 @@ def inference(
 @click.option(
     "--data-filename",
     type=click.Path(),
-    default="data.pt",
+    default="system.hdf5",
 )
 def main(
     mode: Mode,

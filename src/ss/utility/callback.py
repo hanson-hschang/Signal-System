@@ -11,10 +11,7 @@ from ss.utility.assertion.validator import FilePathValidator
 
 
 class Callback:
-    def __init__(
-        self,
-        step_skip: int,
-    ) -> None:
+    def __init__(self, step_skip: int) -> None:
         self._data_file_extension = ".hdf5"
         self.sample_every = step_skip
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
@@ -24,11 +21,7 @@ class Callback:
     def meta_info(self) -> Dict[str, Any]:
         return self._meta_info
 
-    def record(
-        self,
-        current_step: int,
-        time: float,
-    ) -> None:
+    def record(self, current_step: int, time: float) -> None:
         if current_step % self.sample_every == 0:
             self._record(time)
 

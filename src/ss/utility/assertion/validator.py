@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Callable,
+    Dict,
     Iterable,
     List,
     Literal,
@@ -11,8 +12,10 @@ from typing import (
     overload,
 )
 
-import os
 from pathlib import Path
+
+import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from ss.utility.assertion import (
     check_filepath_existence,
@@ -124,6 +127,40 @@ class PositiveNumberValidator(BasicScalarValidator):
 class NonnegativeNumberValidator(BasicScalarValidator):
     def __init__(self, value: Union[int, float], name: str) -> None:
         super().__init__(value, name, is_nonnegative_number)
+
+
+class SignalTrajectoryValidator(Validator):
+    def __init__(self, signal_trajectory: Dict[str, ArrayLike]) -> None:
+        super().__init__()
+        self._signal_trajectory = signal_trajectory
+        self._validate_functions = [
+            self._validate_type,
+            self._validate_time_key,
+        ]
+
+    def _validate_type(self) -> bool:
+        if isinstance(self._signal_trajectory, dict):
+            return True
+        self._errors.append(
+            "signal_trajectory must be a dictionary."
+            f"{type(self._signal_trajectory) = }"
+        )
+        return False
+
+    def _validate_time_key(self) -> bool:
+        if "time" in self._signal_trajectory:
+            return True
+        self._errors.append(
+            "'time' must be a key in signal_trajectory."
+            f"{self._signal_trajectory.keys() = }"
+        )
+        return False
+
+    def get_trajectory(self) -> Dict[str, NDArray[np.float64]]:
+        signal_trajectory = dict()
+        for key, value in self._signal_trajectory.items():
+            signal_trajectory[key] = np.array(value, dtype=np.float64)
+        return signal_trajectory
 
 
 class FilePathExistenceValidator(Validator):
