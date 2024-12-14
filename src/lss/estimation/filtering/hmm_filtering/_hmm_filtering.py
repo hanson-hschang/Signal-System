@@ -84,7 +84,7 @@ class LearningHiddenMarkovModelFilter(nn.Module):
     ) -> None:
         super().__init__()
         self._params = params
-        self._model_file_extension = ".pt"
+        self._model_file_extension = (".pt", ".pth")
 
         # Define the dimensions of the state and observation
         self._state_dim = params.state_dim

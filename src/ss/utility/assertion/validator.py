@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Callable,
+    Iterable,
     List,
     Literal,
     Type,
@@ -126,7 +127,9 @@ class NonnegativeNumberValidator(BasicScalarValidator):
 
 
 class FilePathExistenceValidator(Validator):
-    def __init__(self, filename: Union[str, Path], extension: str) -> None:
+    def __init__(
+        self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
+    ) -> None:
         super().__init__()
         self._filename = filename
         self._extension = extension
@@ -156,7 +159,9 @@ class FilePathExistenceValidator(Validator):
 
 
 class FilePathValidator(Validator):
-    def __init__(self, filename: Union[str, Path], extension: str) -> None:
+    def __init__(
+        self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
+    ) -> None:
         super().__init__()
         self._filename = filename
         self._extension = extension
