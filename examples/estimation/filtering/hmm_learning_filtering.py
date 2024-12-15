@@ -14,6 +14,7 @@ from lss.estimation.filtering.hmm import (
     LearningHiddenMarkovModelFilterParameters,
 )
 from ss.utility.data import Data
+from ss.utility.path import PathManager
 
 
 class ObservationDataset(Dataset):
@@ -169,19 +170,6 @@ def train(
     )
     learning_process.train(training_loader, evaluation_loader)
 
-    # initial_length = 100
-    # filter.update(
-    #     observation_trajectory=torch.tensor(observation[0, :, :initial_length])
-    # )
-    # for i in range(5):
-    #     filter.update(torch.tensor(observation[0, :, initial_length + i]))
-    #     print(filter._estimated_next_state)
-    #     filter.estimate()
-    #     print(filter.estimated_next_observation)
-
-    # model_filename = result_directory / model_filename
-    # filter.save(model_filename)
-
 
 def inference(
     result_directory: Path,
@@ -228,8 +216,9 @@ def main(
     data_foldername: Path,
     data_filename: Path,
 ) -> None:
-    parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
-    result_directory = parent_directory / Path(__file__).stem
+    path_manager = PathManager(__file__)
+    parent_directory = path_manager.parent_directory
+    result_directory = path_manager.result_directory
     match mode:
         case Mode.TRAIN:
             data_filename = parent_directory / data_foldername / data_filename

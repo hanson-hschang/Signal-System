@@ -17,13 +17,13 @@ def test_validator_post_init_failure() -> None:
     class FailingValidator(Validator):
         def __init__(self) -> None:
             super().__init__()
-            self._validate_functions.append(self._validate)
+            self.add_validation(self._validate)
 
         def _validate(self) -> bool:
-            self._errors.append("Test error 1")
-            self._errors.append("Test error 2")
+            self.add_error("Test error 1")
+            self.add_error("Test error 2", "Test error 3")
             return False
 
     with pytest.raises(AssertionError) as exc_info:
         FailingValidator()
-    assert "['Test error 1', 'Test error 2']" in str(exc_info.value)
+    assert "Test error 1\nTest error 2\nTest error 3" in str(exc_info.value)

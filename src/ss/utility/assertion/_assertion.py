@@ -37,6 +37,12 @@ def is_nonnegative_integer(number: Union[int, float]) -> bool:
     return False
 
 
+def check_directory_existence(directory: Union[str, Path]) -> bool:
+    if not isinstance(directory, (str, Path)):
+        return False
+    return Path(directory).is_dir()
+
+
 def check_parent_directory_existence(filename: Union[str, Path]) -> bool:
     if not isinstance(filename, (str, Path)):
         return False
