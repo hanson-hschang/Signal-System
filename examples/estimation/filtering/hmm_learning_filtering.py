@@ -1,16 +1,14 @@
-from typing import Any, Sequence, Tuple, assert_never
+from typing import Any, List, Sequence, Tuple, assert_never
 
 import os
 from pathlib import Path
 
 import click
-import numpy as np
 import torch
 from numpy.typing import ArrayLike
-from torch import optim
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from lss import Mode
+from lss import BaseLearningProcess, Mode
 from lss.estimation.filtering.hmm import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
@@ -26,12 +24,12 @@ class ObservationDataset(Dataset):
         max_length: int = 256,
         stride: int = 64,
     ) -> None:
-        if not isinstance(observation, torch.Tensor):
-            observation = np.array(observation)
+        observation = torch.tensor(observation)
         if number_of_systems == 1:
-            observation = observation[np.newaxis, ...]
-        assert observation.ndim == 3, (
-            "observation must be a 3D tensor with the shape (number_of_systems, observation_dim, time_horizon)."
+            observation = observation.unsqueeze(0)
+        assert observation.ndim >= 3, (
+            "observation must be a tensor greater than 3 dimensions "
+            "with the shape of (number_of_systems, ..., time_horizon). "
             f"observation given has the shape of {observation.shape}."
         )
 
@@ -39,14 +37,19 @@ class ObservationDataset(Dataset):
         self._input_trajectory = []
         self._output_trajectory = []
 
-        for i in range(number_of_systems):
-            for t in range(0, time_horizon - max_length, stride):
-                input_trajectory = observation[i, ..., t : t + max_length]
-                output_trajectory = observation[
-                    i, ..., t + 1 : t + max_length + 1
-                ]
-                self._input_trajectory.append(torch.tensor(input_trajectory))
-                self._output_trajectory.append(torch.tensor(output_trajectory))
+        with torch.no_grad():
+            for i in range(number_of_systems):
+                for t in range(0, time_horizon - max_length, stride):
+                    input_trajectory = observation[i, ..., t : t + max_length]
+                    output_trajectory = observation[
+                        i, ..., t + 1 : t + max_length + 1
+                    ]
+                    self._input_trajectory.append(
+                        input_trajectory.detach().clone()
+                    )
+                    self._output_trajectory.append(
+                        output_trajectory.detach().clone()
+                    )
 
         self._length = len(self._input_trajectory)
 
@@ -58,11 +61,12 @@ class ObservationDataset(Dataset):
 
     @classmethod
     def from_batch(cls, batch: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+        # The indexing of batch is defined by the __getitem__ method.
         input_trajectory, output_trajectory = batch[0], batch[1]
         return input_trajectory, output_trajectory
 
 
-def train_test_split(
+def data_split(
     observation: ArrayLike,
     split_ratio: Sequence[float],
     number_of_systems: int = 1,
@@ -70,13 +74,9 @@ def train_test_split(
     max_length: int = 256,
     stride: int = 64,
     random_seed: int = 2025,
-) -> Tuple[DataLoader, DataLoader]:
-    assert len(split_ratio) == 2, (
-        "split_ratio must be a list of two floats."
-        f"split_ratio given has the length of {len(split_ratio)}."
-    )
+) -> List[DataLoader]:
     generator = torch.Generator().manual_seed(random_seed)
-    training_set, testing_set = random_split(
+    datasets = random_split(
         dataset=ObservationDataset(
             observation=observation,
             number_of_systems=number_of_systems,
@@ -86,13 +86,43 @@ def train_test_split(
         lengths=split_ratio,
         generator=generator,
     )
-    training_loader = DataLoader(
-        training_set, batch_size=batch_size, shuffle=True
-    )
-    testing_loader = DataLoader(
-        testing_set, batch_size=batch_size, shuffle=True
-    )
-    return training_loader, testing_loader
+    dataloaders = []
+    for dataset in datasets:
+        dataloaders.append(
+            DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        )
+    return dataloaders
+
+
+class LearningHMMFilterProcess(BaseLearningProcess):
+    def _train_one_batch(self, data_batch: Any) -> float:
+        observation_trajectory, next_observation_trajectory = (
+            ObservationDataset.from_batch(data_batch)
+        )
+        self._optimizer.zero_grad()
+        estimated_next_observation_trajectory = self._model(
+            observation_trajectory=observation_trajectory
+        )
+        loss = self._loss_function(
+            estimated_next_observation_trajectory,
+            next_observation_trajectory,
+        )
+        loss.backward()
+        self._optimizer.step()
+        return loss.item()
+
+    def _evaluate_one_batch(self, data_batch: Any) -> float:
+        observation_trajectory, next_observation_trajectory = (
+            ObservationDataset.from_batch(data_batch)
+        )
+        estimated_next_observation_trajectory = self._model(
+            observation_trajectory=observation_trajectory
+        )
+        loss = self._loss_function(
+            estimated_next_observation_trajectory,
+            next_observation_trajectory,
+        )
+        return loss.item()
 
 
 def train(
@@ -104,22 +134,21 @@ def train(
     data = Data.load_from_file(data_filename)
     observation = data["observation"]
     number_of_systems = data.meta_info["number_of_systems"]
-    training_loader, testing_loader = train_test_split(
+    observation_dim = (
+        observation.shape[0] if number_of_systems == 1 else observation.shape[1]
+    )
+    training_loader, evaluation_loader, testing_loader = data_split(
         observation=observation,
-        split_ratio=[0.8, 0.2],
+        split_ratio=[0.05, 0.05, 0.9],
         number_of_systems=number_of_systems,
     )
 
     # Prepare model
     params = LearningHiddenMarkovModelFilterParameters(
-        state_dim=5,
-        observation_dim=(
-            observation.shape[0]
-            if number_of_systems == 1
-            else observation.shape[1]
-        ),
-        feature_dim=1,
-        layer_dim=1,
+        state_dim=5,  # similar to embedding dimension in the transformer
+        observation_dim=observation_dim,  # similar to number of tokens in the transformer
+        feature_dim=1,  # similar to number of heads in the transformer
+        layer_dim=1,  # similar to number of layers in the transformer
     )
     filter = LearningHiddenMarkovModelFilter(params)
 
@@ -127,23 +156,18 @@ def train(
     loss_function = torch.nn.functional.cross_entropy
 
     # Prepare optimizer
-    optimizer = optim.Adam(filter.parameters(), lr=0.001)
+    optimizer = torch.optim.AdamW(filter.parameters(), lr=0.001)
 
     # Train model
-    for training_batch in training_loader:
-        observation_trajectory, next_observation_trajectory = (
-            ObservationDataset.from_batch(training_batch)
-        )
-        optimizer.zero_grad()
-        estimated_next_observation_trajectory = filter(
-            observation_trajectory=observation_trajectory
-        )
-        loss = loss_function(
-            estimated_next_observation_trajectory,
-            next_observation_trajectory,
-        )
-        loss.backward()
-        optimizer.step()
+    learning_process = LearningHMMFilterProcess(
+        model=filter,
+        loss_function=loss_function,
+        optimizer=optimizer,
+        number_of_epochs=10,
+        model_filename=result_directory / model_filename,
+        save_model_epoch_skip=2,
+    )
+    learning_process.train(training_loader, evaluation_loader)
 
     # initial_length = 100
     # filter.update(
