@@ -16,6 +16,7 @@ class PathManager:
         self._result_directory_path = (
             self._parent_directory_path / self._file.stem
         )
+        self._logger_filename = self._date + ".log"
 
     @property
     def parent_directory(self) -> Path:
@@ -24,6 +25,10 @@ class PathManager:
     @property
     def result_directory(self) -> Path:
         return self._result_directory_path / Path(self._date)
+
+    @property
+    def logger_filepath(self) -> Path:
+        return self._result_directory_path / Path(self._logger_filename)
 
     def get_other_result_directory(self, foldername: Union[str, Path]) -> Path:
         other_result_directory = FolderPathExistenceValidator(

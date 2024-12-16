@@ -8,6 +8,9 @@ from torch import nn
 
 from lss import BaseLearningModule, BaseLearningParameters
 from lss.utility.descriptor import TensorReadOnlyDescriptor
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 @dataclass

@@ -30,6 +30,9 @@ from ss.utility.assertion import (
     is_positive_integer,
     is_positive_number,
 )
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 # Create a TypeVar for the Validator class
 T = TypeVar("T", bound="Validator")
@@ -52,6 +55,9 @@ class Validator(metaclass=ValidatorMeta):
 
     def __post_init__(self) -> None:
         for validate in self._validate_functions:
+            # if not validate():
+            #     logger.error(f"Validation: {validate.__name__}")
+            #     logger.error("\n".join(self._errors))
             assert validate(), "\n".join(self._errors)
 
     def add_validation(self, *validations: Callable[[], bool]) -> None:

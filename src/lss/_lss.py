@@ -13,7 +13,6 @@ from ss.utility.assertion.validator import (
     FilePathValidator,
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
-    Validator,
 )
 
 
@@ -49,10 +48,10 @@ class BaseLearningModule(nn.Module):
         ).get_filepath()
         assert (
             "params" not in checkpoint_info
-        ), "'params' is a reserved key for checkpoint_info."
+        ), "'params' is a reserved key for **checkpoint_info."
         assert (
             "model_state_dict" not in checkpoint_info
-        ), "'model_state_dict' is a reserved key for checkpoint_info."
+        ), "'model_state_dict' is a reserved key for **checkpoint_info."
         checkpoint_info["params"] = self._params
         checkpoint_info["model_state_dict"] = self.state_dict()
         torch.save(checkpoint_info, filepath)
@@ -75,8 +74,8 @@ class BaseLearningProcess:
             super().__init__(number_of_epochs, "number_of_epochs")
 
     class _SaveModelEpochSkipValidator(NonnegativeIntegerValidator):
-        def __init__(self, save_model_step_skip: int) -> None:
-            super().__init__(save_model_step_skip, "save_model_step_skip")
+        def __init__(self, save_model_epoch_skip: int) -> None:
+            super().__init__(save_model_epoch_skip, "save_model_epoch_skip")
 
     def __init__(
         self,
@@ -126,6 +125,7 @@ class BaseLearningProcess:
         self._training_loss = 0.0
         for i, data_batch in tqdm(enumerate(data_loader)):
             loss = self._train_one_batch(data_batch)
+            # TODO: change loss saving to every some steps instead of every step
             self._training_loss += loss
         self._training_loss /= i + 1
         print(f"Training loss: {self._training_loss}")

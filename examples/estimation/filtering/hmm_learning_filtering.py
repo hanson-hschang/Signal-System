@@ -14,7 +14,10 @@ from lss.estimation.filtering.hmm import (
     LearningHiddenMarkovModelFilterParameters,
 )
 from ss.utility.data import Data
+from ss.utility.logging import Logging
 from ss.utility.path import PathManager
+
+logger = Logging.get_logger(__name__)
 
 
 class ObservationDataset(Dataset):
@@ -216,9 +219,13 @@ def main(
     data_foldername: Path,
     data_filename: Path,
 ) -> None:
+
     path_manager = PathManager(__file__)
     parent_directory = path_manager.parent_directory
     result_directory = path_manager.result_directory
+
+    Logging(filename=path_manager.logger_filepath)
+
     match mode:
         case Mode.TRAIN:
             data_filename = parent_directory / data_foldername / data_filename
