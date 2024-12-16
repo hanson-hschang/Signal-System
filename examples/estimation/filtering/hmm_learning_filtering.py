@@ -223,8 +223,11 @@ def main(
     path_manager = PathManager(__file__)
     parent_directory = path_manager.parent_directory
     result_directory = path_manager.result_directory
-
-    Logging(filename=path_manager.logger_filepath)
+    Logging.basic_config(
+        filename=path_manager.logging_filepath,
+        log_level=Logging.Level.DEBUG,
+        verbose_level=Logging.Level.INFO,
+    )
 
     match mode:
         case Mode.TRAIN:

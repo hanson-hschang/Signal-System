@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Union
+from typing import Dict, Union
 
 import logging
 import sys
@@ -12,7 +12,7 @@ from ss.utility.singleton import SingletonMeta
 class Logging(metaclass=SingletonMeta):
     _logger: Dict[str, logging.Logger] = OrderedDict()
 
-    class LogLevel(IntEnum):
+    class Level(IntEnum):
         DEBUG = logging.DEBUG
         INFO = logging.INFO
         WARNING = logging.WARNING
@@ -23,38 +23,45 @@ class Logging(metaclass=SingletonMeta):
     def get_logger(
         cls,
         name: str,
-        log_level: LogLevel = LogLevel.DEBUG,
+        level: Level = Level.DEBUG,
     ) -> logging.Logger:
         """
         Get a logger with the specified name.
 
-        Arguments
-        ---------
+        Arguments:
+        ----------
             name: str
                 The name of the logger
-            log_level: LogLevel (default: LogLevel.DEBUG)
+            level: Level (default: Level.DEBUG)
                 The log level of the logger
 
-        Returns
-        -------
+        Returns:
+        --------
             logger: logging.Logger
                 The logger with the specified name and log level
         """
+        names = name.split(".")
+        if (
+            (len(names) > 1)
+            and (names[-1][0] == "_")
+            and (names[-2] == names[-1][1:])
+        ):
+            name = ".".join(names[:-1])
         if name in cls._logger:
             return cls._logger[name]
         logger = logging.getLogger(name)
-        logger.setLevel(log_level)
+        logger.setLevel(level)
         cls._logger[name] = logger
         return logger
 
     def __init__(
         self,
         filename: Union[str, Path],
-        log_level: LogLevel = LogLevel.DEBUG,
-        log_format: str = r"%(asctime)s | %(name)s | %(levelname)-8s | %(message)s",
-        datetime_format: str = r"%Y-%m-%d %H:%M:%S",
-        verbose_level: LogLevel = LogLevel.INFO,
-        verbose_format: str = "%(name)s | %(levelname)s | %(message)s",
+        log_level: Level,
+        log_format: str,
+        datetime_format: str,
+        verbose_level: Level,
+        verbose_format: str,
     ) -> None:
         # TODO: check and validate the input arguments
 
@@ -64,7 +71,6 @@ class Logging(metaclass=SingletonMeta):
         for name, logger in self._logger.items():
             max_name_length = max(max_name_length, len(name))
             logger.handlers = []
-        max_name_length += 1
 
         # Create formatters and change the format of loggers' name to have a fixed width
         log_format = log_format.replace(
@@ -96,20 +102,35 @@ class Logging(metaclass=SingletonMeta):
             logger.addHandler(self.console_handler)
             logger.addHandler(self.file_handler)
             logging_logger.debug(f"logger: {name} has been initialized.")
+        logging_logger.info(
+            f"logging has been initialized: verbose_level = {verbose_level.name} and log_level = {log_level.name}."
+        )
+        logging_logger.info(f"logging file = {str(filename)}")
 
         # Store levels for property access
         self._verbose_level = verbose_level
         self._log_level = log_level
 
-        main_logger = self.get_logger("__main__")
-        main_logger.info(
-            f"logging has been initialized with the verbose_level = {verbose_level.name}, "
-        )
-        main_logger.info(
-            f"and log_level = {log_level.name} with the filename as {str(filename)}"
-        )
-
         # TODO: add descriptor for log_level and verbose_level
+
+    @classmethod
+    def basic_config(
+        cls,
+        filename: Union[str, Path],
+        log_level: Level = Level.INFO,
+        log_format: str = r"%(asctime)s | %(name)s | %(levelname)-8s | %(message)s",
+        datetime_format: str = r"%Y-%m-%d %H:%M:%S",
+        verbose_level: Level = Level.WARNING,
+        verbose_format: str = "%(name)s | %(levelname)s | %(message)s",
+    ) -> "Logging":
+        return cls(
+            filename,
+            log_level,
+            log_format,
+            datetime_format,
+            verbose_level,
+            verbose_format,
+        )
 
 
 logger = Logging.get_logger(__name__)

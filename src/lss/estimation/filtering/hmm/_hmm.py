@@ -3,7 +3,6 @@ from typing import Tuple
 from dataclasses import dataclass
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 
 from lss import BaseLearningModule, BaseLearningParameters
@@ -103,9 +102,11 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
 
         # Initialize the estimated next state, and next observation
         with torch.no_grad():
-            self._estimated_next_state = F.softmax(self._initial_state, dim=0)
+            self._estimated_next_state = nn.functional.softmax(
+                self._initial_state, dim=0
+            )
             self._estimated_next_observation = torch.matmul(
-                F.softmax(self._emission_layer.weight, dim=1).T,
+                nn.functional.softmax(self._emission_layer.weight, dim=1).T,
                 self._estimated_next_state,
             )
 
@@ -115,7 +116,9 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
     @property
     def emission_matrix(self) -> torch.Tensor:
         with torch.no_grad():
-            _emission_matrix = F.softmax(self._emission_layer.weight, dim=1)
+            _emission_matrix = nn.functional.softmax(
+                self._emission_layer.weight, dim=1
+            )
         return _emission_matrix.detach()
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
@@ -165,7 +168,7 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         )
 
         # Get emission_matrix
-        emission_matrix = F.softmax(
+        emission_matrix = nn.functional.softmax(
             self._emission_layer.weight,
             dim=1,
         )  # (state_dim, observation_dim)
@@ -194,7 +197,7 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         # Initialize the previous_estimated_next_state (with the self._initial_state)
         # (This is used for the iteration over the horizon_of_observation_trajectory)
         estimated_next_state = (
-            F.softmax(self._initial_state, dim=0)
+            nn.functional.softmax(self._initial_state, dim=0)
             if use_initial_state
             else self._estimated_next_state
         )
@@ -206,7 +209,7 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         for k in range(horizon_of_observation_trajectory):
 
             # Compute the conditional probability of the estimated_state given the observation
-            estimated_state = F.normalize(
+            estimated_state = nn.functional.normalize(
                 previous_estimated_next_state * emission_trajectory[:, :, k],
                 p=1,
                 dim=1,

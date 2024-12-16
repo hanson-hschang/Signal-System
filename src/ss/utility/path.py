@@ -27,7 +27,7 @@ class PathManager:
         return self._result_directory_path / Path(self._date)
 
     @property
-    def logger_filepath(self) -> Path:
+    def logging_filepath(self) -> Path:
         return self._result_directory_path / Path(self._logger_filename)
 
     def get_other_result_directory(self, foldername: Union[str, Path]) -> Path:

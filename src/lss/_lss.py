@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Set, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Type, TypeVar, Union
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -8,12 +8,16 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.utility.assertion.validator import (
     FilePathValidator,
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 class Mode(StrEnum):
@@ -100,8 +104,9 @@ class BaseLearningProcess:
             save_model_epoch_skip
         ).get_value()
 
-        self._training_loss = 0.0
         self._evaluation_loss = 0.0
+        self._training_loss = 0.0
+        self._training_loss_history = []
 
         self._save_intermediate_models = self._save_model_step_skip > 0
         if self._save_intermediate_models:
@@ -122,13 +127,14 @@ class BaseLearningProcess:
 
     def train_one_epoch(self, data_loader: DataLoader) -> None:
         self._model.train()
-        self._training_loss = 0.0
-        for i, data_batch in tqdm(enumerate(data_loader)):
-            loss = self._train_one_batch(data_batch)
-            # TODO: change loss saving to every some steps instead of every step
-            self._training_loss += loss
-        self._training_loss /= i + 1
-        print(f"Training loss: {self._training_loss}")
+        with logging_redirect_tqdm(loggers=[logger]):
+            for i, data_batch in tqdm(
+                enumerate(data_loader), total=len(data_loader)
+            ):
+                loss = self._train_one_batch(data_batch)
+                self._training_loss_history.append(loss)
+                self._training_loss = (loss + self._training_loss) / 2
+        logger.info(f"Training loss (running average): {self._training_loss}")
 
     def _evaluate_one_batch(self, data_batch: Any) -> float:
         raise NotImplementedError
@@ -141,7 +147,7 @@ class BaseLearningProcess:
                 loss = self._evaluate_one_batch(data_batch)
                 self._evaluation_loss += loss
         self._evaluation_loss /= i + 1
-        print(f"Evaluation loss: {self._evaluation_loss}")
+        logger.info(f"Evaluation loss: {self._evaluation_loss}")
 
     def train(
         self,
@@ -150,10 +156,10 @@ class BaseLearningProcess:
     ) -> None:
         epoch_idx, checkpoint_idx = 0, 0
         self.evaluate_model(evaluation_loader)
-        print("Training...")
+        logger.info("Training...")
         checkpoint_idx = self.save_intermediate_model(epoch_idx, checkpoint_idx)
         for epoch_idx in range(1, self._number_of_epochs + 1):
-            print(f"Epoch: {epoch_idx} / {self._number_of_epochs}")
+            logger.info(f"Epoch: {epoch_idx} / {self._number_of_epochs}")
             self.train_one_epoch(training_loader)
             self.evaluate_model(evaluation_loader)
             checkpoint_idx = self.save_intermediate_model(
@@ -166,7 +172,7 @@ class BaseLearningProcess:
     ) -> int:
         if self._save_intermediate_models:
             if epoch_idx == 0:
-                print(
+                logger.info(
                     f"Intermediate models are saved every {self._save_model_step_skip} epochs."
                 )
             if epoch_idx % self._save_model_step_skip == 0:
@@ -191,7 +197,8 @@ class BaseLearningProcess:
         checkpoint_info = {
             "epoch": epoch_idx,
             "number_of_epochs": self._number_of_epochs,
-            "training_loss": self._training_loss,
             "evaluation_loss": self._evaluation_loss,
+            "training_loss": self._training_loss,
+            "training_loss_history": self._training_loss_history,
         }
         return checkpoint_info
