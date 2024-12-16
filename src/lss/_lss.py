@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Type, TypeVar, Union
+from typing import Any, Callable, List, Optional, Type, TypeVar, Union
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -106,7 +106,7 @@ class BaseLearningProcess:
 
         self._evaluation_loss = 0.0
         self._training_loss = 0.0
-        self._training_loss_history = []
+        self._training_loss_history: List[float] = []
 
         self._save_intermediate_models = self._save_model_step_skip > 0
         if self._save_intermediate_models:
@@ -139,15 +139,15 @@ class BaseLearningProcess:
     def _evaluate_one_batch(self, data_batch: Any) -> float:
         raise NotImplementedError
 
-    def evaluate_model(self, data_loader: DataLoader) -> None:
+    def evaluate_model(self, data_loader: DataLoader) -> float:
         self._model.eval()
-        self._evaluation_loss = 0.0
+        _loss = 0.0
         with torch.no_grad():
             for i, data_batch in enumerate(data_loader):
                 loss = self._evaluate_one_batch(data_batch)
-                self._evaluation_loss += loss
-        self._evaluation_loss /= i + 1
-        logger.info(f"Evaluation loss: {self._evaluation_loss}")
+                _loss += loss
+        _loss /= i + 1
+        return _loss
 
     def train(
         self,
@@ -161,11 +161,21 @@ class BaseLearningProcess:
         for epoch_idx in range(1, self._number_of_epochs + 1):
             logger.info(f"Epoch: {epoch_idx} / {self._number_of_epochs}")
             self.train_one_epoch(training_loader)
-            self.evaluate_model(evaluation_loader)
+            self._evaluation_loss = self.evaluate_model(evaluation_loader)
+            logger.info(f"Evaluation loss: {self._evaluation_loss}")
             checkpoint_idx = self.save_intermediate_model(
                 epoch_idx, checkpoint_idx
             )
+        logger.info("Training is completed")
         self.save_model(self._number_of_epochs)
+
+    def test(
+        self,
+        testing_loader: DataLoader,
+    ) -> None:
+        logger.info("Testing...")
+        loss = self.evaluate_model(testing_loader)
+        logger.info(f"Testing is completed with loss: {loss}")
 
     def save_intermediate_model(
         self, epoch_idx: int, checkpoint_idx: int
@@ -173,7 +183,7 @@ class BaseLearningProcess:
         if self._save_intermediate_models:
             if epoch_idx == 0:
                 logger.info(
-                    f"Intermediate models are saved every {self._save_model_step_skip} epochs."
+                    f"Intermediate models are saved every {self._save_model_step_skip} epochs"
                 )
             if epoch_idx % self._save_model_step_skip == 0:
                 self.save_model(epoch_idx, checkpoint_idx)
@@ -192,6 +202,7 @@ class BaseLearningProcess:
 
         checkpoint_info = self.create_checkpoint_info(epoch_idx)
         self._model.save(model_filepath, **checkpoint_info)
+        logger.debug(f"model saved to {model_filepath}")
 
     def create_checkpoint_info(self, epoch_idx: int) -> dict:
         checkpoint_info = {

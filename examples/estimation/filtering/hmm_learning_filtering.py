@@ -143,7 +143,7 @@ def train(
     )
     training_loader, evaluation_loader, testing_loader = data_split(
         observation=observation,
-        split_ratio=[0.05, 0.05, 0.9],
+        split_ratio=[0.7, 0.2, 0.1],
         number_of_systems=number_of_systems,
     )
 
@@ -172,6 +172,9 @@ def train(
         save_model_epoch_skip=2,
     )
     learning_process.train(training_loader, evaluation_loader)
+
+    # Test model
+    learning_process.test(testing_loader)
 
 
 def inference(

@@ -29,8 +29,42 @@ class LearningHiddenMarkovModelFilterBlock(nn.Module):
         super().__init__()
         self._feature_id = feature_id
         self._params = params
+        self._weight = nn.Parameter(
+            torch.randn(self._params.state_dim, dtype=torch.float64)
+        )
+        self._cosine_transform_matrix = nn.Parameter(
+            self._compute_cosine_transform_matrix(self._params.state_dim),
+            requires_grad=False,
+        )
+
+    @staticmethod
+    def _compute_cosine_transform_matrix(dim: int) -> torch.Tensor:
+        with torch.no_grad():
+            # Create coordinate tensors
+            i_coords = torch.arange(dim).float() + 0.5
+            j_coords = torch.arange(dim).float() + 0.5
+
+            # Compute outer product using einsum
+            i_term = i_coords.view(-1, 1)  # Shape: (dim, 1)
+            j_term = j_coords.view(1, -1)  # Shape: (1, dim)
+
+            # Calculate cosine weights
+            weight = torch.cos(torch.pi / dim * i_term * j_term)
+
+            # Apply scaling factor
+            weight = weight * torch.sqrt(torch.tensor(2.0 / dim))
+        return torch.tensor(weight.detach().numpy(), dtype=torch.float64)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = torch.matmul(x, self._cosine_transform_matrix)
+        probability = torch.nn.functional.softmax(self._weight, dim=0)
+        transformed_probability = torch.matmul(
+            self._cosine_transform_matrix, probability
+        )
+        x = torch.matmul(
+            (transformed_probability.unsqueeze(0) * x),
+            self._cosine_transform_matrix,
+        )
         return x
 
 
@@ -213,15 +247,17 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
                 previous_estimated_next_state * emission_trajectory[:, :, k],
                 p=1,
                 dim=1,
-            )
+            )  # (batch_size, state_dim)
 
             # Apply the transition matrix
-            estimated_next_state = self._transition_layer(estimated_state)
+            estimated_next_state = self._transition_layer(
+                estimated_state
+            )  # (batch_size, state_dim)
 
             # Compute and record the estimated next observation
             estimated_next_observation_trajectory[:, :, k] = torch.matmul(
                 estimated_next_state, emission_matrix
-            )
+            )  # (batch_size, observation_dim)
 
             # Update the previous_estimated_next_state with the value of
             # the estimated_next_state for the next iteration

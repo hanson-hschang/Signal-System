@@ -101,9 +101,9 @@ class Logging(metaclass=SingletonMeta):
         for name, logger in self._logger.items():
             logger.addHandler(self.console_handler)
             logger.addHandler(self.file_handler)
-            logging_logger.debug(f"logger: {name} has been initialized.")
+            logging_logger.debug(f"logger: {name} has been initialized")
         logging_logger.info(
-            f"logging has been initialized: verbose_level = {verbose_level.name} and log_level = {log_level.name}."
+            f"logging has been initialized: verbose_level = {verbose_level.name} and log_level = {log_level.name}"
         )
         logging_logger.info(f"logging file = {str(filename)}")
 
