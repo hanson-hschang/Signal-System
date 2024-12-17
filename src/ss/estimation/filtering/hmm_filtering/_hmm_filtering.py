@@ -12,7 +12,7 @@ from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel, one_hot_decoding
 from ss.utility.assertion.validator import Validator
 from ss.utility.descriptor import MultiSystemTensorReadOnlyDescriptor
-from ss.utility.figure import TimeTrajectoryFigure
+from ss.utility.figure import SequenceTrajectoryFigure
 
 
 class HiddenMarkovModelFilter(Filter):
@@ -125,7 +125,7 @@ class HiddenMarkovModelFilterCallback(EstimatorCallback):
         )
 
 
-class HiddenMarkovModelFilterFigure(TimeTrajectoryFigure):
+class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
 
     class _SignalTrajectoryValidator(Validator):
         def __init__(
@@ -205,7 +205,7 @@ class HiddenMarkovModelFilterFigure(TimeTrajectoryFigure):
             fig_layout = (3, 1)
 
         super().__init__(
-            time_trajectory=time_trajectory,
+            sequence_trajectory=time_trajectory,
             fig_size=fig_size,
             fig_title=(
                 "Hidden Markov Model Filter" if fig_title is None else fig_title

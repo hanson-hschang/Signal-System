@@ -5,10 +5,11 @@ from pathlib import Path
 
 import click
 import torch
+from matplotlib import pyplot as plt
 from numpy.typing import ArrayLike
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from lss import BaseLearningProcess, CheckpointInfo, Mode
+from lss import BaseLearningProcess, CheckpointInfo, IterationFigure, Mode
 from lss.estimation.filtering.hmm import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
@@ -184,7 +185,14 @@ def visualization(
 
     model_filename = result_directory / model_filename
     checkpoint_info = CheckpointInfo.load(model_filename)
-    type(checkpoint_info["training_loss_history"])
+    iteration_trajectory = range(
+        1, len(checkpoint_info["training_loss_history"]) + 1
+    )
+    IterationFigure(
+        iteration_trajectory=iteration_trajectory,
+        training_cost_trajectory=checkpoint_info["training_loss_history"],
+    ).plot()
+    plt.show()
 
 
 def inference(

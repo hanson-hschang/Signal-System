@@ -11,7 +11,7 @@ from ss.utility.descriptor import (
     MultiSystemTensorDescriptor,
     ReadOnlyDescriptor,
 )
-from ss.utility.figure import TimeTrajectoryFigure
+from ss.utility.figure import SequenceTrajectoryFigure
 
 
 class Cost:
@@ -171,7 +171,7 @@ class CostCallback(Callback):
         self._callback_params["cost"].append(self._cost.evaluate().copy())
 
 
-class CostTrajectoryFigure(TimeTrajectoryFigure):
+class CostTrajectoryFigure(SequenceTrajectoryFigure):
     """
     Figure for plotting the cost trajectory.
     """
@@ -199,7 +199,7 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
             fig_size=fig_size,
             fig_title="Accumulated Cost Trajectory",
         )
-        assert cost_trajectory.shape[1] == self._time_length, (
+        assert cost_trajectory.shape[1] == self._sequence_length, (
             "cost_trajectory must have the same length as time_trajectory."
             "cost_trajectory in general is a 2D array with shape (number_of_systems, time_length)."
         )
@@ -207,7 +207,7 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
         self._cost_subplot: Axes = self._subplots[0][0]
 
     def plot(self) -> Self:
-        time_step = np.mean(np.diff(self._time_trajectory))
+        time_step = np.mean(np.diff(self._sequence_trajectory))
         cumsum_cost_trajectory = (
             np.cumsum(self._cost_trajectory, axis=1) * time_step
         )
@@ -243,7 +243,7 @@ class CostTrajectoryFigure(TimeTrajectoryFigure):
     ) -> None:
         for i in range(self._number_of_systems):
             self._cost_subplot.plot(
-                self._time_trajectory,
+                self._sequence_trajectory,
                 cumsum_cost_trajectory[i, :],
                 **kwargs,
             )

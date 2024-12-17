@@ -191,10 +191,10 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
             fig_title="Mass-Spring-Damper System State Trajectory",
             fig_layout=(2, self._number_of_connections),
         )
-        assert state_trajectory.shape[2] == self._time_length, (
+        assert state_trajectory.shape[2] == self._sequence_length, (
             f"state_trajectory must have the same time horizon as time_trajectory. "
             f"state_trajectory has the time horizon of {state_trajectory.shape[2]} "
-            f"while time_trajectory has the time horizon of {self._time_length}."
+            f"while time_trajectory has the time horizon of {self._sequence_length}."
         )
 
         self._state_trajectory = state_trajectory
@@ -245,7 +245,8 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                 mean_trajectory=mean_trajectory,
                 std_trajectory=std_trajectory,
             )
-        return super().plot()
+        super().plot()
+        return self
 
     def _plot_each_system_trajectory(
         self,
