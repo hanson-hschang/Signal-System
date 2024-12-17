@@ -24,7 +24,11 @@ class PathManager:
 
     @property
     def result_directory(self) -> Path:
-        return self._result_directory_path / Path(self._date)
+        return self._result_directory_path
+
+    @property
+    def current_date_directory(self) -> Path:
+        return Path(self._date)
 
     @property
     def logging_filepath(self) -> Path:

@@ -8,7 +8,7 @@ import torch
 from numpy.typing import ArrayLike
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from lss import BaseLearningProcess, Mode
+from lss import BaseLearningProcess, CheckpointInfo, Mode
 from lss.estimation.filtering.hmm import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
@@ -177,6 +177,16 @@ def train(
     learning_process.test(testing_loader)
 
 
+def visualization(
+    result_directory: Path,
+    model_filename: Path,
+) -> None:
+
+    model_filename = result_directory / model_filename
+    checkpoint_info = CheckpointInfo.load(model_filename)
+    type(checkpoint_info["training_loss_history"])
+
+
 def inference(
     result_directory: Path,
     model_filename: Path,
@@ -216,11 +226,23 @@ def inference(
     type=click.Path(),
     default="system.hdf5",
 )
+@click.option(
+    "--verbose",
+    is_flag=False,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=False,
+    help="Set the debug mode.",
+)
 def main(
     mode: Mode,
     model_filename: Path,
     data_foldername: Path,
     data_filename: Path,
+    verbose: bool,
+    debug: bool,
 ) -> None:
 
     path_manager = PathManager(__file__)
@@ -228,14 +250,20 @@ def main(
     result_directory = path_manager.result_directory
     Logging.basic_config(
         filename=path_manager.logging_filepath,
-        log_level=Logging.Level.DEBUG,
-        verbose_level=Logging.Level.INFO,
+        log_level=Logging.Level.DEBUG if debug else Logging.Level.INFO,
+        verbose_level=Logging.Level.INFO if verbose else Logging.Level.WARNING,
     )
 
     match mode:
         case Mode.TRAIN:
             data_filename = parent_directory / data_foldername / data_filename
-            train(data_filename, result_directory, model_filename)
+            train(
+                data_filename,
+                result_directory / path_manager.current_date_directory,
+                model_filename,
+            )
+        case Mode.VISUALIZATION:
+            visualization(result_directory, model_filename)
         case Mode.INFERENCE:
             inference(result_directory, model_filename)
         case _ as _mode:

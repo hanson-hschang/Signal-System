@@ -1,4 +1,14 @@
-from typing import Any, Callable, List, Optional, Type, TypeVar, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Self,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from dataclasses import dataclass
 from enum import StrEnum
@@ -22,8 +32,11 @@ logger = Logging.get_logger(__name__)
 
 class Mode(StrEnum):
     TRAIN = "TRAIN"
+    VISUALIZATION = "VISUALIZATION"
     INFERENCE = "INFERENCE"
 
+
+MODEL_FILE_EXTENSION = (".pt", ".pth")
 
 BLP = TypeVar("BLP", bound="BaseLearningParameters")
 
@@ -37,7 +50,6 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
 class BaseLearningModule(nn.Module):
-    model_file_extension = (".pt", ".pth")
 
     def __init__(self, params: BaseLearningParameters) -> None:
         super().__init__()
@@ -48,7 +60,7 @@ class BaseLearningModule(nn.Module):
 
     def save(self, filename: Union[str, Path], **checkpoint_info: Any) -> None:
         filepath = FilePathValidator(
-            filename, self.model_file_extension
+            filename, MODEL_FILE_EXTENSION
         ).get_filepath()
         assert (
             "params" not in checkpoint_info
@@ -63,12 +75,25 @@ class BaseLearningModule(nn.Module):
     @classmethod
     def load(cls: Type[BLM], filename: Union[str, Path]) -> BLM:
         filepath = FilePathValidator(
-            filename, cls.model_file_extension
+            filename, MODEL_FILE_EXTENSION
+        ).get_filepath()
+        checkpoint_info: Dict[str, Any] = torch.load(
+            filepath, weights_only=True
+        )
+        model = cls(checkpoint_info.pop("params"))
+        model.load_state_dict(checkpoint_info.pop("model_state_dict"))
+        return model
+
+
+class CheckpointInfo(dict):
+
+    @classmethod
+    def load(cls, filename: Union[str, Path]) -> Self:
+        filepath = FilePathValidator(
+            filename, MODEL_FILE_EXTENSION
         ).get_filepath()
         checkpoint_info = torch.load(filepath, weights_only=True)
-        model = cls(checkpoint_info["params"])
-        model.load_state_dict(checkpoint_info["model_state_dict"])
-        return model
+        return cls(**checkpoint_info)
 
 
 class BaseLearningProcess:
@@ -98,7 +123,7 @@ class BaseLearningProcess:
         ).get_value()
         self._model_filepath = FilePathValidator(
             model_filename,
-            BaseLearningModule.model_file_extension,
+            MODEL_FILE_EXTENSION,
         ).get_filepath()
         self._save_model_step_skip = self._SaveModelEpochSkipValidator(
             save_model_epoch_skip
@@ -204,12 +229,12 @@ class BaseLearningProcess:
         self._model.save(model_filepath, **checkpoint_info)
         logger.debug(f"model saved to {model_filepath}")
 
-    def create_checkpoint_info(self, epoch_idx: int) -> dict:
-        checkpoint_info = {
-            "epoch": epoch_idx,
-            "number_of_epochs": self._number_of_epochs,
-            "evaluation_loss": self._evaluation_loss,
-            "training_loss": self._training_loss,
-            "training_loss_history": self._training_loss_history,
-        }
+    def create_checkpoint_info(self, epoch_idx: int) -> CheckpointInfo:
+        checkpoint_info = CheckpointInfo(
+            epoch=epoch_idx,
+            number_of_epochs=self._number_of_epochs,
+            evaluation_loss=self._evaluation_loss,
+            training_loss=self._training_loss,
+            training_loss_history=self._training_loss_history,
+        )
         return checkpoint_info
