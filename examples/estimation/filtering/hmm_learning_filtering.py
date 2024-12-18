@@ -136,7 +136,7 @@ def train(
     model_filename: Path,
 ) -> None:
     # Prepare data
-    data = Data.load_from_file(data_filename)
+    data = Data.load(data_filename)
     observation = data["observation"]
     number_of_systems = data.meta_info["number_of_systems"]
     observation_dim = (
@@ -168,9 +168,9 @@ def train(
         model=filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=10,
+        number_of_epochs=5,
         model_filename=result_directory / model_filename,
-        save_model_epoch_skip=2,
+        save_model_epoch_skip=1,
     )
     learning_process.train(training_loader, evaluation_loader)
 
@@ -182,15 +182,11 @@ def visualization(
     result_directory: Path,
     model_filename: Path,
 ) -> None:
-
     model_filename = result_directory / model_filename
-    checkpoint_info = CheckpointInfo.load(model_filename)
-    iteration_trajectory = range(
-        1, len(checkpoint_info["training_loss_history"]) + 1
-    )
+    checkpoint_info = CheckpointInfo.load(model_filename.with_suffix(".hdf5"))
     IterationFigure(
-        iteration_trajectory=iteration_trajectory,
-        training_cost_trajectory=checkpoint_info["training_loss_history"],
+        training_loss_trajectory=checkpoint_info["training_loss_history"],
+        validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
     ).plot()
     plt.show()
 

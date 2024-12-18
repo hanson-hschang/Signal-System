@@ -82,7 +82,7 @@ class SequenceTrajectoryFigure:
         self,
         ax: Axes,
         signal_trajectory: NDArray[np.float64],
-        label: Optional[str] = None,
+        ylabel: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         ax.plot(
@@ -90,8 +90,8 @@ class SequenceTrajectoryFigure:
             signal_trajectory,
             **kwargs,
         )
-        if label is not None:
-            ax.set_ylabel(label)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
         ax.grid(True)
 
     def _compute_system_statistics_trajectory(

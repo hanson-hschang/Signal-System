@@ -54,14 +54,14 @@ class Data:
         self.meta_info = MetaInfo(meta_info)
 
     @classmethod
-    def load_from_file(cls, data_filename: Union[str, Path]) -> "Data":
-        data_filepath = FilePathExistenceValidator(
-            data_filename, cls._file_extension
+    def load(cls, filename: Union[str, Path]) -> "Data":
+        filepath = FilePathExistenceValidator(
+            filename, cls._file_extension
         ).get_filepath()
 
         signal_trajectory: Dict[str, ArrayLike] = dict()
         meta_info = dict()
-        with h5py.File(data_filepath, "r") as f:
+        with h5py.File(filepath, "r") as f:
 
             for key, value in f.items():
                 signal_trajectory[key] = np.array(value)

@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Callable,
+    DefaultDict,
     Dict,
     List,
     Optional,
@@ -10,10 +11,13 @@ from typing import (
     Union,
 )
 
-from dataclasses import dataclass
+from collections import defaultdict
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
 
+import h5py
+import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
@@ -43,7 +47,13 @@ BLP = TypeVar("BLP", bound="BaseLearningParameters")
 
 @dataclass
 class BaseLearningParameters:
-    pass
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert dataclass to a dictionary suitable for ** unpacking.
+        Uses dataclasses.asdict() for nested conversion.
+        """
+        return asdict(self)
 
 
 BLM = TypeVar("BLM", bound="BaseLearningModule")
@@ -85,15 +95,57 @@ class BaseLearningModule(nn.Module):
         return model
 
 
+@dataclass
+class LearningProcessInfo(BaseLearningParameters):
+    epoch: int
+    number_of_epochs: int
+
+
 class CheckpointInfo(dict):
+    _data_file_extension = ".hdf5"
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
 
     @classmethod
     def load(cls, filename: Union[str, Path]) -> Self:
         filepath = FilePathValidator(
-            filename, MODEL_FILE_EXTENSION
+            filename, cls._data_file_extension
         ).get_filepath()
-        checkpoint_info = torch.load(filepath, weights_only=True)
+        with h5py.File(filepath, "r") as f:
+            checkpoint_info = cls._load(f)
         return cls(**checkpoint_info)
+
+    @classmethod
+    def _load(cls, group: h5py.Group) -> Dict[str, Any]:
+        checkpoint_info: Dict[str, Any] = dict()
+        for key, value in group.items():
+            if isinstance(value, h5py.Group):
+                checkpoint_info[key] = cls._load(value)
+            elif isinstance(value, h5py.Dataset):
+                checkpoint_info[key] = np.array(value)
+            else:
+                checkpoint_info[key] = value
+        return checkpoint_info
+
+    def save(self, filename: Union[str, Path]) -> None:
+        filepath = FilePathValidator(
+            filename, self._data_file_extension
+        ).get_filepath()
+        with h5py.File(filepath, "w") as f:
+            for key, value in self.items():
+                self._save(f, key, value)
+
+    @classmethod
+    def _save(cls, group: h5py.Group, name: str, value: Any) -> None:
+        if isinstance(value, dict):
+            subgroup = group.create_group(name)
+            for key, val in value.items():
+                cls._save(subgroup, key, val)
+        elif isinstance(value, (list, tuple, np.ndarray)):
+            group.create_dataset(name, data=value)
+        else:
+            group.attrs[name] = value
 
 
 class BaseLearningProcess:
@@ -129,9 +181,14 @@ class BaseLearningProcess:
             save_model_epoch_skip
         ).get_value()
 
-        self._evaluation_loss = 0.0
+        self._iteration_idx = 0
         self._training_loss = 0.0
-        self._training_loss_history: List[float] = []
+        self._evaluation_loss_history: DefaultDict[str, List[float]] = (
+            defaultdict(list)
+        )
+        self._training_loss_history: DefaultDict[str, List[float]] = (
+            defaultdict(list)
+        )
 
         self._save_intermediate_models = self._save_model_step_skip > 0
         if self._save_intermediate_models:
@@ -153,18 +210,22 @@ class BaseLearningProcess:
     def train_one_epoch(self, data_loader: DataLoader) -> None:
         self._model.train()
         with logging_redirect_tqdm(loggers=[logger]):
-            for i, data_batch in tqdm(
-                enumerate(data_loader), total=len(data_loader)
-            ):
+            for data_batch in tqdm(data_loader, total=len(data_loader)):
                 loss = self._train_one_batch(data_batch)
-                self._training_loss_history.append(loss)
+                self._training_loss_history["iteration"].append(
+                    self._iteration_idx
+                )
+                self._training_loss_history["loss"].append(loss)
                 self._training_loss = (loss + self._training_loss) / 2
+                self._iteration_idx += 1
         logger.info(f"Training loss (running average): {self._training_loss}")
 
     def _evaluate_one_batch(self, data_batch: Any) -> float:
         raise NotImplementedError
 
-    def evaluate_model(self, data_loader: DataLoader) -> float:
+    def evaluate_model(
+        self, data_loader: DataLoader, testing: bool = False
+    ) -> float:
         self._model.eval()
         _loss = 0.0
         with torch.no_grad():
@@ -172,6 +233,12 @@ class BaseLearningProcess:
                 loss = self._evaluate_one_batch(data_batch)
                 _loss += loss
         _loss /= i + 1
+        if not testing:
+            self._evaluation_loss_history["iteration"].append(
+                self._iteration_idx
+            )
+            self._evaluation_loss_history["loss"].append(_loss)
+        logger.info(f"Evaluation loss: {_loss}")
         return _loss
 
     def train(
@@ -186,8 +253,7 @@ class BaseLearningProcess:
         for epoch_idx in range(1, self._number_of_epochs + 1):
             logger.info(f"Epoch: {epoch_idx} / {self._number_of_epochs}")
             self.train_one_epoch(training_loader)
-            self._evaluation_loss = self.evaluate_model(evaluation_loader)
-            logger.info(f"Evaluation loss: {self._evaluation_loss}")
+            self.evaluate_model(evaluation_loader)
             checkpoint_idx = self.save_intermediate_model(
                 epoch_idx, checkpoint_idx
             )
@@ -224,17 +290,30 @@ class BaseLearningProcess:
             model_filepath = Path(
                 self._intermediate_model_filename.format(checkpoint_idx)
             )
+        checkpoint_filepath = model_filepath.with_suffix(".hdf5")
 
-        checkpoint_info = self.create_checkpoint_info(epoch_idx)
-        self._model.save(model_filepath, **checkpoint_info)
+        learning_process_info = self.create_learning_process_info(epoch_idx)
+        self._model.save(
+            filename=model_filepath,
+            **learning_process_info.to_dict(),
+        )
         logger.debug(f"model saved to {model_filepath}")
+        checkpoint_info = self.create_checkpoint_info()
+        checkpoint_info.save(checkpoint_filepath)
+        logger.debug(f"checkpoint info saved to {checkpoint_filepath}")
 
-    def create_checkpoint_info(self, epoch_idx: int) -> CheckpointInfo:
-        checkpoint_info = CheckpointInfo(
+    def create_learning_process_info(
+        self, epoch_idx: int
+    ) -> LearningProcessInfo:
+        learning_process_info = LearningProcessInfo(
             epoch=epoch_idx,
             number_of_epochs=self._number_of_epochs,
-            evaluation_loss=self._evaluation_loss,
-            training_loss=self._training_loss,
+        )
+        return learning_process_info
+
+    def create_checkpoint_info(self) -> CheckpointInfo:
+        checkpoint_info = CheckpointInfo(
+            evaluation_loss_history=self._evaluation_loss_history,
             training_loss_history=self._training_loss_history,
         )
         return checkpoint_info
