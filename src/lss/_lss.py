@@ -182,6 +182,7 @@ class BaseLearningProcess:
         ).get_value()
 
         self._iteration_idx = 0
+        self._epoch_history: DefaultDict[str, List[int]] = defaultdict(list)
         self._training_loss = 0.0
         self._evaluation_loss_history: DefaultDict[str, List[float]] = (
             defaultdict(list)
@@ -274,7 +275,7 @@ class BaseLearningProcess:
         if self._save_intermediate_models:
             if epoch_idx == 0:
                 logger.info(
-                    f"Intermediate models are saved every {self._save_model_step_skip} epochs"
+                    f"Intermediate models are saved every {self._save_model_step_skip} epoch(s)"
                 )
             if epoch_idx % self._save_model_step_skip == 0:
                 self.save_model(epoch_idx, checkpoint_idx)
@@ -305,6 +306,8 @@ class BaseLearningProcess:
     def create_learning_process_info(
         self, epoch_idx: int
     ) -> LearningProcessInfo:
+        self._epoch_history["epoch"].append(epoch_idx)
+        self._epoch_history["iteration"].append(self._iteration_idx)
         learning_process_info = LearningProcessInfo(
             epoch=epoch_idx,
             number_of_epochs=self._number_of_epochs,
@@ -313,6 +316,7 @@ class BaseLearningProcess:
 
     def create_checkpoint_info(self) -> CheckpointInfo:
         checkpoint_info = CheckpointInfo(
+            epoch_history=self._epoch_history,
             evaluation_loss_history=self._evaluation_loss_history,
             training_loss_history=self._training_loss_history,
         )

@@ -30,8 +30,14 @@ class LearningHiddenMarkovModelFilterBlock(nn.Module):
         self._feature_id = feature_id
         self._params = params
         self._weight = nn.Parameter(
-            torch.randn(self._params.state_dim, dtype=torch.float64)
+            torch.randn(
+                (self._params.state_dim, self._params.state_dim),
+                dtype=torch.float64,
+            )
         )
+        # self._weight = nn.Parameter(
+        #     torch.randn(self._params.state_dim, dtype=torch.float64)
+        # )
         self._cosine_transform_matrix = nn.Parameter(
             self._compute_cosine_transform_matrix(self._params.state_dim),
             requires_grad=False,
@@ -55,17 +61,41 @@ class LearningHiddenMarkovModelFilterBlock(nn.Module):
             weight = weight * torch.sqrt(torch.tensor(2.0 / dim))
         return torch.tensor(weight.detach().numpy(), dtype=torch.float64)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = torch.matmul(x, self._cosine_transform_matrix)
-        probability = torch.nn.functional.softmax(self._weight, dim=0)
-        transformed_probability = torch.matmul(
-            self._cosine_transform_matrix, probability
-        )
-        x = torch.matmul(
-            (transformed_probability.unsqueeze(0) * x),
-            self._cosine_transform_matrix,
-        )
-        return x
+    def forward(self, estimated_state: torch.Tensor) -> torch.Tensor:
+
+        transition_matrix = nn.functional.softmax(self._weight, dim=1)
+        estimated_next_state = torch.matmul(estimated_state, transition_matrix)
+
+        # transformed_estimated_state = torch.matmul(
+        #     estimated_state,
+        #     self._cosine_transform_matrix
+        # ) # (batch_size, state_dim)
+        # probability = nn.functional.softmax(self._weight, dim=0) # (state_dim,)
+        # transformed_probability = torch.matmul(
+        #     self._cosine_transform_matrix, probability
+        # ) # (state_dim,)
+        # estimated_next_state = torch.matmul(
+        #     (transformed_probability.unsqueeze(0) * transformed_estimated_state),
+        #     self._cosine_transform_matrix,
+        # ) # (batch_size, state_dim)
+        # estimated_next_state = nn.functional.normalize(
+        #     estimated_next_state, p=1, dim=1
+        # )
+
+        # The above code is doing the circular convolution, which is
+        # not the same as the convolution in the pytorch conv1d function below
+        # (It's not because the conv1d is not convolution, which is actually cross-correlation,
+        # but because the circular convolution is not the same as the convolution.)
+
+        # # estimated_state (batch_size, state_dim)
+        # probability = nn.functional.softmax(self._weight, dim=0) # (state_dim,)
+        # estimated_next_state = nn.functional.conv1d(
+        #     estimated_state.unsqueeze(1), # (batch_size, input_size=1, state_dim)
+        #     probability.unsqueeze(0).unsqueeze(0), # (output_size=1, input_size=1, state_dim)
+        #     padding="same",
+        # ).squeeze(1) # (batch_size, state_dim)
+
+        return estimated_next_state
 
 
 class LearningHiddenMarkovModelFilterLayer(nn.Module):

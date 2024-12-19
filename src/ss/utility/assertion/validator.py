@@ -200,7 +200,7 @@ class FolderPathExistenceValidator(Validator):
         # If the user responds with 'y' or 'yes', create the folder and return True
         if response in ["y", "yes"]:
             Path(self._foldername).mkdir(parents=True, exist_ok=True)
-            print(f"Folder '{self._foldername}' created successfully.")
+            print(f"folder: '{self._foldername}' is successfully created.")
             return True
 
         # If the user does not want to create the folder, show an error message and return False
@@ -292,7 +292,7 @@ class FilePathValidator(Validator):
         # If the user responds with 'y' or 'yes', create the folder and return True
         if response in ["y", "yes"]:
             folder_name.mkdir(parents=True, exist_ok=True)
-            print(f"Folder '{folder_name}' created successfully.")
+            print(f"folder: '{folder_name}' is successfully created.")
             return True
 
         # If the user does not want to create the folder, show an error message and return False

@@ -150,7 +150,7 @@ def train(
 
     # Prepare model
     params = LearningHiddenMarkovModelFilterParameters(
-        state_dim=5,  # similar to embedding dimension in the transformer
+        state_dim=3,  # similar to embedding dimension in the transformer
         observation_dim=observation_dim,  # similar to number of tokens in the transformer
         feature_dim=1,  # similar to number of heads in the transformer
         layer_dim=1,  # similar to number of layers in the transformer
@@ -183,6 +183,15 @@ def visualization(
     model_filename: Path,
 ) -> None:
     model_filename = result_directory / model_filename
+    filter = LearningHiddenMarkovModelFilter.load(model_filename)
+    logger.info(filter.emission_matrix)
+    logger.info(
+        torch.nn.functional.softmax(
+            filter._transition_layer.layers[0].blocks[0]._weight,
+            dim=1,
+        )
+    )
+
     checkpoint_info = CheckpointInfo.load(model_filename.with_suffix(".hdf5"))
     IterationFigure(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
@@ -198,12 +207,20 @@ def inference(
 
     model_filename = result_directory / model_filename
     filter = LearningHiddenMarkovModelFilter.load(model_filename)
+    logger.info(filter.emission_matrix)
 
-    x = torch.tensor([1.0, 2.0])
+    observation_trajectory = torch.tensor(
+        [
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0],
+            [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
+        ]
+    )
+    filter.update(observation_trajectory)
     for _ in range(5):
-        filter.update(observation_trajectory=x)
         filter.estimate()
-        print(filter.estimated_next_observation)
+        estimated_next_observation = filter.estimated_next_observation
+        logger.info(estimated_next_observation)
+        filter.update(estimated_next_observation)
 
 
 @click.command()
@@ -248,6 +265,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
+    # FIXME: the --verbose and --debug options are not working
 
     path_manager = PathManager(__file__)
     parent_directory = path_manager.parent_directory

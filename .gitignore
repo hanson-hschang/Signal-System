@@ -1,3 +1,6 @@
+# visualization results
+*.png
+
 # pytorch model files
 *.pt
 *.pth
