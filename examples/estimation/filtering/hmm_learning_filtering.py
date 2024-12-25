@@ -45,15 +45,21 @@ class ObservationDataset(Dataset):
         with torch.no_grad():
             for i in range(number_of_systems):
                 for t in range(0, time_horizon - max_length, stride):
-                    input_trajectory = observation[i, ..., t : t + max_length]
+                    input_trajectory = observation[
+                        i, ..., t : t + max_length
+                    ]  # (observation_dim, max_length)
                     output_trajectory = observation[
                         i, ..., t + 1 : t + max_length + 1
-                    ]
+                    ]  # (observation_dim, max_length)
                     self._input_trajectory.append(
-                        input_trajectory.detach().clone()
+                        torch.moveaxis(input_trajectory, 1, 0)
+                        .detach()
+                        .clone()  # (max_length, observation_dim)
                     )
                     self._output_trajectory.append(
-                        output_trajectory.detach().clone()
+                        torch.moveaxis(output_trajectory, 1, 0)
+                        .detach()
+                        .clone()  # (max_length, observation_dim)
                     )
 
         self._length = len(self._input_trajectory)
@@ -109,8 +115,8 @@ class LearningHMMFilterProcess(BaseLearningProcess):
             observation_trajectory=observation_trajectory
         )
         loss = self._loss_function(
-            estimated_next_observation_trajectory,
-            next_observation_trajectory,
+            torch.moveaxis(estimated_next_observation_trajectory, 1, 2),
+            torch.moveaxis(next_observation_trajectory, 1, 2),
         )
         loss.backward()
         self._optimizer.step()
@@ -124,8 +130,8 @@ class LearningHMMFilterProcess(BaseLearningProcess):
             observation_trajectory=observation_trajectory
         )
         loss = self._loss_function(
-            estimated_next_observation_trajectory,
-            next_observation_trajectory,
+            torch.moveaxis(estimated_next_observation_trajectory, 1, 2),
+            torch.moveaxis(next_observation_trajectory, 1, 2),
         )
         return loss.item()
 
@@ -208,11 +214,32 @@ def inference(
     model_filename = result_directory / model_filename
     filter = LearningHiddenMarkovModelFilter.load(model_filename)
     logger.info(filter.emission_matrix)
+    transition_probability_matrix = torch.nn.functional.softmax(
+        filter._transition_layer.layers[0].blocks[0]._weight,
+        dim=1,
+    )
+    logger.info(transition_probability_matrix)
 
     observation_trajectory = torch.tensor(
         [
-            [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0],
-            [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [0, 1],
+            [0, 1],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [0, 1],
+            [1, 0],
+            [0, 1],
+            [1, 0],
+            [0, 1],
+            [1, 0],
+            [0, 1],
+            [0, 1],
+            [1, 0],
+            [0, 1],
         ]
     )
     filter.update(observation_trajectory)

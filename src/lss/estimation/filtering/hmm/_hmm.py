@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Any, Tuple
 
 from dataclasses import dataclass
 
@@ -35,13 +35,35 @@ class LearningHiddenMarkovModelFilterBlock(nn.Module):
                 dtype=torch.float64,
             )
         )
-        # self._weight = nn.Parameter(
-        #     torch.randn(self._params.state_dim, dtype=torch.float64)
-        # )
-        self._cosine_transform_matrix = nn.Parameter(
-            self._compute_cosine_transform_matrix(self._params.state_dim),
-            requires_grad=False,
+        self._initial_state = nn.Parameter(
+            torch.randn(self._params.state_dim, dtype=torch.float64)
         )
+
+        self._is_initialized = False
+        self._estimated_next_state = (
+            torch.ones(self._params.state_dim, dtype=torch.float64)
+            / self._params.state_dim
+        )
+
+        # self._cosine_transform_matrix = nn.Parameter(
+        #     self._compute_cosine_transform_matrix(self._params.state_dim),
+        #     requires_grad=False,
+        # )
+
+    @property
+    def estimated_next_state(self) -> torch.Tensor:
+        if self.training:
+            self._is_initialized = False
+            _estimated_next_state = nn.functional.softmax(
+                self._initial_state, dim=0
+            )
+            return _estimated_next_state
+        if not self._is_initialized:
+            self._is_initialized = True
+            self._estimated_next_state = nn.functional.softmax(
+                self._initial_state, dim=0
+            )
+        return self._estimated_next_state
 
     @staticmethod
     def _compute_cosine_transform_matrix(dim: int) -> torch.Tensor:
@@ -61,41 +83,44 @@ class LearningHiddenMarkovModelFilterBlock(nn.Module):
             weight = weight * torch.sqrt(torch.tensor(2.0 / dim))
         return torch.tensor(weight.detach().numpy(), dtype=torch.float64)
 
-    def forward(self, estimated_state: torch.Tensor) -> torch.Tensor:
+    def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
+
+        batch_size, horizon_of_observation_trajectory, _ = (
+            emission_trajectory.shape
+        )
+        # (batch_size, horizon_of_observation_trajectory, state_dim)
+        estimated_next_state_trajectory = torch.zeros(
+            (
+                batch_size,
+                horizon_of_observation_trajectory,
+                self._params.state_dim,
+            ),
+            dtype=torch.float64,
+        )
 
         transition_matrix = nn.functional.softmax(self._weight, dim=1)
-        estimated_next_state = torch.matmul(estimated_state, transition_matrix)
+        estimated_next_state = self.estimated_next_state.repeat(
+            batch_size, 1
+        )  # (batch_size, state_dim)
 
-        # transformed_estimated_state = torch.matmul(
-        #     estimated_state,
-        #     self._cosine_transform_matrix
-        # ) # (batch_size, state_dim)
-        # probability = nn.functional.softmax(self._weight, dim=0) # (state_dim,)
-        # transformed_probability = torch.matmul(
-        #     self._cosine_transform_matrix, probability
-        # ) # (state_dim,)
-        # estimated_next_state = torch.matmul(
-        #     (transformed_probability.unsqueeze(0) * transformed_estimated_state),
-        #     self._cosine_transform_matrix,
-        # ) # (batch_size, state_dim)
-        # estimated_next_state = nn.functional.normalize(
-        #     estimated_next_state, p=1, dim=1
-        # )
+        for k in range(horizon_of_observation_trajectory):
+            estimated_state = nn.functional.normalize(
+                estimated_next_state * emission_trajectory[:, k, :],
+                p=1,
+                dim=1,
+            )  # (batch_size, state_dim)
 
-        # The above code is doing the circular convolution, which is
-        # not the same as the convolution in the pytorch conv1d function below
-        # (It's not because the conv1d is not convolution, which is actually cross-correlation,
-        # but because the circular convolution is not the same as the convolution.)
+            estimated_next_state = torch.matmul(
+                estimated_state,
+                transition_matrix,
+            )
 
-        # # estimated_state (batch_size, state_dim)
-        # probability = nn.functional.softmax(self._weight, dim=0) # (state_dim,)
-        # estimated_next_state = nn.functional.conv1d(
-        #     estimated_state.unsqueeze(1), # (batch_size, input_size=1, state_dim)
-        #     probability.unsqueeze(0).unsqueeze(0), # (output_size=1, input_size=1, state_dim)
-        #     padding="same",
-        # ).squeeze(1) # (batch_size, state_dim)
+            estimated_next_state_trajectory[:, k, :] = estimated_next_state
 
-        return estimated_next_state
+        if (not self.training) and (batch_size == 1):
+            self._estimated_next_state = estimated_next_state.unsqueeze(0)
+
+        return estimated_next_state_trajectory
 
 
 class LearningHiddenMarkovModelFilterLayer(nn.Module):
@@ -152,10 +177,7 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         self._state_dim = params.state_dim
         self._observation_dim = params.observation_dim
 
-        # Define learnable parameters including the initial state, emission layer, and transition layer
-        self._initial_state = nn.Parameter(
-            torch.randn(self._state_dim, dtype=torch.float64)
-        )
+        # Define learnable parameters including the emission layer and transition layer
         self._emission_layer = nn.Linear(
             self._observation_dim,
             self._state_dim,
@@ -166,12 +188,13 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
 
         # Initialize the estimated next state, and next observation
         with torch.no_grad():
-            self._estimated_next_state = nn.functional.softmax(
-                self._initial_state, dim=0
+            self._estimated_next_state = (
+                torch.ones(self._state_dim, dtype=torch.float64)
+                / self._state_dim
             )
             self._estimated_next_observation = torch.matmul(
-                nn.functional.softmax(self._emission_layer.weight, dim=1).T,
                 self._estimated_next_state,
+                self.emission_matrix,
             )
 
     estimated_next_state = TensorReadOnlyDescriptor("_state_dim")
@@ -179,11 +202,10 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
 
     @property
     def emission_matrix(self) -> torch.Tensor:
-        with torch.no_grad():
-            _emission_matrix = nn.functional.softmax(
-                self._emission_layer.weight, dim=1
-            )
-        return _emission_matrix.detach()
+        _emission_matrix = nn.functional.softmax(
+            self._emission_layer.weight, dim=1
+        )
+        return _emission_matrix
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
@@ -207,7 +229,6 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
     def _forward(
         self,
         observation_trajectory: torch.Tensor,
-        use_initial_state: bool = True,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         _forward method for the LearningHiddenMarkovModelFilter class
@@ -215,100 +236,58 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         Parameters
         ----------
         observation_trajectory : torch.Tensor
-            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
-        use_initial_state : bool
-            whether to use the member _initial_state or the _estimated_next_state
+            shape (batch_size, horizon_of_observation_trajectory, observation_dim)
 
         Returns
         -------
         estimated_next_observation_trajectory: torch.Tensor
-            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+            shape (batch_size, horizon_of_observation_trajectory, observation_dim)
         estimated_next_state: torch.Tensor
             shape (batch_size, state_dim)
         """
-        # Get the dimensions of the observation_trajectory
-        batch_size, _, horizon_of_observation_trajectory = (
-            observation_trajectory.shape
-        )
 
         # Get emission_matrix
-        emission_matrix = nn.functional.softmax(
-            self._emission_layer.weight,
-            dim=1,
-        )  # (state_dim, observation_dim)
+        emission_matrix = self.emission_matrix  # (state_dim, observation_dim)
 
         # Get indices of 1s in one-hot encoding
         observation_value_trajectory = torch.argmax(
-            observation_trajectory, dim=1
+            observation_trajectory,  # (batch_size, horizon_of_observation_trajectory, observation_dim)
+            dim=2,
         )  # (batch_size, horizon_of_observation_trajectory)
 
         # Get emission probabilities for each observation in the trajectory
-        emission_trajectory = torch.transpose(
-            emission_matrix[:, observation_value_trajectory], 0, 1
-        )  # (batch_size, state_dim, horizon_of_observation_trajectory)
+        emission_trajectory = torch.moveaxis(
+            emission_matrix[:, observation_value_trajectory], 0, 2
+        )  # (batch_size, horizon_of_observation_trajectory, state_dim)
 
-        # Initialize the estimated_next_state_trajectory
-        # (This is the output of this forward method)
-        estimated_next_observation_trajectory = torch.zeros(
-            (
-                batch_size,
-                self._observation_dim,
-                horizon_of_observation_trajectory,
-            ),
-            dtype=torch.float64,
-        )
+        estimated_next_state_trajectory = self._transition_layer(
+            emission_trajectory
+        )  # (batch_size, horizon_of_observation_trajectory, state_dim)
 
-        # Initialize the previous_estimated_next_state (with the self._initial_state)
-        # (This is used for the iteration over the horizon_of_observation_trajectory)
-        estimated_next_state = (
-            nn.functional.softmax(self._initial_state, dim=0)
-            if use_initial_state
-            else self._estimated_next_state
-        )
-        previous_estimated_next_state = estimated_next_state.repeat(
-            batch_size, 1
-        )  # (batch_size, state_dim)
+        estimated_next_observation_trajectory = torch.matmul(
+            estimated_next_state_trajectory,  # (batch_size, horizon_of_observation_trajectory, state_dim)
+            emission_matrix,  # (state_dim, observation_dim)
+        )  # (batch_size, horizon_of_observation_trajectory, observation_dim)
 
-        # Compute the estimated_next_observation_trajectory
-        for k in range(horizon_of_observation_trajectory):
-
-            # Compute the conditional probability of the estimated_state given the observation
-            estimated_state = nn.functional.normalize(
-                previous_estimated_next_state * emission_trajectory[:, :, k],
-                p=1,
-                dim=1,
-            )  # (batch_size, state_dim)
-
-            # Apply the transition matrix
-            estimated_next_state = self._transition_layer(
-                estimated_state
-            )  # (batch_size, state_dim)
-
-            # Compute and record the estimated next observation
-            estimated_next_observation_trajectory[:, :, k] = torch.matmul(
-                estimated_next_state, emission_matrix
-            )  # (batch_size, observation_dim)
-
-            # Update the previous_estimated_next_state with the value of
-            # the estimated_next_state for the next iteration
-            previous_estimated_next_state = estimated_next_state
+        estimated_next_state = estimated_next_state_trajectory[
+            :, -1, :
+        ]  # (batch_size, state_dim)
 
         return estimated_next_observation_trajectory, estimated_next_state
 
     @torch.no_grad()
     def update(self, observation_trajectory: torch.Tensor) -> None:
         if observation_trajectory.ndim == 1:
-            observation_trajectory = observation_trajectory.unsqueeze(1)
+            observation_trajectory = observation_trajectory.unsqueeze(0)
         assert (observation_trajectory.ndim == 2) and (
-            observation_trajectory.shape[0] == self._observation_dim
+            observation_trajectory.shape[1] == self._observation_dim
         ), (
-            f"observation_trajectory must be in the shape of (observation_dim, horizon_of_observation_trajectory). "
+            f"observation_trajectory must be in the shape of (horizon_of_observation_trajectory, observation_dim). "
             f"observation_trajectory given has the shape of {observation_trajectory.shape}."
         )
 
         _, estimated_next_state = self._forward(
             observation_trajectory.unsqueeze(0),
-            use_initial_state=False,
         )
         self._estimated_next_state = estimated_next_state.squeeze(0)
 
