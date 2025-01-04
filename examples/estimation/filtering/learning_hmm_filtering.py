@@ -1,6 +1,5 @@
 from typing import Any, List, Sequence, Tuple, assert_never
 
-import os
 from pathlib import Path
 
 import click
@@ -111,23 +110,8 @@ def data_split(
 
 
 class LearningHMMFilterProcess(BaseLearningProcess):
-    def _train_one_batch(self, data_batch: Any) -> float:
-        observation_trajectory, next_observation_trajectory = (
-            ObservationDataset.from_batch(data_batch)
-        )
-        self._optimizer.zero_grad()
-        estimated_next_observation_trajectory = self._model(
-            observation_trajectory=observation_trajectory
-        )
-        loss = self._loss_function(
-            torch.moveaxis(estimated_next_observation_trajectory, 1, 2),
-            torch.moveaxis(next_observation_trajectory, 1, 2),
-        )
-        loss.backward()
-        self._optimizer.step()
-        return loss.item()
 
-    def _evaluate_one_batch(self, data_batch: Any) -> float:
+    def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
         observation_trajectory, next_observation_trajectory = (
             ObservationDataset.from_batch(data_batch)
         )
@@ -138,7 +122,7 @@ class LearningHMMFilterProcess(BaseLearningProcess):
             torch.moveaxis(estimated_next_observation_trajectory, 1, 2),
             torch.moveaxis(next_observation_trajectory, 1, 2),
         )
-        return loss.item()
+        return loss
 
 
 def train(
@@ -186,7 +170,7 @@ def train(
     learning_process.train(training_loader, evaluation_loader)
 
     # Test model
-    learning_process.test(testing_loader)
+    learning_process.test_model(testing_loader)
 
 
 def visualization(
@@ -297,7 +281,6 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    # FIXME: the --verbose and --debug options are not working
 
     path_manager = PathManager(__file__)
     parent_directory = path_manager.parent_directory

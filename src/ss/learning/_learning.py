@@ -40,11 +40,6 @@ class Mode(StrEnum):
     INFERENCE = "INFERENCE"
 
 
-MODEL_FILE_EXTENSION = (".pt", ".pth")
-
-BLP = TypeVar("BLP", bound="BaseLearningParameters")
-
-
 @dataclass
 class BaseLearningParameters:
 
@@ -61,6 +56,8 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 class BaseLearningModule(nn.Module):
 
+    MODEL_FILE_EXTENSION = (".pt", ".pth")
+
     def __init__(self, params: BaseLearningParameters) -> None:
         super().__init__()
         assert issubclass(
@@ -70,7 +67,7 @@ class BaseLearningModule(nn.Module):
 
     def save(self, filename: Union[str, Path], **checkpoint_info: Any) -> None:
         filepath = FilePathValidator(
-            filename, MODEL_FILE_EXTENSION
+            filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
         assert (
             "params" not in checkpoint_info
@@ -85,7 +82,7 @@ class BaseLearningModule(nn.Module):
     @classmethod
     def load(cls: Type[BLM], filename: Union[str, Path]) -> BLM:
         filepath = FilePathValidator(
-            filename, MODEL_FILE_EXTENSION
+            filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
         checkpoint_info: Dict[str, Any] = torch.load(
             filepath, weights_only=True
@@ -175,7 +172,7 @@ class BaseLearningProcess:
         ).get_value()
         self._model_filepath = FilePathValidator(
             model_filename,
-            MODEL_FILE_EXTENSION,
+            BaseLearningModule.MODEL_FILE_EXTENSION,
         ).get_filepath()
         self._save_model_step_skip = self._SaveModelEpochSkipValidator(
             save_model_epoch_skip
@@ -205,63 +202,76 @@ class BaseLearningProcess:
                 + self._model_filepath.suffix
             )
 
-    def _train_one_batch(self, data_batch: Any) -> float:
+    def update_evaluation_loss(self, loss: float) -> None:
+        self._evaluation_loss_history["iteration"].append(self._iteration_idx)
+        self._evaluation_loss_history["loss"].append(loss)
+        logger.info(f"Evaluation loss: {loss}")
+
+    def update_training_loss(self, loss: float) -> None:
+        self._training_loss_history["iteration"].append(self._iteration_idx)
+        self._training_loss_history["loss"].append(loss)
+
+    def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
         raise NotImplementedError
 
-    def train_one_epoch(self, data_loader: DataLoader) -> None:
+    def evaluate_model(self, data_loader: DataLoader) -> float:
+        self._model.eval()
+        loss = 0.0
+        with torch.no_grad():
+            for i, data_batch in enumerate(data_loader):
+                loss += self._evaluate_one_batch(data_batch).item()
+        loss /= i + 1
+        return loss
+
+    def _train_one_batch(self, data_batch: Any) -> torch.Tensor:
+        self._optimizer.zero_grad()
+        _loss = self._evaluate_one_batch(data_batch)
+        _loss.backward()
+        self._optimizer.step()
+        return _loss
+
+    def train_model(self, data_loader: DataLoader) -> float:
         self._model.train()
         with logging_redirect_tqdm(loggers=[logger]):
             for data_batch in tqdm(data_loader, total=len(data_loader)):
-                loss = self._train_one_batch(data_batch)
-                self._training_loss_history["iteration"].append(
-                    self._iteration_idx
-                )
-                self._training_loss_history["loss"].append(loss)
+                loss = self._train_one_batch(data_batch).item()
+                self.update_training_loss(loss)
                 self._training_loss = (loss + self._training_loss) / 2
                 self._iteration_idx += 1
-        logger.info(f"Training loss (running average): {self._training_loss}")
-
-    def _evaluate_one_batch(self, data_batch: Any) -> float:
-        raise NotImplementedError
-
-    def evaluate_model(
-        self, data_loader: DataLoader, testing: bool = False
-    ) -> float:
-        self._model.eval()
-        _loss = 0.0
-        with torch.no_grad():
-            for i, data_batch in enumerate(data_loader):
-                loss = self._evaluate_one_batch(data_batch)
-                _loss += loss
-        _loss /= i + 1
-        if not testing:
-            self._evaluation_loss_history["iteration"].append(
-                self._iteration_idx
-            )
-            self._evaluation_loss_history["loss"].append(_loss)
-        logger.info(f"Evaluation loss: {_loss}")
-        return _loss
+        return self._training_loss
 
     def train(
         self,
         training_loader: DataLoader,
         evaluation_loader: DataLoader,
     ) -> None:
+
+        logger.info("Model evaluation before training...")
+        loss = self.evaluate_model(evaluation_loader)
+        self.update_evaluation_loss(loss)
+
         epoch_idx, checkpoint_idx = 0, 0
-        self.evaluate_model(evaluation_loader)
-        logger.info("Training...")
         checkpoint_idx = self.save_intermediate_model(epoch_idx, checkpoint_idx)
+
+        logger.info("Training...")
         for epoch_idx in range(1, self._number_of_epochs + 1):
             logger.info(f"Epoch: {epoch_idx} / {self._number_of_epochs}")
-            self.train_one_epoch(training_loader)
-            self.evaluate_model(evaluation_loader)
+
+            loss = self.train_model(training_loader)
+            logger.info(f"Training loss (running average): {loss}")
+
+            logger.info("Evaluating intermediate model...")
+            loss = self.evaluate_model(evaluation_loader)
+            self.update_evaluation_loss(loss)
+
             checkpoint_idx = self.save_intermediate_model(
                 epoch_idx, checkpoint_idx
             )
+
         logger.info("Training is completed")
         self.save_model(self._number_of_epochs)
 
-    def test(
+    def test_model(
         self,
         testing_loader: DataLoader,
     ) -> None:
