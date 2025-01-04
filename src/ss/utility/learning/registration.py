@@ -5,10 +5,6 @@ import pkgutil
 
 import torch
 
-from ss.utility.logging import Logging
-
-logger = Logging.get_logger(__name__)
-
 
 def import_submodules(package_name: str) -> None:
     """
