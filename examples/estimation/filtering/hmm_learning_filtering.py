@@ -276,12 +276,12 @@ def inference(
 )
 @click.option(
     "--verbose",
-    is_flag=False,
+    is_flag=True,
     help="Set the verbose mode.",
 )
 @click.option(
     "--debug",
-    is_flag=False,
+    is_flag=True,
     help="Set the debug mode.",
 )
 def main(

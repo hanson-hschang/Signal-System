@@ -14,45 +14,40 @@ from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilterFigure,
 )
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.utility.logging import Logging
+from ss.utility.path import PathManager
+
+logger = Logging.get_logger(__name__)
 
 
-@click.command()
-@click.option(
-    "--simulation-time-steps",
-    type=click.IntRange(min=1),
-    default=100,
-    help="Set the simulation time steps (positive integers).",
-)
-@click.option(
-    "--step-skip",
-    type=click.IntRange(min=1),
-    default=1,
-    help="Set the step skip (positive integers).",
-)
-@click.option(
-    "--number-of-systems",
-    type=click.IntRange(min=1),
-    default=1,
-    help="Set the number of systems (positive integers).",
-)
-def main(
+def hmm_filtering(
     simulation_time_steps: int,
     step_skip: int,
     number_of_systems: int,
+    result_directory: Path,
 ) -> None:
-    epsilon = 0.01
+
+    def normalize_rows(
+        matrix: NDArray,
+        temperature: float = 10.0,
+    ) -> NDArray:
+        matrix = np.exp(temperature * matrix)
+        row_sums = matrix.sum(axis=1, keepdims=True)
+        normalized_matrix: NDArray = matrix / row_sums
+        return normalized_matrix
+
+    transition_probability_matrix = normalize_rows(np.random.rand(3, 3))
+    emission_probability_matrix = [
+        [1, 0],
+        [0, 1],
+        [0, 1],
+    ]
+    logger.info(f"\n{transition_probability_matrix=}")
+    logger.info(f"\n{emission_probability_matrix=}")
 
     system = HiddenMarkovModel(
-        transition_probability_matrix=[
-            [0, 0.5, 0.5],
-            [epsilon, 1 - epsilon, 0],
-            [1 - epsilon, 0, epsilon],
-        ],
-        emission_probability_matrix=[
-            [1, 0],
-            [0, 1],
-            [0, 1],
-        ],
+        transition_probability_matrix=transition_probability_matrix,
+        emission_probability_matrix=emission_probability_matrix,
         number_of_systems=number_of_systems,
     )
     system_callback = MarkovChainCallback(step_skip=step_skip, system=system)
@@ -67,12 +62,12 @@ def main(
             np.float64
         ] = system.emission_probability_matrix,
     ) -> NDArray[np.float64]:
-        estimated_observation = (
+        estimated_next_observation = (
             estimated_state
             @ transition_probability_matrix
             @ emission_probability_matrix
         )
-        return estimated_observation
+        return estimated_next_observation
 
     estimator = HiddenMarkovModelFilter(
         system=system, estimation_model=observation_model
@@ -110,10 +105,8 @@ def main(
     estimator_callback.add_meta_info(meta_info)
 
     # Save the data
-    parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
-    data_folder_directory = parent_directory / Path(__file__).stem
-    system_callback.save(data_folder_directory / "system.hdf5")
-    estimator_callback.save(data_folder_directory / "filter.hdf5")
+    system_callback.save(result_directory / "system.hdf5")
+    estimator_callback.save(result_directory / "filter.hdf5")
 
     # Plot the data
     observation_trajectory = (
@@ -138,6 +131,67 @@ def main(
         estimated_function_value_trajectory=estimated_function_value_trajectory,
     ).plot()
     plt.show()
+
+
+@click.command()
+@click.option(
+    "--simulation-time-steps",
+    type=click.IntRange(min=1),
+    default=100,
+    help="Set the simulation time steps (positive integers).",
+)
+@click.option(
+    "--step-skip",
+    type=click.IntRange(min=1),
+    default=1,
+    help="Set the step skip (positive integers).",
+)
+@click.option(
+    "--number-of-systems",
+    type=click.IntRange(min=1),
+    default=1,
+    help="Set the number of systems (positive integers).",
+)
+@click.option(
+    "--random-seed",
+    type=click.IntRange(min=0),
+    default=2024,
+    help="Set the random seed (non-negative integers).",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
+def main(
+    simulation_time_steps: int,
+    step_skip: int,
+    number_of_systems: int,
+    random_seed: int,
+    verbose: bool,
+    debug: bool,
+) -> None:
+
+    path_manager = PathManager(__file__)
+    Logging.basic_config(
+        filename=path_manager.logging_filepath,
+        log_level=Logging.Level.DEBUG if debug else Logging.Level.INFO,
+        verbose_level=Logging.Level.INFO if verbose else Logging.Level.WARNING,
+    )
+
+    np.random.seed(random_seed)
+
+    hmm_filtering(
+        simulation_time_steps=simulation_time_steps,
+        step_skip=step_skip,
+        number_of_systems=number_of_systems,
+        result_directory=path_manager.result_directory,
+    )
 
 
 if __name__ == "__main__":
