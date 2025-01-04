@@ -5,6 +5,10 @@ import pkgutil
 
 import torch
 
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
+
 
 def import_submodules(package_name: str) -> None:
     """
@@ -56,12 +60,13 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
         base_class: Type
             The base class to find subclasses of
         package_name: str
-            The package name to search in (e.g., "lss")
+            The package name to search in (e.g., "ss")
 
     Returns
     -------
         List of registered classes
     """
+
     # First import all submodules to ensure all classes are loaded
     import_submodules(package_name)
 

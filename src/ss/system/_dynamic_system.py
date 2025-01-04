@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 from ss.system._system import System
 from ss.utility.assertion import is_positive_number
 from ss.utility.assertion.validator import Validator
-from ss.utility.descriptor import TensorDescriptor
+from ss.utility.descriptor import NDArrayDescriptor
 
 
 class ContinuousTimeSystem(System):
@@ -73,8 +73,8 @@ class ContinuousTimeSystem(System):
             observation_noise_covariance,
         ).get_noise_covariance()
 
-    process_noise_covariance = TensorDescriptor("_state_dim", "_state_dim")
-    observation_noise_covariance = TensorDescriptor(
+    process_noise_covariance = NDArrayDescriptor("_state_dim", "_state_dim")
+    observation_noise_covariance = NDArrayDescriptor(
         "_observation_dim", "_observation_dim"
     )
 

@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from ss.utility.assertion import is_nonnegative_integer, is_positive_integer
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
-    MultiSystemTensorDescriptor,
+    MultiSystemNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -51,8 +51,8 @@ class System:
     observation_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
-    state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
+    state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
+    control = MultiSystemNDArrayDescriptor("_number_of_systems", "_control_dim")
 
     def duplicate(self, number_of_systems: int) -> "System":
         """

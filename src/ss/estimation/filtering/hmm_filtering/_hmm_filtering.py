@@ -11,7 +11,7 @@ from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel, one_hot_decoding
 from ss.utility.assertion.validator import Validator
-from ss.utility.descriptor import MultiSystemTensorReadOnlyDescriptor
+from ss.utility.descriptor import MultiSystemNDArrayReadOnlyDescriptor
 from ss.utility.figure import SequenceTrajectoryFigure
 
 
@@ -59,7 +59,7 @@ class HiddenMarkovModelFilter(Filter):
         )
         self._function_value_dim = self._estimated_function_value.shape[1]
 
-    estimated_function_value = MultiSystemTensorReadOnlyDescriptor(
+    estimated_function_value = MultiSystemNDArrayReadOnlyDescriptor(
         "_number_of_systems", "_function_value_dim"
     )
 

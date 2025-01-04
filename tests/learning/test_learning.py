@@ -5,7 +5,7 @@ import pytest
 import torch
 from torch import nn
 
-from lss import BaseLearningModule, BaseLearningParameters
+from ss.learning import BaseLearningModule, BaseLearningParameters
 
 
 @dataclass

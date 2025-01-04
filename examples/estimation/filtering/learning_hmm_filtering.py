@@ -9,10 +9,15 @@ from matplotlib import pyplot as plt
 from numpy.typing import ArrayLike
 from torch.utils.data import DataLoader, Dataset, random_split
 
-from lss import BaseLearningProcess, CheckpointInfo, IterationFigure, Mode
-from lss.estimation.filtering.hmm import (
+from ss.estimation.filtering.hmm_filtering import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
+)
+from ss.learning import (
+    BaseLearningProcess,
+    CheckpointInfo,
+    IterationFigure,
+    Mode,
 )
 from ss.utility.data import Data
 from ss.utility.logging import Logging

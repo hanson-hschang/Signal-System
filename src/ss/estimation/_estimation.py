@@ -5,8 +5,8 @@ from numpy.typing import ArrayLike, NDArray
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
-    MultiSystemTensorDescriptor,
-    MultiSystemTensorReadOnlyDescriptor,
+    MultiSystemNDArrayDescriptor,
+    MultiSystemNDArrayReadOnlyDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -67,11 +67,11 @@ class Estimator:
     observation_dim = ReadOnlyDescriptor[int]()
     number_of_observation_history = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
-    estimated_state = MultiSystemTensorDescriptor(
+    estimated_state = MultiSystemNDArrayDescriptor(
         "_number_of_systems",
         "_state_dim",
     )
-    observation_history = MultiSystemTensorReadOnlyDescriptor(
+    observation_history = MultiSystemNDArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_observation_dim",
         "_horizon_of_observation_history",

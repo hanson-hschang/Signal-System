@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from ss.utility.descriptor import TensorDescriptor
+from ss.utility.descriptor import NDArrayDescriptor
 
 
 class VectorClass:
@@ -9,7 +9,7 @@ class VectorClass:
         self._num_dim_1 = 3
         self._value = np.zeros(self._num_dim_1)
 
-    value = TensorDescriptor("_num_dim_1")
+    value = NDArrayDescriptor("_num_dim_1")
 
 
 class MatrixClass:
@@ -18,7 +18,7 @@ class MatrixClass:
         self._num_dim_2 = 3
         self._value = np.zeros((self._num_dim_1, self._num_dim_2))
 
-    value = TensorDescriptor("_num_dim_1", "_num_dim_2")
+    value = NDArrayDescriptor("_num_dim_1", "_num_dim_2")
 
 
 class TestTensorDescriptor:

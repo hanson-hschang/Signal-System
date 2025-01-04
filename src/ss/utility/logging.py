@@ -44,7 +44,7 @@ class Logging(metaclass=SingletonMeta):
         if (
             (len(names) > 1)
             and (names[-1][0] == "_")
-            and (names[-2] == names[-1][1:])
+            and (names[-2] in names[-1][1:])
         ):
             name = ".".join(names[:-1])
         if name in cls._logger:
