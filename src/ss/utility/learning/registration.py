@@ -20,6 +20,8 @@ def import_submodules(module_name: str) -> None:
         module_name: str
             The module name to import submodules of
     """
+    # FIXME: The following test module check should not be necessary
+    # but is required to avoid an error when running tests.
     # Check if module is a test module
     names = module_name.split(".")
     if "test" == names[-1][:4]:
@@ -89,6 +91,10 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
 
 
 def register_numpy() -> None:
+    # FIXME: This is a temporary fix to allow for safe loading of numpy scalars
+    # and dtypes. This should be removed since there is no numpy dependency in
+    # the .pt files currently.
+
     # Add numpy scalar to safe globals before loading
     from numpy import dtype
     from numpy.core.multiarray import scalar  # type: ignore
