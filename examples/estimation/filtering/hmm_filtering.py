@@ -99,7 +99,12 @@ def hmm_filtering(
     estimator_callback.record(simulation_time_steps, current_time)
 
     # Add meta info to callbacks
-    meta_info = dict(number_of_systems=number_of_systems)
+    meta_info = dict(
+        number_of_systems=number_of_systems,
+        simulation_time_steps=simulation_time_steps,
+        observation_dim=system.observation_dim,
+        state_dim=system.state_dim,
+    )
     system_callback.add_meta_info(meta_info)
     estimator_callback.add_meta_info(meta_info)
 

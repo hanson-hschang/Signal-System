@@ -1,28 +1,38 @@
-from typing import List, Set, Type
+from typing import Any, List, Set, Type
 
 import importlib
+import inspect
 import pkgutil
 
 import torch
 
+from ss.utility.logging import Logging
 
-def import_submodules(package_name: str) -> None:
+logger = Logging.get_logger(__name__)
+
+
+def import_submodules(module_name: str) -> None:
     """
-    Import all submodules of a package recursively
+    Import all submodules of a module recursively
 
     Arguments
     ---------
-        package_name: str
-            The package name to import submodules of
+        module_name: str
+            The module name to import submodules of
     """
-    package = importlib.import_module(package_name)
+    # Check if module is a test module
+    names = module_name.split(".")
+    if "test" == names[-1][:4]:
+        return
 
-    if hasattr(package, "__path__"):
-        for _, name, is_pkg in pkgutil.walk_packages(package.__path__):
-            full_name = f"{package_name}.{name}"
-            importlib.import_module(full_name)
-            if is_pkg:
-                import_submodules(full_name)
+    # Import the module
+    module = importlib.import_module(module_name)
+
+    # Check if module is a package
+    if hasattr(module, "__path__"):
+        # Iterate through all submodules
+        for _, name, _ in pkgutil.walk_packages(module.__path__):
+            import_submodules(module_name=f"{module_name}.{name}")
 
 
 def get_subclasses(cls: Type) -> Set[Type]:
@@ -63,7 +73,7 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
         List of registered classes
     """
 
-    # First import all submodules to ensure all classes are loaded
+    # Import all submodules to ensure all classes are loaded
     import_submodules(package_name)
 
     # Get all subclasses
@@ -76,3 +86,12 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
     torch.serialization.add_safe_globals(all_classes)
 
     return all_classes
+
+
+def register_numpy() -> None:
+    # Add numpy scalar to safe globals before loading
+    from numpy import dtype
+    from numpy.core.multiarray import scalar  # type: ignore
+    from numpy.dtypes import Float64DType, Int64DType
+
+    torch.serialization.add_safe_globals([scalar, dtype, Int64DType])

@@ -6,6 +6,7 @@ from typing import (
     List,
     Optional,
     Self,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -29,6 +30,7 @@ from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
+from ss.utility.learning.registration import register_numpy, register_subclasses
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -51,6 +53,12 @@ class BaseLearningParameters:
         return asdict(self)
 
 
+# @dataclass
+# class LearningProcessInfo(BaseLearningParameters):
+#     epoch: int = 0
+#     number_of_epochs: int = 0
+
+
 BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
@@ -65,37 +73,31 @@ class BaseLearningModule(nn.Module):
         ), f"{type(params) = } must be a subclass of {BaseLearningParameters}"
         self._params = params
 
-    def save(self, filename: Union[str, Path], **checkpoint_info: Any) -> None:
+    def save(
+        self,
+        filename: Union[str, Path],
+    ) -> None:
         filepath = FilePathValidator(
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
-        assert (
-            "params" not in checkpoint_info
-        ), "'params' is a reserved key for **checkpoint_info."
-        assert (
-            "model_state_dict" not in checkpoint_info
-        ), "'model_state_dict' is a reserved key for **checkpoint_info."
-        checkpoint_info["params"] = self._params
-        checkpoint_info["model_state_dict"] = self.state_dict()
-        torch.save(checkpoint_info, filepath)
+        model_info = dict(
+            params=self._params,
+            model_state_dict=self.state_dict(),
+        )
+        torch.save(model_info, filepath)
 
     @classmethod
     def load(cls: Type[BLM], filename: Union[str, Path]) -> BLM:
         filepath = FilePathValidator(
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
-        checkpoint_info: Dict[str, Any] = torch.load(
-            filepath, weights_only=True
-        )
-        model = cls(checkpoint_info.pop("params"))
-        model.load_state_dict(checkpoint_info.pop("model_state_dict"))
+
+        register_subclasses(BaseLearningParameters, "ss")
+        register_numpy()
+        model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
+        model = cls(model_info.pop("params"))
+        model.load_state_dict(model_info.pop("model_state_dict"))
         return model
-
-
-@dataclass
-class LearningProcessInfo(BaseLearningParameters):
-    epoch: int
-    number_of_epochs: int
 
 
 class CheckpointInfo(dict):
@@ -303,26 +305,25 @@ class BaseLearningProcess:
             )
         checkpoint_filepath = model_filepath.with_suffix(".hdf5")
 
-        learning_process_info = self.create_learning_process_info(epoch_idx)
         self._model.save(
             filename=model_filepath,
-            **learning_process_info.to_dict(),
         )
         logger.debug(f"model saved to {model_filepath}")
+        # learning_process_info = self.create_learning_process_info(epoch_idx)
         checkpoint_info = self.create_checkpoint_info()
         checkpoint_info.save(checkpoint_filepath)
         logger.debug(f"checkpoint info saved to {checkpoint_filepath}")
 
-    def create_learning_process_info(
-        self, epoch_idx: int
-    ) -> LearningProcessInfo:
-        self._epoch_history["epoch"].append(epoch_idx)
-        self._epoch_history["iteration"].append(self._iteration_idx)
-        learning_process_info = LearningProcessInfo(
-            epoch=epoch_idx,
-            number_of_epochs=self._number_of_epochs,
-        )
-        return learning_process_info
+    # def create_learning_process_info(
+    #     self, epoch_idx: int
+    # ) -> LearningProcessInfo:
+    #     self._epoch_history["epoch"].append(epoch_idx)
+    #     self._epoch_history["iteration"].append(self._iteration_idx)
+    #     learning_process_info = LearningProcessInfo(
+    #         epoch=epoch_idx,
+    #         number_of_epochs=self._number_of_epochs,
+    #     )
+    #     return learning_process_info
 
     def create_checkpoint_info(self) -> CheckpointInfo:
         checkpoint_info = CheckpointInfo(

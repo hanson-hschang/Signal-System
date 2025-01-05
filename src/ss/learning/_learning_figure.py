@@ -75,6 +75,7 @@ class IterationFigure(SequenceTrajectoryFigure):
                 label="validation",
                 color="C1",
                 s=100,
+                zorder=2,
             )
         self._loss_plot.legend()
         # self._loss_plot.set_xscale('log')

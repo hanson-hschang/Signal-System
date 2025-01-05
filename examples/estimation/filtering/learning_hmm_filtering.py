@@ -33,12 +33,12 @@ class ObservationDataset(Dataset):
         max_length: int = 256,
         stride: int = 64,
     ) -> None:
-        observation = torch.tensor(observation)
+        observation = torch.tensor(observation).to(dtype=torch.int64)
         if number_of_systems == 1:
             observation = observation.unsqueeze(0)
-        assert observation.ndim >= 3, (
-            "observation must be a tensor greater than 3 dimensions "
-            "with the shape of (number_of_systems, ..., time_horizon). "
+        assert observation.ndim == 2, (
+            "observation must be a tensor of 2 dimensions "
+            "with the shape of (number_of_systems, time_horizon). "
             f"observation given has the shape of {observation.shape}."
         )
 
@@ -50,20 +50,16 @@ class ObservationDataset(Dataset):
             for i in range(number_of_systems):
                 for t in range(0, time_horizon - max_length, stride):
                     input_trajectory = observation[
-                        i, ..., t : t + max_length
-                    ]  # (observation_dim, max_length)
+                        i, t : t + max_length
+                    ]  # (max_length,)
                     output_trajectory = observation[
-                        i, ..., t + 1 : t + max_length + 1
-                    ]  # (observation_dim, max_length)
+                        i, t + 1 : t + max_length + 1
+                    ]  # (max_length,)
                     self._input_trajectory.append(
-                        torch.moveaxis(input_trajectory, 1, 0)
-                        .detach()
-                        .clone()  # (max_length, observation_dim)
+                        input_trajectory.detach().clone()
                     )
                     self._output_trajectory.append(
-                        torch.moveaxis(output_trajectory, 1, 0)
-                        .detach()
-                        .clone()  # (max_length, observation_dim)
+                        output_trajectory.detach().clone()
                     )
 
         self._length = len(self._input_trajectory)
@@ -114,15 +110,17 @@ class LearningHMMFilterProcess(BaseLearningProcess):
     def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
         observation_trajectory, next_observation_trajectory = (
             ObservationDataset.from_batch(data_batch)
-        )
-        estimated_next_observation_trajectory = self._model(
+        )  # (batch_size, max_length), (batch_size, max_length)
+        estimated_next_observation_probability_trajectory = self._model(
             observation_trajectory=observation_trajectory
+        )  # (batch_size, max_length, observation_dim)
+        _loss = self._loss_function(
+            torch.moveaxis(
+                estimated_next_observation_probability_trajectory, 1, 2
+            ),  # (batch_size, observation_dim, max_length)
+            next_observation_trajectory,  # (batch_size, max_length)
         )
-        loss = self._loss_function(
-            torch.moveaxis(estimated_next_observation_trajectory, 1, 2),
-            torch.moveaxis(next_observation_trajectory, 1, 2),
-        )
-        return loss
+        return _loss
 
 
 def train(
@@ -132,11 +130,9 @@ def train(
 ) -> None:
     # Prepare data
     data = Data.load(data_filename)
-    observation = data["observation"]
+    observation = data["observation_value"]
     number_of_systems = data.meta_info["number_of_systems"]
-    observation_dim = (
-        observation.shape[0] if number_of_systems == 1 else observation.shape[1]
-    )
+    observation_dim = data.meta_info["observation_dim"]
     training_loader, evaluation_loader, testing_loader = data_split(
         observation=observation,
         split_ratio=[0.7, 0.2, 0.1],
@@ -163,7 +159,7 @@ def train(
         model=filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=5,
+        number_of_epochs=1,
         model_filename=result_directory / model_filename,
         save_model_epoch_skip=1,
     )
@@ -202,41 +198,28 @@ def inference(
 
     model_filename = result_directory / model_filename
     filter = LearningHiddenMarkovModelFilter.load(model_filename)
-    logger.info(filter.emission_matrix)
-    transition_probability_matrix = torch.nn.functional.softmax(
-        filter._transition_layer.layers[0].blocks[0]._weight,
-        dim=1,
-    )
-    logger.info(transition_probability_matrix)
+    with torch.no_grad():
+        logger.info(f"\n{filter.emission_matrix}")
+        transition_probability_matrix = torch.nn.functional.softmax(
+            filter._transition_layer.layers[0].blocks[0]._weight,
+            dim=1,
+        )
+        logger.info(f"\n{transition_probability_matrix}")
 
     observation_trajectory = torch.tensor(
-        [
-            [1, 0],
-            [0, 1],
-            [0, 1],
-            [0, 1],
-            [0, 1],
-            [1, 0],
-            [0, 1],
-            [0, 1],
-            [0, 1],
-            [1, 0],
-            [0, 1],
-            [1, 0],
-            [0, 1],
-            [1, 0],
-            [0, 1],
-            [0, 1],
-            [1, 0],
-            [0, 1],
-        ]
+        [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
     )
     filter.update(observation_trajectory)
     for _ in range(5):
         filter.estimate()
-        estimated_next_observation = filter.estimated_next_observation
-        logger.info(estimated_next_observation)
-        filter.update(estimated_next_observation)
+        estimated_next_observation_probability = (
+            filter.estimated_next_observation_probability
+        )
+        logger.info(estimated_next_observation_probability)
+        predicted_next_observation = torch.multinomial(
+            estimated_next_observation_probability, 1
+        )
+        filter.update(predicted_next_observation)
 
 
 @click.command()

@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Tuple
 
 from dataclasses import dataclass
 
@@ -188,17 +188,19 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
 
         # Initialize the estimated next state, and next observation
         with torch.no_grad():
-            self._estimated_next_state = (
+            self._estimated_next_state_probability = (
                 torch.ones(self._state_dim, dtype=torch.float64)
                 / self._state_dim
             )
-            self._estimated_next_observation = torch.matmul(
-                self._estimated_next_state,
+            self._estimated_next_observation_probability = torch.matmul(
+                self._estimated_next_state_probability,
                 self.emission_matrix,
             )
 
-    estimated_next_state = TensorReadOnlyDescriptor("_state_dim")
-    estimated_next_observation = TensorReadOnlyDescriptor("_observation_dim")
+    estimated_next_state_probability = TensorReadOnlyDescriptor("_state_dim")
+    estimated_next_observation_probability = TensorReadOnlyDescriptor(
+        "_observation_dim"
+    )
 
     @property
     def emission_matrix(self) -> torch.Tensor:
@@ -214,17 +216,17 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         Parameters
         ----------
         observation_trajectory : torch.Tensor
-            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+            shape (batch_size, horizon_of_observation_trajectory)
 
         Returns
         -------
-        estimated_next_observation_trajectory: torch.Tensor
-            shape (batch_size, observation_dim, horizon_of_observation_trajectory)
+        estimated_next_observation_probability_trajectory: torch.Tensor
+            shape (batch_size, horizon_of_observation_trajectory, observation_dim)
         """
-        estimated_next_observation_trajectory, _ = self._forward(
+        estimated_next_observation_probability_trajectory, _ = self._forward(
             observation_trajectory
         )
-        return estimated_next_observation_trajectory
+        return estimated_next_observation_probability_trajectory
 
     def _forward(
         self,
@@ -236,13 +238,13 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         Parameters
         ----------
         observation_trajectory : torch.Tensor
-            shape (batch_size, horizon_of_observation_trajectory, observation_dim)
+            shape (batch_size, horizon_of_observation_trajectory)
 
         Returns
         -------
-        estimated_next_observation_trajectory: torch.Tensor
+        estimated_next_observation_probability_trajectory: torch.Tensor
             shape (batch_size, horizon_of_observation_trajectory, observation_dim)
-        estimated_next_state: torch.Tensor
+        estimated_next_state_probability: torch.Tensor
             shape (batch_size, state_dim)
         """
 
@@ -250,53 +252,56 @@ class LearningHiddenMarkovModelFilter(BaseLearningModule):
         emission_matrix = self.emission_matrix  # (state_dim, observation_dim)
 
         # Get indices of 1s in one-hot encoding
-        observation_value_trajectory = torch.argmax(
-            observation_trajectory,  # (batch_size, horizon_of_observation_trajectory, observation_dim)
-            dim=2,
-        )  # (batch_size, horizon_of_observation_trajectory)
+        # observation_value_trajectory = torch.argmax(
+        #     observation_trajectory,  # (batch_size, horizon_of_observation_trajectory, observation_dim)
+        #     dim=2,
+        # )  # (batch_size, horizon_of_observation_trajectory)
 
         # Get emission probabilities for each observation in the trajectory
         emission_trajectory = torch.moveaxis(
-            emission_matrix[:, observation_value_trajectory], 0, 2
+            emission_matrix[:, observation_trajectory], 0, 2
         )  # (batch_size, horizon_of_observation_trajectory, state_dim)
 
-        estimated_next_state_trajectory = self._transition_layer(
+        estimated_next_state_probability_trajectory = self._transition_layer(
             emission_trajectory
         )  # (batch_size, horizon_of_observation_trajectory, state_dim)
 
-        estimated_next_observation_trajectory = torch.matmul(
-            estimated_next_state_trajectory,  # (batch_size, horizon_of_observation_trajectory, state_dim)
+        estimated_next_observation_probability_trajectory = torch.matmul(
+            estimated_next_state_probability_trajectory,  # (batch_size, horizon_of_observation_trajectory, state_dim)
             emission_matrix,  # (state_dim, observation_dim)
         )  # (batch_size, horizon_of_observation_trajectory, observation_dim)
 
-        estimated_next_state = estimated_next_state_trajectory[
-            :, -1, :
-        ]  # (batch_size, state_dim)
+        estimated_next_state_probability = (
+            estimated_next_state_probability_trajectory[:, -1, :]
+        )  # (batch_size, state_dim)
 
-        return estimated_next_observation_trajectory, estimated_next_state
+        return (
+            estimated_next_observation_probability_trajectory,
+            estimated_next_state_probability,
+        )
 
     @torch.no_grad()
     def update(self, observation_trajectory: torch.Tensor) -> None:
-        if observation_trajectory.ndim == 1:
+        if observation_trajectory.ndim == 0:
             observation_trajectory = observation_trajectory.unsqueeze(0)
-        assert (observation_trajectory.ndim == 2) and (
-            observation_trajectory.shape[1] == self._observation_dim
-        ), (
-            f"observation_trajectory must be in the shape of (horizon_of_observation_trajectory, observation_dim). "
+        assert observation_trajectory.ndim == 1, (
+            f"observation_trajectory must be in the shape of (horizon_of_observation_trajectory,). "
             f"observation_trajectory given has the shape of {observation_trajectory.shape}."
         )
 
-        _, estimated_next_state = self._forward(
+        _, estimated_next_state_probability = self._forward(
             observation_trajectory.unsqueeze(0),
         )
-        self._estimated_next_state = estimated_next_state.squeeze(0)
+        self._estimated_next_state_probability = (
+            estimated_next_state_probability.squeeze(0)
+        )
 
     @torch.inference_mode()
     def estimate(
         self,
     ) -> None:
-        # Compute the estimated next observation
-        self._estimated_next_observation = torch.matmul(
-            self._estimated_next_state,
+        # Compute the probability of the estimated next observation
+        self._estimated_next_observation_probability = torch.matmul(
+            self._estimated_next_state_probability,
             self.emission_matrix,
         )
