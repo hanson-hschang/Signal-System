@@ -176,16 +176,13 @@ def visualization(
     result_directory: Path,
     model_filename: Path,
 ) -> None:
+    # Load the model
     model_filename = result_directory / model_filename
     filter = LearningHiddenMarkovModelFilter.load(model_filename)
-    logger.info(filter.emission_matrix)
-    logger.info(
-        torch.nn.functional.softmax(
-            filter._transition_layer.layers[0].blocks[0]._weight,
-            dim=1,
-        )
-    )
+    with torch.no_grad():
+        logger.info(f"\n{filter.emission_matrix=}")
 
+    # Plot the training and validation loss
     checkpoint_info = CheckpointInfo.load(model_filename.with_suffix(".hdf5"))
     IterationFigure(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
@@ -198,17 +195,13 @@ def inference(
     result_directory: Path,
     model_filename: Path,
 ) -> None:
-
+    # Load the model
     model_filename = result_directory / model_filename
     filter = LearningHiddenMarkovModelFilter.load(model_filename)
     with torch.no_grad():
-        logger.info(f"\n{filter.emission_matrix}")
-        transition_probability_matrix = torch.nn.functional.softmax(
-            filter._transition_layer.layers[0].blocks[0]._weight,
-            dim=1,
-        )
-        logger.info(f"\n{transition_probability_matrix}")
+        logger.info(f"\n{filter.emission_matrix=}")
 
+    # Inference
     filter.inference_mode()
     observation_trajectory = torch.tensor(
         [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],

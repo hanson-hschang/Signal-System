@@ -318,21 +318,10 @@ class BaseLearningProcess:
             filename=model_filepath,
         )
         logger.debug(f"model saved to {model_filepath}")
-        # learning_process_info = self.create_learning_process_info(epoch_idx)
+        
         checkpoint_info = self.create_checkpoint_info()
         checkpoint_info.save(checkpoint_filepath)
         logger.debug(f"checkpoint info saved to {checkpoint_filepath}")
-
-    # def create_learning_process_info(
-    #     self, epoch_idx: int
-    # ) -> LearningProcessInfo:
-    #     self._epoch_history["epoch"].append(epoch_idx)
-    #     self._epoch_history["iteration"].append(self._iteration_idx)
-    #     learning_process_info = LearningProcessInfo(
-    #         epoch=epoch_idx,
-    #         number_of_epochs=self._number_of_epochs,
-    #     )
-    #     return learning_process_info
 
     def create_checkpoint_info(self) -> CheckpointInfo:
         checkpoint_info = CheckpointInfo(
