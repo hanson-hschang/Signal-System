@@ -145,6 +145,7 @@ def train(
         observation_dim=observation_dim,  # similar to number of tokens in the transformer
         feature_dim=1,  # similar to number of heads in the transformer
         layer_dim=1,  # similar to number of layers in the transformer
+        dropout_rate=0.2,  # similar to dropout rate in the transformer
     )
     filter = LearningHiddenMarkovModelFilter(params)
 
@@ -152,14 +153,16 @@ def train(
     loss_function = torch.nn.functional.cross_entropy
 
     # Prepare optimizer
-    optimizer = torch.optim.AdamW(filter.parameters(), lr=0.001)
+    optimizer = torch.optim.AdamW(
+        filter.parameters(), lr=0.0005, weight_decay=0.01
+    )
 
     # Train model
     learning_process = LearningHMMFilterProcess(
         model=filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=1,
+        number_of_epochs=5,
         model_filename=result_directory / model_filename,
         save_model_epoch_skip=1,
     )
@@ -206,6 +209,7 @@ def inference(
         )
         logger.info(f"\n{transition_probability_matrix}")
 
+    filter.inference_mode()
     observation_trajectory = torch.tensor(
         [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
     )

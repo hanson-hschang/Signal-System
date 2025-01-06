@@ -3,10 +3,10 @@ from typing import (
     Callable,
     DefaultDict,
     Dict,
+    Generic,
     List,
     Optional,
     Self,
-    Tuple,
     Type,
     TypeVar,
     Union,
@@ -52,26 +52,35 @@ class BaseLearningParameters:
         """
         return asdict(self)
 
-
-# @dataclass
-# class LearningProcessInfo(BaseLearningParameters):
-#     epoch: int = 0
-#     number_of_epochs: int = 0
-
+BLP = TypeVar("BLP", bound="BaseLearningParameters")
 
 BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
-class BaseLearningModule(nn.Module):
+class BaseLearningModule(nn.Module, Generic[BLP]):
 
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
-    def __init__(self, params: BaseLearningParameters) -> None:
+    def __init__(self, params: BLP) -> None:
         super().__init__()
         assert issubclass(
             type(params), BaseLearningParameters
         ), f"{type(params) = } must be a subclass of {BaseLearningParameters}"
-        self._params = params
+        self._params: BLP = params
+        self.inference = False
+
+    def inference_mode(self, inference: bool = True) -> None:
+        if inference:
+            self.eval()
+        else:
+            self.train()
+        self._inference_mode(inference)
+
+    def _inference_mode(self, inference: bool) -> None:
+        self.inference = inference
+        for member in vars(self).values():
+            if isinstance(member, BaseLearningModule):
+                member._inference_mode(inference)
 
     def save(
         self,
