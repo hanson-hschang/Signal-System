@@ -31,7 +31,7 @@ class LearningHiddenMarkovModelFilterBlock(
     ) -> None:
         super().__init__(params)
         self._feature_id = feature_id
-    
+
         self._weight = nn.Parameter(
             torch.randn(
                 (self._params.state_dim, self._params.state_dim),
@@ -124,7 +124,9 @@ class LearningHiddenMarkovModelFilterLayer(
         self._weight = nn.Parameter(
             torch.randn(self._params.feature_dim, dtype=torch.float64)
         )
-        dropout_rate = self._params.dropout_rate if self._params.feature_dim > 1 else 0.0 
+        dropout_rate = (
+            self._params.dropout_rate if self._params.feature_dim > 1 else 0.0
+        )
         self._dropout = nn.Dropout(p=dropout_rate)
         self._mask = torch.ones_like(self._weight)
         self.blocks = nn.ModuleList()
@@ -139,7 +141,7 @@ class LearningHiddenMarkovModelFilterLayer(
             self._weight.masked_fill(mask, float("-inf")),
             dim=0,
         )
-        
+
         weighted_average = torch.zeros_like(x)
         for i, block in enumerate(self.blocks):
             weighted_average += block(x) * weight[i]

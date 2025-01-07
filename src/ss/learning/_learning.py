@@ -52,6 +52,7 @@ class BaseLearningParameters:
         """
         return asdict(self)
 
+
 BLP = TypeVar("BLP", bound="BaseLearningParameters")
 
 BLM = TypeVar("BLM", bound="BaseLearningModule")
@@ -318,7 +319,7 @@ class BaseLearningProcess:
             filename=model_filepath,
         )
         logger.debug(f"model saved to {model_filepath}")
-        
+
         checkpoint_info = self.create_checkpoint_info()
         checkpoint_info.save(checkpoint_filepath)
         logger.debug(f"checkpoint info saved to {checkpoint_filepath}")
