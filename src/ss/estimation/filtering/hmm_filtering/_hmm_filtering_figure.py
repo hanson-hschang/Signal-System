@@ -1,14 +1,14 @@
 from typing import Optional, Self, Tuple
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.colorbar import Colorbar
 from matplotlib.colors import Normalize
 from numpy.typing import ArrayLike, NDArray
 
-
 from ss.utility.assertion.validator import Validator
 from ss.utility.figure import SequenceTrajectoryFigure
+
 
 class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
 
