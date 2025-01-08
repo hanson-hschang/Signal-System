@@ -1,3 +1,4 @@
+from types import TracebackType
 from typing import (
     Any,
     Callable,
@@ -34,12 +35,6 @@ from ss.utility.learning.registration import register_numpy, register_subclasses
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
-
-
-class Mode(StrEnum):
-    TRAIN = "TRAIN"
-    VISUALIZATION = "VISUALIZATION"
-    INFERENCE = "INFERENCE"
 
 
 @dataclass
@@ -331,3 +326,31 @@ class BaseLearningProcess:
             training_loss_history=self._training_loss_history,
         )
         return checkpoint_info
+
+
+class InferenceMode:
+    def __init__(self, *modules: BaseLearningModule) -> None:
+        self._modules = modules
+
+    def __enter__(self) -> None:
+        for module in self._modules:
+            module.inference_mode(True)
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        for module in self._modules:
+            module.inference_mode(False)
+
+
+class Mode(StrEnum):
+    TRAIN = "TRAIN"
+    VISUALIZATION = "VISUALIZATION"
+    INFERENCE = "INFERENCE"
+
+    @classmethod
+    def inference(cls, *modules: BaseLearningModule) -> InferenceMode:
+        return InferenceMode(*modules)

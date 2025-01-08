@@ -204,21 +204,22 @@ def inference(
         logger.info(f"\n{filter.emission_matrix=}")
 
     # Inference
-    filter.inference_mode()
-    observation_trajectory = torch.tensor(
-        [0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 0, 1],
-    )
-    filter.update(observation_trajectory)
-    for _ in range(5):
-        filter.estimate()
-        estimated_next_observation_probability = (
-            filter.estimated_next_observation_probability
+    with Mode.inference(filter):
+        observation_trajectory = torch.tensor(
+            [0, 1, 2, 4, 1, 5, 1, 1, 1, 0, 2, 0, 3, 2, 3, 1, 6, 1],
         )
-        logger.info(estimated_next_observation_probability)
-        predicted_next_observation = torch.multinomial(
-            estimated_next_observation_probability, 1
-        )
-        filter.update(predicted_next_observation)
+        filter.update(observation_trajectory)
+        for _ in range(5):
+            filter.estimate()
+            estimated_next_observation_probability = (
+                filter.estimated_next_observation_probability
+            )
+            logger.info(estimated_next_observation_probability)
+            predicted_next_observation = torch.multinomial(
+                estimated_next_observation_probability, 1
+            )
+            logger.info(predicted_next_observation)
+            filter.update(predicted_next_observation)
 
 
 @click.command()
