@@ -26,6 +26,11 @@ def import_submodules(module_name: str) -> None:
     names = module_name.split(".")
     if "test" == names[-1][:4]:
         return
+    # FIXME: The following __main__ file check should not be necessary
+    # but is required to avoid an error when running.
+    # Check if module is a __main__ file
+    if "__main__" == names[-1]:
+        return
 
     # Import the module
     module = importlib.import_module(module_name)

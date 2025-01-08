@@ -170,10 +170,15 @@ class SignalTrajectoryValidator(Validator):
         return signal_trajectory
 
 
-class FolderPathExistenceValidator(Validator):
+class PathValidator(Validator):
+    def _clear_path(self, path: Union[str, Path]) -> Path:
+        return Path(path).resolve()
+
+
+class FolderPathExistenceValidator(PathValidator):
     def __init__(self, foldername: Union[str, Path]) -> None:
         super().__init__()
-        self._foldername = foldername
+        self._foldername = self._clear_path(foldername)
         self.add_validation(self._validate_folderpath_existence)
 
     def _validate_folderpath_existence(self) -> bool:
@@ -208,12 +213,12 @@ class FolderPathExistenceValidator(Validator):
         return Path(self._foldername)
 
 
-class FilePathExistenceValidator(Validator):
+class FilePathExistenceValidator(PathValidator):
     def __init__(
         self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
     ) -> None:
         super().__init__()
-        self._filename = filename
+        self._filename = self._clear_path(filename)
         self._extension = extension
         self.add_validation(self._validate_filepath_existence)
 
@@ -232,7 +237,7 @@ class FilePathExistenceValidator(Validator):
         # If not, show an error message and return False
         self.add_error(
             f"filename must has the correct extension: {self._extension} and exist.",
-            f"filename provided is {self._filename}.",
+            f"filename provided is '{self._filename}'.",
         )
         return False
 
@@ -240,12 +245,12 @@ class FilePathExistenceValidator(Validator):
         return Path(self._filename)
 
 
-class FilePathValidator(Validator):
+class FilePathValidator(PathValidator):
     def __init__(
         self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
     ) -> None:
         super().__init__()
-        self._filename = filename
+        self._filename = self._clear_path(filename)
         self._extension = extension
         self.add_validation(self._validate_filepath)
 

@@ -1,18 +1,9 @@
-from typing import Any, assert_never
+from typing import Any
 
 from pathlib import Path
 
-import click
 import numpy as np
 import torch
-from learning_hmm_filtering_utility import (
-    ObservationDataset,
-    add_optimal_loss,
-    cross_entropy,
-    data_split,
-    get_observation_model,
-    observation_generator,
-)
 from matplotlib import pyplot as plt
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
@@ -31,7 +22,15 @@ from ss.learning import (
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.logging import Logging
-from ss.utility.path import PathManager
+
+from ._learning_hmm_filtering_utility import (
+    ObservationDataset,
+    add_optimal_loss,
+    cross_entropy,
+    data_split,
+    get_observation_model,
+    observation_generator,
+)
 
 logger = Logging.get_logger(__name__)
 
@@ -131,6 +130,7 @@ def visualization(
         estimation_model=get_observation_model(
             transition_probability_matrix=transition_probability_matrix,
             emission_probability_matrix=emission_probability_matrix,
+            future_time_steps=1,
         ),
     )
 
@@ -198,79 +198,3 @@ def inference(
             )
             logger.info(predicted_next_observation)
             filter.update(predicted_next_observation)
-
-
-@click.command()
-@click.option(
-    "--mode",
-    type=click.Choice(
-        [mode for mode in Mode],
-        case_sensitive=False,
-    ),
-    default=Mode.INFERENCE,
-)
-@click.option(
-    "--model-filename",
-    type=click.Path(),
-    default="learning_filter.pt",
-)
-@click.option(
-    "--data-foldername",
-    type=click.Path(),
-    default="hmm_filtering",
-)
-@click.option(
-    "--data-filename",
-    type=click.Path(),
-    default="system.hdf5",
-)
-@click.option(
-    "--verbose",
-    is_flag=True,
-    help="Set the verbose mode.",
-)
-@click.option(
-    "--debug",
-    is_flag=True,
-    help="Set the debug mode.",
-)
-def main(
-    mode: Mode,
-    model_filename: Path,
-    data_foldername: Path,
-    data_filename: Path,
-    verbose: bool,
-    debug: bool,
-) -> None:
-
-    path_manager = PathManager(__file__)
-    result_directory = path_manager.result_directory
-    Logging.basic_config(
-        filename=path_manager.logging_filepath,
-        verbose=verbose,
-        debug=debug,
-    )
-
-    match mode:
-        case Mode.TRAIN:
-            data_filename = (
-                path_manager.parent_directory / data_foldername / data_filename
-            )
-            train(
-                data_filename,
-                result_directory / path_manager.current_date_directory,
-                model_filename,
-            )
-        case Mode.VISUALIZATION:
-            data_filename = (
-                path_manager.parent_directory / data_foldername / data_filename
-            )
-            visualization(data_filename, result_directory, model_filename)
-        case Mode.INFERENCE:
-            inference(result_directory, model_filename)
-        case _ as _mode:
-            assert_never(_mode)
-
-
-if __name__ == "__main__":
-    main()

@@ -13,9 +13,16 @@ class PathManager:
         self._abspath = os.path.abspath(self._file)
         self._date = datetime.now().strftime(r"%Y%m%d")
         self._parent_directory_path = Path(os.path.dirname(self._abspath))
-        self._result_directory_path = (
-            self._parent_directory_path / self._file.stem
-        )
+        self._result_directory_appendix = "_result"
+        if self._file.stem == "__main__":
+            self._result_directory_path = Path(
+                self._parent_directory_path.as_posix()
+                + self._result_directory_appendix
+            )
+        else:
+            self._result_directory_path = self._parent_directory_path / (
+                self._file.stem + self._result_directory_appendix
+            )
         self._logger_filename = self._date + ".log"
 
     @property

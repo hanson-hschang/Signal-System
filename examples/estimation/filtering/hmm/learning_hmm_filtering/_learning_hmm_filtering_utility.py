@@ -95,6 +95,7 @@ def data_split(
 def get_observation_model(
     transition_probability_matrix: NDArray[np.float64],
     emission_probability_matrix: NDArray[np.float64],
+    future_time_steps: int = 0,
 ) -> Any:
     @njit(cache=True)  # type: ignore
     def observation_model(
@@ -105,11 +106,12 @@ def get_observation_model(
         emission_probability_matrix: NDArray[
             np.float64
         ] = emission_probability_matrix,
+        future_time_steps: int = future_time_steps,
     ) -> NDArray[np.float64]:
+        for _ in range(future_time_steps):
+            estimated_state = estimated_state @ transition_probability_matrix
         estimated_next_observation = (
-            estimated_state
-            @ transition_probability_matrix
-            @ emission_probability_matrix
+            estimated_state @ emission_probability_matrix
         )
         return estimated_next_observation
 
@@ -139,7 +141,8 @@ def add_optimal_loss(
     ax.axhline(y=average_loss, color="black", linestyle="--")
     bbox = dict(boxstyle="round", fc="0.8")
     arrowprops = dict(
-        arrowstyle="->", connectionstyle="angle,angleA=0,angleB=90,rad=10"
+        arrowstyle="->",
+        connectionstyle="angle,angleA=0,angleB=90,rad=10",
     )
     offset = 64
     xlim_min, xlim_max = ax.get_xlim()
