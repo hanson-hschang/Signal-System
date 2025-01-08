@@ -1,16 +1,24 @@
-from typing import Any, List, Sequence, Tuple, assert_never
+from typing import Any, assert_never
 
 from pathlib import Path
 
 import click
 import numpy as np
 import torch
+from learning_hmm_filtering_utility import (
+    ObservationDataset,
+    add_optimal_loss,
+    cross_entropy,
+    data_split,
+    get_observation_model,
+    observation_generator,
+)
 from matplotlib import pyplot as plt
-from numba import njit
-from numpy.typing import ArrayLike, NDArray
-from torch.utils.data import DataLoader, Dataset, random_split
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.estimation.filtering.hmm_filtering import (
+    HiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterParameters,
 )
@@ -20,91 +28,12 @@ from ss.learning import (
     IterationFigure,
     Mode,
 )
+from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.logging import Logging
 from ss.utility.path import PathManager
 
 logger = Logging.get_logger(__name__)
-
-
-class ObservationDataset(Dataset):
-    def __init__(
-        self,
-        observation: ArrayLike,
-        number_of_systems: int = 1,
-        max_length: int = 256,
-        stride: int = 64,
-    ) -> None:
-        observation = torch.tensor(observation).to(dtype=torch.int64)
-        if number_of_systems == 1:
-            observation = observation.unsqueeze(0)
-        assert observation.ndim == 2, (
-            "observation must be a tensor of 2 dimensions "
-            "with the shape of (number_of_systems, time_horizon). "
-            f"observation given has the shape of {observation.shape}."
-        )
-
-        time_horizon = observation.shape[-1]
-        self._input_trajectory = []
-        self._output_trajectory = []
-
-        with torch.no_grad():
-            for i in range(number_of_systems):
-                for t in range(0, time_horizon - max_length, stride):
-                    input_trajectory = observation[
-                        i, t : t + max_length
-                    ]  # (max_length,)
-                    output_trajectory = observation[
-                        i, t + 1 : t + max_length + 1
-                    ]  # (max_length,)
-                    self._input_trajectory.append(
-                        input_trajectory.detach().clone()
-                    )
-                    self._output_trajectory.append(
-                        output_trajectory.detach().clone()
-                    )
-
-        self._length = len(self._input_trajectory)
-
-    def __len__(self) -> int:
-        return self._length
-
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self._input_trajectory[index], self._output_trajectory[index]
-
-    @classmethod
-    def from_batch(cls, batch: Any) -> Tuple[torch.Tensor, torch.Tensor]:
-        # The indexing of batch is defined by the __getitem__ method.
-        input_trajectory, output_trajectory = batch[0], batch[1]
-        return input_trajectory, output_trajectory
-
-
-def data_split(
-    observation: ArrayLike,
-    split_ratio: Sequence[float],
-    number_of_systems: int = 1,
-    batch_size: int = 128,
-    max_length: int = 256,
-    stride: int = 64,
-    random_seed: int = 2025,
-) -> List[DataLoader]:
-    generator = torch.Generator().manual_seed(random_seed)
-    datasets = random_split(
-        dataset=ObservationDataset(
-            observation=observation,
-            number_of_systems=number_of_systems,
-            max_length=max_length,
-            stride=stride,
-        ),
-        lengths=split_ratio,
-        generator=generator,
-    )
-    dataloaders = []
-    for dataset in datasets:
-        dataloaders.append(
-            DataLoader(dataset, batch_size=batch_size, shuffle=True)
-        )
-    return dataloaders
 
 
 class LearningHMMFilterProcess(BaseLearningProcess):
@@ -175,21 +104,70 @@ def train(
 
 
 def visualization(
+    data_filename: Path,
     result_directory: Path,
     model_filename: Path,
 ) -> None:
+
+    # Prepare data
+    data = Data.load(data_filename)
+    time_horizon = data["time"].shape[-1]
+    observation_trajectory = data[
+        "observation"
+    ]  # (number_of_systems, observation_dim, time_horizon)
+
+    # Prepare filter
+    number_of_systems = int(data.meta_info["number_of_systems"])
+    transition_probability_matrix = data.meta_data[
+        "transition_probability_matrix"
+    ]
+    emission_probability_matrix = data.meta_data["emission_probability_matrix"]
+    estimator = HiddenMarkovModelFilter(
+        system=HiddenMarkovModel(
+            transition_probability_matrix=transition_probability_matrix,
+            emission_probability_matrix=emission_probability_matrix,
+            number_of_systems=number_of_systems,
+        ),
+        estimation_model=get_observation_model(
+            transition_probability_matrix=transition_probability_matrix,
+            emission_probability_matrix=emission_probability_matrix,
+        ),
+    )
+
+    # Estimate the optimal loss
+    logger.info(
+        "Start estimating the optimal loss (the cross-entropy loss of the hmm-filter)"
+    )
+    loss_trajectory = []
+    with logging_redirect_tqdm(loggers=[logger]):
+        for observation, next_observation in tqdm(
+            observation_generator(observation_trajectory),
+            total=time_horizon - 1,
+        ):
+            estimator.update(observation=observation)
+            estimator.estimate()
+            loss_trajectory.append(
+                cross_entropy(
+                    input_probability=estimator.estimated_function_value,
+                    target_probability=next_observation,
+                )
+            )
+    average_loss = float(np.mean(loss_trajectory))
+    logger.info(f"{average_loss=}")
+
     # Load the model
     model_filename = result_directory / model_filename
     filter = LearningHiddenMarkovModelFilter.load(model_filename)
     with torch.no_grad():
         logger.info(f"\n{filter.emission_matrix=}")
 
-    # Plot the training and validation loss
+    # Plot the training and validation loss together with the optimal loss
     checkpoint_info = CheckpointInfo.load(model_filename.with_suffix(".hdf5"))
-    IterationFigure(
+    fig = IterationFigure(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
         validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
     ).plot()
+    add_optimal_loss(fig.loss_plot_ax, average_loss)
     plt.show()
 
 
@@ -284,7 +262,10 @@ def main(
                 model_filename,
             )
         case Mode.VISUALIZATION:
-            visualization(result_directory, model_filename)
+            data_filename = (
+                path_manager.parent_directory / data_foldername / data_filename
+            )
+            visualization(data_filename, result_directory, model_filename)
         case Mode.INFERENCE:
             inference(result_directory, model_filename)
         case _ as _mode:

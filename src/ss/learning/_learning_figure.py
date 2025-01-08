@@ -1,6 +1,7 @@
 from typing import Dict, Optional, Self, Tuple
 
 import numpy as np
+from matplotlib.axes import Axes
 from numpy.typing import ArrayLike, NDArray
 
 from ss.utility.figure import SequenceTrajectoryFigure
@@ -48,6 +49,10 @@ class IterationFigure(SequenceTrajectoryFigure):
                 len(validation_loss_trajectory["loss"].shape) == 2
             ), "validation_loss_trajectory['loss'] must be a 2D array with shape (number_of_trainings, iteration_length)"
         self._validation_loss_trajectory = validation_loss_trajectory
+
+    @property
+    def loss_plot_ax(self) -> Axes:
+        return self._loss_plot
 
     def plot(self) -> Self:
         if self._number_of_systems == 1:
