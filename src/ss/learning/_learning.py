@@ -328,12 +328,17 @@ class BaseLearningProcess:
         return checkpoint_info
 
 
-class InferenceMode:
+class InferenceContext:
     def __init__(self, *modules: BaseLearningModule) -> None:
         self._modules = modules
+        self._previous_modes: List[bool] = [False] * len(modules)
+        self._no_grad = torch.no_grad()
 
     def __enter__(self) -> None:
-        for module in self._modules:
+        self._no_grad.__enter__()
+
+        for i, module in enumerate(self._modules):
+            self._previous_modes[i] = module.inference
             module.inference_mode(True)
 
     def __exit__(
@@ -342,8 +347,10 @@ class InferenceMode:
         exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
-        for module in self._modules:
-            module.inference_mode(False)
+        for module, inference in zip(self._modules, self._previous_modes):
+            module.inference_mode(inference)
+
+        self._no_grad.__exit__(exc_type, exc_value, traceback)
 
 
 class Mode(StrEnum):
@@ -352,5 +359,5 @@ class Mode(StrEnum):
     INFERENCE = "INFERENCE"
 
     @classmethod
-    def inference(cls, *modules: BaseLearningModule) -> InferenceMode:
-        return InferenceMode(*modules)
+    def inference(cls, *modules: BaseLearningModule) -> InferenceContext:
+        return InferenceContext(*modules)
