@@ -3,9 +3,11 @@ from typing import Any, List, Sequence, Tuple, assert_never
 from pathlib import Path
 
 import click
+import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from numpy.typing import ArrayLike
+from numba import njit
+from numpy.typing import ArrayLike, NDArray
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from ss.estimation.filtering.hmm_filtering import (
@@ -131,8 +133,8 @@ def train(
     # Prepare data
     data = Data.load(data_filename)
     observation = data["observation_value"]
-    number_of_systems = data.meta_info["number_of_systems"]
-    observation_dim = data.meta_info["observation_dim"]
+    number_of_systems = int(data.meta_info["number_of_systems"])
+    observation_dim = int(data.meta_info["observation_dim"])
     training_loader, evaluation_loader, testing_loader = data_split(
         observation=observation,
         split_ratio=[0.7, 0.2, 0.1],
@@ -263,17 +265,18 @@ def main(
 ) -> None:
 
     path_manager = PathManager(__file__)
-    parent_directory = path_manager.parent_directory
     result_directory = path_manager.result_directory
     Logging.basic_config(
         filename=path_manager.logging_filepath,
-        log_level=Logging.Level.DEBUG if debug else Logging.Level.INFO,
-        verbose_level=Logging.Level.INFO if verbose else Logging.Level.WARNING,
+        verbose=verbose,
+        debug=debug,
     )
 
     match mode:
         case Mode.TRAIN:
-            data_filename = parent_directory / data_foldername / data_filename
+            data_filename = (
+                path_manager.parent_directory / data_foldername / data_filename
+            )
             train(
                 data_filename,
                 result_directory / path_manager.current_date_directory,

@@ -189,10 +189,11 @@ def main(
 ) -> None:
 
     path_manager = PathManager(__file__)
+    result_directory = path_manager.result_directory
     Logging.basic_config(
         filename=path_manager.logging_filepath,
-        log_level=Logging.Level.DEBUG if debug else Logging.Level.INFO,
-        verbose_level=Logging.Level.INFO if verbose else Logging.Level.WARNING,
+        verbose=verbose,
+        debug=debug,
     )
 
     np.random.seed(random_seed)
@@ -203,7 +204,7 @@ def main(
         simulation_time_steps=simulation_time_steps,
         step_skip=step_skip,
         number_of_systems=number_of_systems,
-        result_directory=path_manager.result_directory,
+        result_directory=result_directory,
     )
 
 

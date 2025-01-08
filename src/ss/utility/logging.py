@@ -3,6 +3,7 @@ from typing import Dict, Union
 import logging
 import sys
 from collections import OrderedDict
+from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
 
@@ -10,22 +11,42 @@ from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.singleton import SingletonMeta
 
 
+class LogLevel(IntEnum):
+    DEBUG = logging.DEBUG
+    INFO = logging.INFO
+    WARNING = logging.WARNING
+    ERROR = logging.ERROR
+    CRITICAL = logging.CRITICAL
+
+
+@dataclass
+class LogfileSetting:
+    filename: Union[str, Path]
+    log_level: LogLevel
+    log_format: str
+    datetime_format: str
+    _file_extension: str = field(default=".log", init=False)
+
+    def __post_init__(self) -> None:
+        self.filepath = FilePathValidator(
+            self.filename, self._file_extension
+        ).get_filepath()
+
+
+@dataclass
+class VerboseSetting:
+    log_level: LogLevel
+    log_format: str
+
+
 class Logging(metaclass=SingletonMeta):
     _logger: Dict[str, logging.Logger] = OrderedDict()
-    _file_extension = ".log"
-
-    class Level(IntEnum):
-        DEBUG = logging.DEBUG
-        INFO = logging.INFO
-        WARNING = logging.WARNING
-        ERROR = logging.ERROR
-        CRITICAL = logging.CRITICAL
 
     @classmethod
     def get_logger(
         cls,
         name: str,
-        level: Level = Level.DEBUG,
+        level: LogLevel = LogLevel.DEBUG,
     ) -> logging.Logger:
         """
         Get a logger with the specified name.
@@ -34,7 +55,7 @@ class Logging(metaclass=SingletonMeta):
         ----------
             name: str
                 The name of the logger
-            level: Level (default: Level.DEBUG)
+            level: LogLevel (default: LogLevel.DEBUG)
                 The log level of the logger
 
         Returns:
@@ -58,18 +79,13 @@ class Logging(metaclass=SingletonMeta):
 
     def __init__(
         self,
-        filename: Union[str, Path],
-        log_level: Level,
-        log_format: str,
-        datetime_format: str,
-        verbose_level: Level,
-        verbose_format: str,
+        logfile_setting: LogfileSetting,
+        verbose_setting: VerboseSetting,
     ) -> None:
         # TODO: check and validate the input arguments
 
-        filepath = FilePathValidator(
-            filename, self._file_extension
-        ).get_filepath()
+        self.logfile_setting = logfile_setting
+        self.verbose_setting = verbose_setting
 
         # Clear any existing handlers for all loggers
         # and count the maximum length of loggers' names
@@ -79,28 +95,32 @@ class Logging(metaclass=SingletonMeta):
             logger.handlers = []
 
         # Create formatters and change the format of loggers' name to have a fixed width
-        log_format = log_format.replace(
-            "%(name)s", f"%(name){max_name_length}s"
+        self.logfile_setting.log_format = (
+            self.logfile_setting.log_format.replace(
+                "%(name)s", f"%(name){max_name_length}s"
+            )
         )
-        verbose_format = verbose_format.replace(
-            "%(name)s", f"%(name){max_name_length}s"
+        self.verbose_setting.log_format = (
+            self.verbose_setting.log_format.replace(
+                "%(name)s", f"%(name){max_name_length}s"
+            )
         )
         file_formatter = logging.Formatter(
-            fmt=log_format,
-            datefmt=datetime_format,
+            fmt=self.logfile_setting.log_format,
+            datefmt=self.logfile_setting.datetime_format,
         )
         console_formatter = logging.Formatter(
-            fmt=verbose_format,
+            fmt=self.verbose_setting.log_format,
         )
 
         # File handler for all logs
-        self.file_handler = logging.FileHandler(filepath)
-        self.file_handler.setLevel(log_level)
+        self.file_handler = logging.FileHandler(self.logfile_setting.filepath)
+        self.file_handler.setLevel(self.logfile_setting.log_level)
         self.file_handler.setFormatter(file_formatter)
 
         # Console handler (stdout) for verbose output
         self.console_handler = logging.StreamHandler(sys.stdout)
-        self.console_handler.setLevel(verbose_level)
+        self.console_handler.setLevel(self.verbose_setting.log_level)
         self.console_handler.setFormatter(console_formatter)
 
         logging_logger = self._logger[__name__]
@@ -108,34 +128,36 @@ class Logging(metaclass=SingletonMeta):
             logger.addHandler(self.console_handler)
             logger.addHandler(self.file_handler)
             logging_logger.debug(f"logger: {name} has been initialized")
+        logging_logger.info("logging has been initialized: ")
         logging_logger.info(
-            f"logging has been initialized: verbose_level = {verbose_level.name} and log_level = {log_level.name}"
+            f"verbose level = {self.verbose_setting.log_level.name}"
         )
-        logging_logger.info(f"logging file = {str(filename)}")
-
-        # Store levels for property access
-        self._verbose_level = verbose_level
-        self._log_level = log_level
-
-        # TODO: add descriptor for log_level and verbose_level
+        logging_logger.info(
+            f"logfile level = {self.logfile_setting.log_level.name}"
+        )
+        logging_logger.info(f"logfile path = {self.logfile_setting.filepath}")
 
     @classmethod
     def basic_config(
         cls,
         filename: Union[str, Path],
-        log_level: Level = Level.INFO,
-        log_format: str = r"%(asctime)s | %(name)s | %(levelname)-8s | %(message)s",
+        verbose: bool = False,
+        debug: bool = False,
+        verbose_format: str = r"%(name)s | %(levelname)s | %(message)s",
+        logfile_format: str = r"%(asctime)s | %(name)s | %(levelname)-8s | %(message)s",
         datetime_format: str = r"%Y-%m-%d %H:%M:%S",
-        verbose_level: Level = Level.WARNING,
-        verbose_format: str = "%(name)s | %(levelname)s | %(message)s",
     ) -> "Logging":
         return cls(
-            filename,
-            log_level,
-            log_format,
-            datetime_format,
-            verbose_level,
-            verbose_format,
+            LogfileSetting(
+                filename=filename,
+                log_level=LogLevel.DEBUG if debug else LogLevel.INFO,
+                log_format=logfile_format,
+                datetime_format=datetime_format,
+            ),
+            VerboseSetting(
+                log_level=LogLevel.INFO if verbose else LogLevel.WARNING,
+                log_format=verbose_format,
+            ),
         )
 
 
