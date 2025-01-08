@@ -161,7 +161,7 @@ class SignalTrajectoryValidator(Validator):
         return False
 
     def _validate_time_key(self) -> bool:
-        if "time" in self._signal_trajectory:
+        if "time" in self._signal_trajectory.keys():
             return True
         self.add_error(
             "'time' must be a key in signal_trajectory.",

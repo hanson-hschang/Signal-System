@@ -13,7 +13,6 @@ from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilterFigure,
 )
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
-from ss.utility.data import MetaData, MetaInfo
 from ss.utility.logging import Logging
 from ss.utility.path import PathManager
 

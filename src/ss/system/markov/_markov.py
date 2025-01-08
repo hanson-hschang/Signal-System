@@ -1,4 +1,5 @@
 from typing import Optional, Union
+
 from pathlib import Path
 
 import numpy as np
@@ -7,7 +8,6 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.system import DiscreteTimeSystem, SystemCallback
 from ss.utility.assertion.validator import Validator
-
 
 
 @njit(cache=True)  # type: ignore
@@ -284,4 +284,3 @@ class MarkovChainCallback(SystemCallback):
             emission_probability_matrix=self._system.emission_probability_matrix,
         )
         super().save(filename)
-    
