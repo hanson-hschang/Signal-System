@@ -54,10 +54,10 @@ class Callback:
 
         Arguments:
         -----------
-        meta_data: Optional[MetaData] = None
-            The meta data to be added to the callback.
-        meta_data_dict: Union[ArrayLike, MetaData]
-            The meta data to be added to the callback.
+            meta_data: Optional[MetaData] = None
+                The meta data to be added to the callback.
+            meta_data_dict: Union[ArrayLike, MetaData]
+                The meta data to be added to the callback.
         """
         for key, value in meta_data_dict.items():
             self._meta_data[key] = value
@@ -75,10 +75,10 @@ class Callback:
 
         Arguments:
         ----------
-        meta_info: Optional[MetaInfo] = None
-            The meta information to be added to the callback.
-        meta_info_dict: MetaInfoValueType
-            The meta information to be added to the callback.
+            meta_info: Optional[MetaInfo] = None
+                The meta information to be added to the callback.
+            meta_info_dict: MetaInfoValueType
+                The meta information to be added to the callback.
         """
         for key, value in meta_info_dict.items():
             self._meta_info[key] = value
@@ -92,8 +92,8 @@ class Callback:
 
         Arguments:
         ----------
-        filename: str or Path
-            The path to the file to save the callback parameters.
+            filename: str or Path
+                The path to the file to save the callback parameters.
         """
         filepath = FilePathValidator(
             filename, self._data_file_extension

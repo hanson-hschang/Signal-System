@@ -12,7 +12,6 @@ def get_type_string(allowed_types: Union[Type, Tuple[Type, ...]]) -> str:
         allowed_types : Union[Type, Tuple[Type, ...]]
             A type or tuple of types
 
-
     Returns:
     --------
         allowed_types_str : str
