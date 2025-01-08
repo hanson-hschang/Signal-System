@@ -7,14 +7,14 @@ def get_type_string(allowed_types: Union[Type, Tuple[Type, ...]]) -> str:
     """
     Convert type names to more readable format
 
-    Parameters
+    Arguments:
     ----------
         allowed_types : Union[Type, Tuple[Type, ...]]
             A type or tuple of types
-        
 
-    Returns
-    -------
+
+    Returns:
+    --------
         allowed_types_str : str
             A more readable format of the input types
     """
@@ -39,16 +39,16 @@ def from_numpy_generic(
     """
     Convert numpy scalar to Python scalar with proper type hinting.
 
-    Parameters
+    Arguments:
     ----------
         value: A numpy scalar value (np.bool_, np.integer, np.floating, np.character)
 
-    Returns
-    -------
+    Returns:
+    --------
         A Python scalar (bool, int, float, or str)
 
-    Raises
-    ------
+    Raises:
+    -------
         ValueError: If the numpy scalar type is not supported
     """
     if np.issubdtype(type(value), np.bool_):

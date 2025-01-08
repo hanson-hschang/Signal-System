@@ -6,11 +6,13 @@ from collections import OrderedDict
 from enum import IntEnum
 from pathlib import Path
 
+from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.singleton import SingletonMeta
 
 
 class Logging(metaclass=SingletonMeta):
     _logger: Dict[str, logging.Logger] = OrderedDict()
+    _file_extension = ".log"
 
     class Level(IntEnum):
         DEBUG = logging.DEBUG
@@ -65,6 +67,10 @@ class Logging(metaclass=SingletonMeta):
     ) -> None:
         # TODO: check and validate the input arguments
 
+        filepath = FilePathValidator(
+            filename, self._file_extension
+        ).get_filepath()
+
         # Clear any existing handlers for all loggers
         # and count the maximum length of loggers' names
         max_name_length = 0
@@ -88,7 +94,7 @@ class Logging(metaclass=SingletonMeta):
         )
 
         # File handler for all logs
-        self.file_handler = logging.FileHandler(filename)
+        self.file_handler = logging.FileHandler(filepath)
         self.file_handler.setLevel(log_level)
         self.file_handler.setFormatter(file_formatter)
 

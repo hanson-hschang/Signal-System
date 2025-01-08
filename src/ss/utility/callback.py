@@ -52,9 +52,9 @@ class Callback:
         """
         Add meta data to the callback.
 
-        Parameters:
+        Arguments:
         -----------
-        meta_data: MetaData
+        meta_data: Optional[MetaData] = None
             The meta data to be added to the callback.
         meta_data_dict: Union[ArrayLike, MetaData]
             The meta data to be added to the callback.
@@ -73,9 +73,9 @@ class Callback:
         """
         Add meta information to the callback.
 
-        Parameters:
-        -----------
-        meta_info: MetaInfo
+        Arguments:
+        ----------
+        meta_info: Optional[MetaInfo] = None
             The meta information to be added to the callback.
         meta_info_dict: MetaInfoValueType
             The meta information to be added to the callback.
@@ -90,8 +90,8 @@ class Callback:
         """
         Save callback parameters to an HDF5 file.
 
-        Parameters:
-        -----------
+        Arguments:
+        ----------
         filename: str or Path
             The path to the file to save the callback parameters.
         """
