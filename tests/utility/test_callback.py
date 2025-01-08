@@ -17,7 +17,7 @@ class TestCallback:
         np.testing.assert_allclose(callback["time"], [0.1])
 
     def test_add_meta_info(self, callback: Callback) -> None:
-        callback.add_meta_info({"key": "value"})
+        callback.add_meta_info(key="value")
         assert callback.meta_info["key"] == "value"
 
     def test_save(self, callback: Callback, tmp_path: Path) -> None:

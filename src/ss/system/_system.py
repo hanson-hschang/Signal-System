@@ -1,5 +1,7 @@
 from typing import Union
 
+from pathlib import Path
+
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
@@ -158,3 +160,12 @@ class SystemCallback(Callback):
         self._callback_params["observation"].append(
             self._system.observe().copy()
         )
+
+    def save(self, filename: Union[str, Path]) -> None:
+        self.add_meta_info(
+            state_dim=self._system.state_dim,
+            observation_dim=self._system.observation_dim,
+            control_dim=self._system.control_dim,
+            number_of_systems=self._system.number_of_systems,
+        )
+        super().save(filename)

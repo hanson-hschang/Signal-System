@@ -1,13 +1,14 @@
-from typing import Any, DefaultDict, Dict, List, Union
+from typing import Any, DefaultDict, Dict, List, Optional, Union
 
 from collections import defaultdict
 from pathlib import Path
 
 import h5py
 import numpy as np
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 
 from ss.utility.assertion.validator import FilePathValidator
+from ss.utility.data import MetaData, MetaInfo, MetaInfoValueType
 
 
 class Callback:
@@ -15,10 +16,15 @@ class Callback:
         self._data_file_extension = ".hdf5"
         self.sample_every = step_skip
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
-        self._meta_info: DefaultDict[str, Any] = defaultdict()
+        self._meta_data: MetaData = MetaData()
+        self._meta_info: MetaInfo = MetaInfo()
 
     @property
-    def meta_info(self) -> Dict[str, Any]:
+    def meta_data(self) -> MetaData:
+        return self._meta_data
+
+    @property
+    def meta_info(self) -> MetaInfo:
         return self._meta_info
 
     def record(self, current_step: int, time: float) -> None:
@@ -38,6 +44,48 @@ class Callback:
             signal_trajectory = np.moveaxis(signal_trajectory, 0, -1)
         return signal_trajectory
 
+    def add_meta_data(
+        self,
+        meta_data: Optional[MetaData] = None,
+        **meta_data_dict: Union[ArrayLike, MetaData],
+    ) -> None:
+        """
+        Add meta data to the callback.
+
+        Parameters:
+        -----------
+        meta_data: MetaData
+            The meta data to be added to the callback.
+        meta_data_dict: Union[ArrayLike, MetaData]
+            The meta data to be added to the callback.
+        """
+        for key, value in meta_data_dict.items():
+            self._meta_data[key] = value
+        if meta_data is not None:
+            for key, value in meta_data.items():
+                self._meta_data[key] = value
+
+    def add_meta_info(
+        self,
+        meta_info: Optional[MetaInfo] = None,
+        **meta_info_dict: MetaInfoValueType,
+    ) -> None:
+        """
+        Add meta information to the callback.
+
+        Parameters:
+        -----------
+        meta_info: MetaInfo
+            The meta information to be added to the callback.
+        meta_info_dict: MetaInfoValueType
+            The meta information to be added to the callback.
+        """
+        for key, value in meta_info_dict.items():
+            self._meta_info[key] = value
+        if meta_info is not None:
+            for key, value in meta_info.items():
+                self._meta_info[key] = value
+
     def save(self, filename: Union[str, Path]) -> None:
         """
         Save callback parameters to an HDF5 file.
@@ -52,25 +100,23 @@ class Callback:
         ).get_filepath()
 
         with h5py.File(filepath, "w") as f:
-
+            if len(self._meta_data) > 0:
+                self._save_meta_data(
+                    f.create_group(MetaData.NAME),
+                    self._meta_data,
+                )
             for key in self._callback_params.keys():
-                data = self[key]
-
                 f.create_dataset(
                     name=key,
-                    data=data,
+                    data=self[key],
                 )
             for key, value in self._meta_info.items():
                 f.attrs[key] = value
 
-    def add_meta_info(self, meta_info: Dict[str, Any]) -> None:
-        """
-        Add meta information to the callback.
-
-        Parameters:
-        -----------
-        meta_info: Dict[str, Any]
-            The meta information to be added to the callback.
-        """
-        assert isinstance(meta_info, dict), "meta_info must be a dictionary."
-        self._meta_info.update(meta_info)
+    @staticmethod
+    def _save_meta_data(h5_group: h5py.Group, meta_data: MetaData) -> None:
+        for key, value in meta_data.items():
+            if isinstance(value, MetaData):
+                Callback._save_meta_data(h5_group.create_group(key), value)
+            else:
+                h5_group.create_dataset(name=key, data=value)

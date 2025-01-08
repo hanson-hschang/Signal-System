@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, Union
+from pathlib import Path
 
 import numpy as np
 from numba import njit
@@ -6,6 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.system import DiscreteTimeSystem, SystemCallback
 from ss.utility.assertion.validator import Validator
+
 
 
 @njit(cache=True)  # type: ignore
@@ -275,3 +277,11 @@ class MarkovChainCallback(SystemCallback):
         self._callback_params["observation_value"].append(
             self._system.observation_value.copy()
         )
+
+    def save(self, filename: Union[str, Path]) -> None:
+        self.add_meta_data(
+            transition_probability_matrix=self._system.transition_probability_matrix,
+            emission_probability_matrix=self._system.emission_probability_matrix,
+        )
+        super().save(filename)
+    

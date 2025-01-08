@@ -13,6 +13,7 @@ from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilterFigure,
 )
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.utility.data import MetaData, MetaInfo
 from ss.utility.logging import Logging
 from ss.utility.path import PathManager
 
@@ -20,6 +21,8 @@ logger = Logging.get_logger(__name__)
 
 
 def hmm_filtering(
+    state_dim: int,
+    observation_dim: int,
     simulation_time_steps: int,
     step_skip: int,
     number_of_systems: int,
@@ -35,12 +38,12 @@ def hmm_filtering(
         normalized_matrix: NDArray = matrix / row_sums
         return normalized_matrix
 
-    transition_probability_matrix = normalize_rows(np.random.rand(3, 3))
-    emission_probability_matrix = [
-        [1, 0],
-        [0, 1],
-        [0, 1],
-    ]
+    transition_probability_matrix = normalize_rows(
+        np.random.rand(state_dim, state_dim)
+    )
+    emission_probability_matrix = normalize_rows(
+        np.random.rand(state_dim, observation_dim)
+    )
     logger.info(f"\n{transition_probability_matrix=}")
     logger.info(f"\n{emission_probability_matrix=}")
 
@@ -54,17 +57,12 @@ def hmm_filtering(
     @njit(cache=True)  # type: ignore
     def observation_model(
         estimated_state: NDArray[np.float64],
-        transition_probability_matrix: NDArray[
-            np.float64
-        ] = system.transition_probability_matrix,
         emission_probability_matrix: NDArray[
             np.float64
         ] = system.emission_probability_matrix,
     ) -> NDArray[np.float64]:
         estimated_next_observation = (
-            estimated_state
-            @ transition_probability_matrix
-            @ emission_probability_matrix
+            estimated_state @ emission_probability_matrix
         )
         return estimated_next_observation
 
@@ -98,21 +96,16 @@ def hmm_filtering(
     system_callback.record(simulation_time_steps, current_time)
     estimator_callback.record(simulation_time_steps, current_time)
 
-    # Add meta info to callbacks
-    meta_info = dict(
-        number_of_systems=number_of_systems,
-        simulation_time_steps=simulation_time_steps,
-        observation_dim=system.observation_dim,
-        state_dim=system.state_dim,
-    )
-    system_callback.add_meta_info(meta_info)
-    estimator_callback.add_meta_info(meta_info)
-
     # Save the data
     system_callback.save(result_directory / "system.hdf5")
     estimator_callback.save(result_directory / "filter.hdf5")
 
     # Plot the data
+    state_trajectory = (
+        system_callback["state"]
+        if number_of_systems == 1
+        else system_callback["state"][0]
+    )
     observation_trajectory = (
         system_callback["observation"]
         if number_of_systems == 1
@@ -130,6 +123,7 @@ def hmm_filtering(
     )
     HiddenMarkovModelFilterFigure(
         time_trajectory=estimator_callback["time"],
+        state_trajectory=state_trajectory,
         observation_trajectory=observation_trajectory,
         estimated_state_trajectory=estimated_state_trajectory,
         estimated_function_value_trajectory=estimated_function_value_trajectory,
@@ -149,6 +143,18 @@ def hmm_filtering(
     type=click.IntRange(min=1),
     default=1,
     help="Set the step skip (positive integers).",
+)
+@click.option(
+    "--state-dim",
+    type=click.IntRange(min=1),
+    default=3,
+    help="Set the state dimension (positive integers).",
+)
+@click.option(
+    "--observation-dim",
+    type=click.IntRange(min=1),
+    default=7,
+    help="Set the observation dimension (positive integers).",
 )
 @click.option(
     "--number-of-systems",
@@ -175,6 +181,8 @@ def hmm_filtering(
 def main(
     simulation_time_steps: int,
     step_skip: int,
+    state_dim: int,
+    observation_dim: int,
     number_of_systems: int,
     random_seed: int,
     verbose: bool,
@@ -191,6 +199,8 @@ def main(
     np.random.seed(random_seed)
 
     hmm_filtering(
+        state_dim=state_dim,
+        observation_dim=observation_dim,
         simulation_time_steps=simulation_time_steps,
         step_skip=step_skip,
         number_of_systems=number_of_systems,

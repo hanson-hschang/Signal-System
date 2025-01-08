@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Union
+from typing import Dict, Optional, Union, get_args
 
 from pathlib import Path
 
@@ -6,38 +6,131 @@ import h5py
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from ss.utility.type import get_type_string
 from ss.utility.assertion.validator import (
+    Validator,
     FilePathExistenceValidator,
     SignalTrajectoryValidator,
 )
 
 
-class MetaInfo:
-    def __init__(self, meta_info: Optional[Dict[str, Any]] = None) -> None:
-        if meta_info is None:
-            meta_info = dict()
-        self._meta_info = meta_info
+class MetaData(dict):
+    NAME = "MetaData"
 
-    def __getitem__(self, key: str) -> Any:
-        return self._meta_info[key]
+    class _MetaDataValidator(Validator):
+        def __init__(
+            self, meta_data: Dict[str, Union[ArrayLike, "MetaData"]]
+        ) -> None:
+            super().__init__()
+            self._meta_data = meta_data
+            self._validated_meta_data: Dict[str, Union[NDArray, "MetaData"]] = dict()
+            self.add_validation(self._validate_meta_data)
 
-    def __setitem__(self, key: str, value: Any) -> None:
-        self._meta_info[key] = value
+        def _validate_meta_data(self) -> bool:
+            if not isinstance(self._meta_data, dict):
+                self.add_error(
+                    "meta_data must be a dictionary.",
+                    f"{type(self._meta_data) = }",
+                )
+                return False
+            for key, value in self._meta_data.items():
+                if not isinstance(key, str):
+                    self.add_error(
+                        "each key in meta_data must be a string.",
+                        f"{self._meta_data.keys() = }",
+                    )
+                    return False
+                if isinstance(value, MetaData):
+                    self._validated_meta_data[key] = value
+                elif isinstance(value, (list, tuple, np.ndarray)):
+                    self._validated_meta_data[key] = np.array(value)
+                else:
+                    self.add_error(
+                        "value in meta_data must be an array-like or a MetaData.",
+                        f"meta_data[{key}] = {value!r}",
+                    )
+                    return False
+            return True
 
-    def __delitem__(self, key: str) -> None:
-        del self._meta_info[key]
+        def get_meta_data(self) -> Dict[str, Union[NDArray, "MetaData"]]:
+            return self._validated_meta_data
+    
 
-    def __contains__(self, key: str) -> bool:
-        return key in self._meta_info
+    def __init__(self, **meta_data: Union[ArrayLike, "MetaData"]) -> None:
+        super().__init__(**self._MetaDataValidator(meta_data).get_meta_data())
 
-    def __len__(self) -> int:
-        return len(self._meta_info)
+    def __setitem__(
+        self, key: str, value: Union[ArrayLike, "MetaData"]
+    ) -> None:
+        super().__setitem__(
+            key, self._MetaDataValidator({key: value}).get_meta_data()[key]
+        )
 
-    def __str__(self) -> str:
-        return str(self._meta_info)
+    @classmethod
+    def from_hdf5_group(cls, h5_group: h5py.Group) -> "MetaData":
+        meta_data = MetaData()
+        for key, value in h5_group.items():
+            if isinstance(value, h5py.Group):
+                meta_data[key] = cls.from_hdf5_group(value)
+            else:
+                meta_data[key] = np.array(value)
+        return cls(**meta_data)
 
-    def __repr__(self) -> str:
-        return repr(self._meta_info)
+
+MetaInfoValueType = Union[bool, int, float, str]
+
+
+class MetaInfo(dict):
+
+
+    class _MetaInfoValidator(Validator):
+        def __init__(self, meta_info: Dict[str, MetaInfoValueType]) -> None:
+            super().__init__()
+            self._meta_info = meta_info
+            self.add_validation(self._validate_meta_info)
+
+        def _validate_meta_info(self) -> bool:
+            if not isinstance(self._meta_info, dict):
+                self.add_error(
+                    "meta_info must be a dictionary.",
+                    f"{type(self._meta_info) = }",
+                )
+                return False
+            allowed_types = get_args(MetaInfoValueType)
+            allowed_types_str = get_type_string(allowed_types)
+            for key, value in self._meta_info.items():
+                if not isinstance(key, str):
+                    self.add_error(
+                        "each key in meta_info must be a string.",
+                        f"{self._meta_info.keys() = }",
+                    )
+                    return False
+                if not isinstance(value, allowed_types):
+                    self.add_error(
+                        f"each value in meta_info must be a {allowed_types_str}",
+                        f"{self._meta_info[key] = }",
+                    )
+                    return False
+            return True
+
+        def get_meta_info(self) -> Dict[str, MetaInfoValueType]:
+            return self._meta_info
+
+
+    def __init__(self, **meta_info: MetaInfoValueType) -> None:
+        super().__init__(**self._MetaInfoValidator(meta_info).get_meta_info())
+
+    def __setitem__(self, key: str, value: MetaInfoValueType) -> None:
+        super().__setitem__(
+            key, self._MetaInfoValidator({key: value}).get_meta_info()[key]
+        )
+
+    @classmethod
+    def from_hdf5_attrs(cls, h5_attrs: h5py.AttributeManager) -> "MetaInfo":
+        meta_info = dict()
+        for key, value in h5_attrs.items():
+            meta_info[key] = value
+        return cls(**meta_info)
 
 
 class Data:
@@ -46,12 +139,14 @@ class Data:
     def __init__(
         self,
         signal_trajectory: Dict[str, ArrayLike],
-        meta_info: Optional[Dict[str, Any]] = None,
+        meta_data: Optional[MetaData] = None,
+        meta_info: Optional[MetaInfo] = None,
     ) -> None:
         self._signal_trajectory = SignalTrajectoryValidator(
             signal_trajectory
         ).get_trajectory()
-        self.meta_info = MetaInfo(meta_info)
+        self.meta_data = MetaData() if meta_data is None else meta_data
+        self.meta_info = MetaInfo() if meta_info is None else meta_info
 
     @classmethod
     def load(cls, filename: Union[str, Path]) -> "Data":
@@ -60,16 +155,22 @@ class Data:
         ).get_filepath()
 
         signal_trajectory: Dict[str, ArrayLike] = dict()
-        meta_info = dict()
+        meta_data = None
+        meta_info = None
         with h5py.File(filepath, "r") as f:
+            meta_data_h5 = f.pop(MetaData.NAME, None)
+            if isinstance(meta_data_h5, h5py.Group):
+                meta_data = MetaData.from_hdf5_group(meta_data_h5)
 
+            # The signal_trajectory should go after the meta_data is loaded,
+            # because the meta_data is stored as a group in the hdf5 file.
+            # The meta_data is first loaded with the key popped from the file.
             for key, value in f.items():
                 signal_trajectory[key] = np.array(value)
 
-            for key, value in f.attrs.items():
-                meta_info[key] = value
+            meta_info = MetaInfo.from_hdf5_attrs(f.attrs)
 
-        return cls(signal_trajectory, meta_info)
+        return cls(signal_trajectory, meta_data, meta_info)
 
     def __getitem__(self, key: str) -> NDArray[np.float64]:
         return self._signal_trajectory[key]
