@@ -25,6 +25,7 @@ classifiers = [
     "Intended Audience :: Education",
     "Operating System :: OS Independent",
     "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
 ]
@@ -83,9 +84,22 @@ exclude = '''
 
 [tool.isort]
 # https://github.com/timothycrosley/isort/
-line_length = 80
-known_typing = ["typing", "types", "typing_extensions", "mypy", "mypy_extensions"]
-sections = ["FUTURE", "TYPING", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+line_length = 80  # https://peps.python.org/pep-0008/
+known_typing = [
+    "typing",
+    "types",
+    "typing_extensions",
+    "mypy",
+    "mypy_extensions",
+]
+sections = [
+    "FUTURE",
+    "TYPING",
+    "STDLIB",
+    "THIRDPARTY",
+    "FIRSTPARTY",
+    "LOCALFOLDER",
+]
 include_trailing_comma = true
 profile = "black"
 multi_line_output = 3
@@ -121,8 +135,23 @@ warn_unused_configs = true
 warn_unused_ignores = true
 
 [tool.pytest.ini_options]
-norecursedirs = ["hooks", "*.egg", ".eggs", "dist", "build", "docs", ".tox", ".git", "__pycache__"]
-doctest_optionflags = ["NUMBER", "NORMALIZE_WHITESPACE", "IGNORE_EXCEPTION_DETAIL", "ELLIPSIS"]
+norecursedirs = [
+    "hooks",
+    "*.egg",
+    ".eggs",
+    "dist",
+    "build",
+    "docs",
+    ".tox",
+    ".git",
+    "__pycache__",
+]
+doctest_optionflags = [
+    "NUMBER",
+    "NORMALIZE_WHITESPACE",
+    "IGNORE_EXCEPTION_DETAIL",
+    "ELLIPSIS",
+]
 addopts = [
     "--strict-markers",
     "--tb=short",

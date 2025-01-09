@@ -12,8 +12,8 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 ## Dependency & installation
 
 ### Requirements
-- Python == 3.11
-- Additional package dependencies include: NumPy, SciPy, Numba, PyTorch, Matplotlib, H5py, tqdm, and Click (detailed in `pyproject.toml`)
+  - Python version: 3.11
+  - Additional package dependencies include: NumPy, SciPy, Numba, PyTorch, Matplotlib, H5py, tqdm, and Click (detailed in `pyproject.toml`)
 
 ### Installation
 
@@ -22,6 +22,14 @@ git clone https://github.com/hanson-hschang/Signal-System.git
 cd Signal-System
 pip install .
 ```
+
+## Example
+
+Please refer to [`examples` directory](https://github.com/hanson-hschang/Signal-System/tree/main/examples) and learn how to use this **Signal & System** library.
+Three types of examples are provided:
+  - [`system`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/system) provides various dynamic system simulations.
+  - [`control`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/control) provides various control methods over dynamic systems.
+  - [`estimation`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/estimation) provides various filtering and smoothing examples for each dynamic systems.
 
 ## Developer environment setup
 
@@ -65,8 +73,7 @@ pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 
 ### Code Style
 
-- Line length is limited to 80 characters
-- Follow PEP 8 guidelines
+- Follow [PEP 8](https://peps.python.org/pep-0008/) guidelines
 - Type hints are required for all functions
 - Documentation strings should follow Google style
 

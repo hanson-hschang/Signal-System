@@ -28,15 +28,18 @@ jobs:
             path: ~/Library/Caches/pip
           - os: windows-latest
             path: ~\AppData\Local\pip\Cache
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
+
       # Ref: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4.2.0
         with:
           python-version: ${{ matrix.python-version }}
+
       # Test the matrix by printing the current Python version
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
