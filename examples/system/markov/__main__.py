@@ -2,8 +2,7 @@ import click
 from tqdm import tqdm
 
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
-from ss.utility.logging import Logging
-from ss.utility.path import PathManager
+from ss.utility import basic_config
 
 
 @click.command()
@@ -42,13 +41,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    path_manager = PathManager(__file__)
-    result_directory = path_manager.result_directory
-    Logging.basic_config(
-        filename=path_manager.logging_filepath,
-        verbose=verbose,
-        debug=debug,
-    )
+    result_directory = basic_config(__file__, verbose, debug)
 
     epsilon = 0.01
     transition_probability_matrix = [

@@ -1,6 +1,7 @@
 import click
 
 from ss.system.examples.cart_pole import CartPoleSystem
+from ss.utility import basic_config
 
 
 @click.command()
@@ -40,6 +41,16 @@ from ss.system.examples.cart_pole import CartPoleSystem
     default=1,
     help="Set the number of systems (positive integers).",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
 def main(
     cart_mass: float,
     pole_mass: float,
@@ -47,7 +58,11 @@ def main(
     gravity: float,
     time_step: float,
     number_of_systems: int,
+    verbose: bool,
+    debug: bool,
 ) -> None:
+    result_directory = basic_config(__file__, verbose, debug)
+
     cart_pole_system = CartPoleSystem(
         cart_mass=cart_mass,
         pole_mass=pole_mass,
