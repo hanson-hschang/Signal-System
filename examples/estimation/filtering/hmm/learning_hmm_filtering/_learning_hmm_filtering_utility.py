@@ -36,7 +36,7 @@ class ObservationDataset(Dataset):
         with torch.no_grad():
             for i in range(number_of_systems):
                 _observation: torch.Tensor = torch.tensor(
-                    observation[i]
+                    observation[i], dtype=torch.int64
                 )  # (time_horizon,)
                 for t in range(0, time_horizon - max_length, stride):
                     input_trajectory: torch.Tensor = _observation[

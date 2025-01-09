@@ -46,7 +46,7 @@ class LearningHMMFilterProcess(BaseLearningProcess):
         estimated_next_observation_probability_trajectory = self._model(
             observation_trajectory=observation_trajectory
         )  # (batch_size, max_length, observation_dim)
-        _loss = self._loss_function(
+        _loss: torch.Tensor = self._loss_function(
             torch.moveaxis(
                 estimated_next_observation_probability_trajectory, 1, 2
             ),  # (batch_size, observation_dim, max_length)
