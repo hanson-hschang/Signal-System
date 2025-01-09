@@ -316,7 +316,6 @@ class ModelPredictivePathIntegralController(Controller):
 
             _current_time = 0.0
             for k in range(self._time_horizon):
-
                 # Compute the control
                 _base_control = control_trajectory[i, :, k][np.newaxis, :]
                 _control = (

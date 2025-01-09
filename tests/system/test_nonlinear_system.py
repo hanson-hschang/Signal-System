@@ -10,10 +10,8 @@ from ss.system.nonlinear import (
 
 
 class TestNonlinearSystem:
-
     @pytest.fixture
     def nonlinear_control_system(self) -> ContinuousTimeNonlinearSystem:
-
         @njit(cache=True)  # type: ignore
         def process_function(
             state: NDArray[np.float64], control: NDArray[np.float64]
@@ -48,7 +46,6 @@ class TestNonlinearSystem:
 
     @pytest.fixture
     def stochastic_nonlinear_system(self) -> ContinuousTimeNonlinearSystem:
-
         @njit(cache=True)  # type: ignore
         def process_function(state: NDArray[np.float64]) -> NDArray[np.float64]:
             process = np.zeros_like(state)
@@ -76,7 +73,6 @@ class TestNonlinearSystem:
     def stochastic_discrete_time_nonlinear_system(
         self,
     ) -> DiscreteTimeNonlinearSystem:
-
         @njit(cache=True)  # type: ignore
         def process_function(state: NDArray[np.float64]) -> NDArray[np.float64]:
             process = np.zeros_like(state)
@@ -103,7 +99,6 @@ class TestNonlinearSystem:
     def discrete_time_nonlinear_control_system(
         self,
     ) -> DiscreteTimeNonlinearSystem:
-
         @njit(cache=True)  # type: ignore
         def process_function(
             state: NDArray[np.float64], control: NDArray[np.float64]

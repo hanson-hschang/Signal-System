@@ -13,7 +13,7 @@ class QuadraticCost(Cost):
     class _CostWeightValidator(Validator):
         def __init__(self, cost_weight: ArrayLike) -> None:
             super().__init__()
-            self._cost_weight = np.array(cost_weight, dtype=np.float64)
+            self._cost_weight = np.array(cost_weight)
             self._validate_functions.append(self._validate_shape)
 
         def _validate_shape(self) -> bool:
@@ -23,7 +23,7 @@ class QuadraticCost(Cost):
             self._errors.append("cost_weight should be a square matrix")
             return False
 
-        def get_weight(self) -> NDArray[np.float64]:
+        def get_weight(self) -> NDArray:
             return self._cost_weight
 
     class _TerminalCostWeightValidator(Validator):
@@ -33,7 +33,7 @@ class QuadraticCost(Cost):
             super().__init__()
             if cost_weight is None:
                 cost_weight = np.zeros((dimension, dimension))
-            self._cost_weight = np.array(cost_weight, dtype=np.float64)
+            self._cost_weight = np.array(cost_weight)
             self._dimension = dimension
             self._validate_functions.append(self._validate_shape)
 
@@ -44,7 +44,7 @@ class QuadraticCost(Cost):
             self._errors.append("cost_weight should be a square matrix")
             return False
 
-        def get_weight(self) -> NDArray[np.float64]:
+        def get_weight(self) -> NDArray:
             return self._cost_weight
 
     class _IntrinsicVectorValidator(Validator):
@@ -54,9 +54,7 @@ class QuadraticCost(Cost):
             super().__init__()
             if intrinsic_vector is None:
                 intrinsic_vector = np.zeros(dimension)
-            self._intrinsic_vector = np.array(
-                intrinsic_vector, dtype=np.float64
-            )
+            self._intrinsic_vector = np.array(intrinsic_vector)
             self._dimension = dimension
             self._validate_functions.append(self._validate_shape)
 
@@ -69,17 +67,17 @@ class QuadraticCost(Cost):
             )
             return False
 
-        def get_vector(self) -> NDArray[np.float64]:
+        def get_vector(self) -> NDArray:
             return self._intrinsic_vector
 
     def __init__(
         self,
-        running_cost_state_weight: NDArray[np.float64],
-        running_cost_control_weight: NDArray[np.float64],
-        terminal_cost_state_weight: Optional[NDArray[np.float64]] = None,
-        terminal_cost_control_weight: Optional[NDArray[np.float64]] = None,
-        intrinsic_state: Optional[NDArray[np.float64]] = None,
-        intrinsic_control: Optional[NDArray[np.float64]] = None,
+        running_cost_state_weight: NDArray,
+        running_cost_control_weight: NDArray,
+        terminal_cost_state_weight: Optional[NDArray] = None,
+        terminal_cost_control_weight: Optional[NDArray] = None,
+        intrinsic_state: Optional[NDArray] = None,
+        intrinsic_control: Optional[NDArray] = None,
         time_step: float = 1.0,
         number_of_systems: int = 1,
     ) -> None:
@@ -174,13 +172,13 @@ class QuadraticCost(Cost):
     @staticmethod
     @njit(cache=True)  # type: ignore
     def _compute_cost(
-        cost: NDArray[np.float64],
-        state: NDArray[np.float64],
-        control: NDArray[np.float64],
-        running_cost_state_weight: NDArray[np.float64],
-        running_cost_control_weight: NDArray[np.float64],
-        intrinsic_state: NDArray[np.float64],
-        intrinsic_control: NDArray[np.float64],
+        cost: NDArray,
+        state: NDArray,
+        control: NDArray,
+        running_cost_state_weight: NDArray,
+        running_cost_control_weight: NDArray,
+        intrinsic_state: NDArray,
+        intrinsic_control: NDArray,
     ) -> None:
         for i in range(cost.shape[0]):
             delta_state = state[i, :] - intrinsic_state

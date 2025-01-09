@@ -102,7 +102,8 @@ def register_numpy() -> None:
 
     # Add numpy scalar to safe globals before loading
     from numpy import dtype
-    from numpy.core.multiarray import scalar  # type: ignore
+
+    # from numpy.core.multiarray import scalar  # type: ignore
     from numpy.dtypes import Float64DType, Int64DType
 
-    torch.serialization.add_safe_globals([scalar, dtype, Int64DType])
+    torch.serialization.add_safe_globals([dtype, Int64DType])

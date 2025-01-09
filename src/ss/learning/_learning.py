@@ -39,7 +39,6 @@ logger = Logging.get_logger(__name__)
 
 @dataclass
 class BaseLearningParameters:
-
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert dataclass to a dictionary suitable for ** unpacking.
@@ -54,7 +53,6 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
 class BaseLearningModule(nn.Module, Generic[BLP]):
-
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
     def __init__(self, params: BLP) -> None:
@@ -153,7 +151,6 @@ class CheckpointInfo(dict):
 
 
 class BaseLearningProcess:
-
     class _NumberOfEpochsValidator(PositiveIntegerValidator):
         def __init__(self, number_of_epochs: int) -> None:
             super().__init__(number_of_epochs, "number_of_epochs")
@@ -252,7 +249,6 @@ class BaseLearningProcess:
         training_loader: DataLoader,
         evaluation_loader: DataLoader,
     ) -> None:
-
         logger.info("Model evaluation before training...")
         loss = self.evaluate_model(evaluation_loader)
         self.update_evaluation_loss(loss)

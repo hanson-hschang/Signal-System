@@ -82,7 +82,6 @@ MetaInfoValueType = Union[bool, int, float, str]
 
 
 class MetaInfo(dict):
-
     class _MetaInfoValidator(Validator):
         def __init__(self, meta_info: Dict[str, MetaInfoValueType]) -> None:
             super().__init__()

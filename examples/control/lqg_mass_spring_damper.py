@@ -89,7 +89,6 @@ def main(
 
     current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
-
         # Get the current state
         current_state = system.state
 

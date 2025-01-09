@@ -36,10 +36,12 @@ logger = Logging.get_logger(__name__)
 
 
 class LearningHMMFilterProcess(BaseLearningProcess):
-
     def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
-        observation_trajectory, next_observation_trajectory = (
-            ObservationDataset.from_batch(data_batch)
+        (
+            observation_trajectory,
+            next_observation_trajectory,
+        ) = ObservationDataset.from_batch(
+            data_batch
         )  # (batch_size, max_length), (batch_size, max_length)
         estimated_next_observation_probability_trajectory = self._model(
             observation_trajectory=observation_trajectory
@@ -107,7 +109,6 @@ def visualization(
     result_directory: Path,
     model_filename: Path,
 ) -> None:
-
     # Prepare data
     data = Data.load(data_filename)
     time_horizon = data["time"].shape[-1]

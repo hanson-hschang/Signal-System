@@ -16,12 +16,11 @@ class TensorReadOnlyDescriptor:
 
 
 class TensorDescriptor(TensorReadOnlyDescriptor):
-
     def __set__(self, obj: object, value: ArrayLike) -> None:
-        value = torch.tensor(value, dtype=torch.float64)
+        _value: torch.Tensor = torch.tensor(value, dtype=torch.float64)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
-        assert value.shape == shape, (
+        assert _value.shape == shape, (
             f"{self.name} must be in the shape of {shape}. "
-            f"{self.name} given has the shape of {value.shape}."
+            f"{self.name} given has the shape of {_value.shape}."
         )
-        setattr(obj, self.private_name, value)
+        setattr(obj, self.private_name, _value)

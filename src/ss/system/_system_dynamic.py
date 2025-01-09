@@ -10,7 +10,6 @@ from ss.utility.descriptor import NDArrayDescriptor
 
 
 class ContinuousTimeSystem(System):
-
     class _NoiseCovarianceValidator(Validator):
         def __init__(
             self,

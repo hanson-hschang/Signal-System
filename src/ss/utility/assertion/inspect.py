@@ -8,7 +8,7 @@ from numpy.typing import ArrayLike, NDArray
 _array_like_types: tuple = (
     ArrayLike,
     NDArray,
-    NDArray[np.float64],
+    NDArray,
     List,
     Tuple,
     np.ndarray,
@@ -32,7 +32,7 @@ def inspect_arguments(
         ), f"{arg_name} should be of type ArrayLike"
         arg_dict[arg_name] = np.zeros(arg_name_shape_dict[arg_name])
     try:
-        result: NDArray[np.float64] = func(**arg_dict)
+        result: NDArray = func(**arg_dict)
     except TypeError as e:
         raise AssertionError(e)
     assert (

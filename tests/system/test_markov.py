@@ -5,7 +5,6 @@ from ss.system.markov import HiddenMarkovModel
 
 
 class TestMarkovChain:
-
     @pytest.fixture
     def hidden_markov_model(self) -> HiddenMarkovModel:
         return HiddenMarkovModel(

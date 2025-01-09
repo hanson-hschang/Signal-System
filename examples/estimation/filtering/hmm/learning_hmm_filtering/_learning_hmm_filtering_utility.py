@@ -20,11 +20,11 @@ class ObservationDataset(Dataset):
         max_length: int = 256,
         stride: int = 64,
     ) -> None:
-        observation = torch.tensor(observation).to(dtype=torch.int64)
+        observation = np.array(observation)
         if number_of_systems == 1:
-            observation = observation.unsqueeze(0)
+            observation = observation[np.newaxis, ...]
         assert observation.ndim == 2, (
-            "observation must be a tensor of 2 dimensions "
+            "observation must be a NDArray of 2 dimensions "
             "with the shape of (number_of_systems, time_horizon). "
             f"observation given has the shape of {observation.shape}."
         )
@@ -35,12 +35,15 @@ class ObservationDataset(Dataset):
 
         with torch.no_grad():
             for i in range(number_of_systems):
+                _observation: torch.Tensor = torch.tensor(
+                    observation[i]
+                )  # (time_horizon,)
                 for t in range(0, time_horizon - max_length, stride):
-                    input_trajectory = observation[
-                        i, t : t + max_length
+                    input_trajectory: torch.Tensor = _observation[
+                        t : t + max_length
                     ]  # (max_length,)
-                    output_trajectory = observation[
-                        i, t + 1 : t + max_length + 1
+                    output_trajectory: torch.Tensor = _observation[
+                        t + 1 : t + max_length + 1
                     ]  # (max_length,)
                     self._input_trajectory.append(
                         input_trajectory.detach().clone()
@@ -93,24 +96,20 @@ def data_split(
 
 
 def get_observation_model(
-    transition_probability_matrix: NDArray[np.float64],
-    emission_probability_matrix: NDArray[np.float64],
+    transition_probability_matrix: NDArray,
+    emission_probability_matrix: NDArray,
     future_time_steps: int = 0,
 ) -> Any:
     @njit(cache=True)  # type: ignore
     def observation_model(
-        estimated_state: NDArray[np.float64],
-        transition_probability_matrix: NDArray[
-            np.float64
-        ] = transition_probability_matrix,
-        emission_probability_matrix: NDArray[
-            np.float64
-        ] = emission_probability_matrix,
+        estimated_state: NDArray,
+        transition_probability_matrix: NDArray = transition_probability_matrix,
+        emission_probability_matrix: NDArray = emission_probability_matrix,
         future_time_steps: int = future_time_steps,
-    ) -> NDArray[np.float64]:
+    ) -> NDArray:
         for _ in range(future_time_steps):
             estimated_state = estimated_state @ transition_probability_matrix
-        estimated_next_observation = (
+        estimated_next_observation: NDArray = (
             estimated_state @ emission_probability_matrix
         )
         return estimated_next_observation
@@ -119,8 +118,8 @@ def get_observation_model(
 
 
 def observation_generator(
-    observation_trajectory: NDArray[np.float64],
-) -> Generator[Tuple[NDArray[np.float64], NDArray[np.float64]], None, None]:
+    observation_trajectory: NDArray,
+) -> Generator[Tuple[NDArray, NDArray], None, None]:
     time_horizon = observation_trajectory.shape[-1]
     for k in range(time_horizon - 1):
         yield observation_trajectory[..., k], observation_trajectory[..., k + 1]
@@ -128,8 +127,8 @@ def observation_generator(
 
 @njit(cache=True)  # type: ignore
 def cross_entropy(
-    input_probability: NDArray[np.float64],
-    target_probability: NDArray[np.float64],
+    input_probability: NDArray,
+    target_probability: NDArray,
 ) -> float:
     return -float(np.mean(target_probability * np.log(input_probability)))
 

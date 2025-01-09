@@ -5,7 +5,6 @@ from ss.system.linear import DiscreteTimeLinearSystem
 
 
 class TestDiscreteTimeLinearSystem:
-
     @pytest.fixture
     def control_system(self) -> DiscreteTimeLinearSystem:
         return DiscreteTimeLinearSystem(
@@ -24,7 +23,6 @@ class TestDiscreteTimeLinearSystem:
         )
 
     def test_wrong_initialization(self) -> None:
-
         with pytest.raises(AssertionError):
             DiscreteTimeLinearSystem(
                 state_space_matrix_A=np.array([[1, 1], [0, 1], [0, 0]]),

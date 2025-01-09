@@ -224,10 +224,11 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
                 cumsum_cost_trajectory=cumsum_cost_trajectory,
                 **kwargs,
             )
-            mean_trajectory, std_trajectory = (
-                self._compute_system_statistics_trajectory(
-                    signal_trajectory=cumsum_cost_trajectory[:, np.newaxis, :],
-                )
+            (
+                mean_trajectory,
+                std_trajectory,
+            ) = self._compute_system_statistics_trajectory(
+                signal_trajectory=cumsum_cost_trajectory[:, np.newaxis, :],
             )
             self._plot_system_statistics_cost_trajectory(
                 mean_trajectory=mean_trajectory,

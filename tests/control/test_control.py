@@ -5,7 +5,6 @@ from ss.control import Controller
 
 
 class TestController:
-
     @pytest.fixture
     def controller(self) -> Controller:
         return Controller(
