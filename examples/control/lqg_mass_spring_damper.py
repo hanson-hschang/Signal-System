@@ -15,6 +15,8 @@ from ss.system.examples.mass_spring_damper import (
     MassSpringDamperStateTrajectoryFigure,
     MassSpringDamperSystem,
 )
+from ss.utility.logging import Logging
+from ss.utility.path import PathManager
 
 
 @click.command()
@@ -48,13 +50,33 @@ from ss.system.examples.mass_spring_damper import (
     default=1,
     help="Set the number of systems (positive integers).",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
 def main(
     number_of_connections: int,
     simulation_time: float,
     time_step: float,
     step_skip: int,
     number_of_systems: int,
+    verbose: bool,
+    debug: bool,
 ) -> None:
+    path_manager = PathManager(__file__)
+    result_directory = path_manager.result_directory
+    Logging.basic_config(
+        filename=path_manager.logging_filepath,
+        verbose=verbose,
+        debug=debug,
+    )
+
     simulation_time_steps = int(simulation_time / time_step)
     system = MassSpringDamperSystem(
         number_of_connections=number_of_connections,
@@ -116,10 +138,8 @@ def main(
     system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
-    parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
-    data_folder_directory = parent_directory / Path(__file__).stem
-    system_callback.save(data_folder_directory / "system.hdf5")
-    cost_callback.save(data_folder_directory / "cost.hdf5")
+    system_callback.save(result_directory / "system.hdf5")
+    cost_callback.save(result_directory / "cost.hdf5")
 
     # Plot the data
     MassSpringDamperStateTrajectoryFigure(
