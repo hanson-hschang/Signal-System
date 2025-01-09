@@ -1,7 +1,8 @@
-from typing import Optional, Self, Tuple
+from typing import Optional, Self, Tuple, cast
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
 from matplotlib.colorbar import Colorbar
 from matplotlib.colors import Normalize
 from numpy.typing import ArrayLike, NDArray
@@ -11,7 +12,6 @@ from ss.utility.figure import SequenceTrajectoryFigure
 
 
 class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
-
     class _SignalTrajectoryValidator(Validator):
         def __init__(
             self,
@@ -64,7 +64,6 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
     ) -> None:
-
         time_length = np.array(time_trajectory).shape[0]
         self._state_trajectory = self._SignalTrajectoryValidator(
             signal_trajectory=state_trajectory,
@@ -99,7 +98,9 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
             sequence_trajectory=time_trajectory,
             fig_size=fig_size,
             fig_title=(
-                "Hidden Markov Model Filter" if fig_title is None else fig_title
+                "Hidden Markov Model Filter"
+                if fig_title is None
+                else fig_title
             ),
             fig_layout=fig_layout,
         )
@@ -149,7 +150,7 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
         return self
 
     def _create_color_bar(self) -> Colorbar:
-        ax = self._fig.subplots(1, 1)
+        ax: Axes = self._fig.subplots(1, 1)
         ax.set_frame_on(False)
         ax.set_xticks([])
         ax.set_yticks([])

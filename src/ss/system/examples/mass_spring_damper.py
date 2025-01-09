@@ -236,10 +236,11 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
             self._plot_each_system_trajectory(
                 **kwargs,
             )
-            mean_trajectory, std_trajectory = (
-                self._compute_system_statistics_trajectory(
-                    signal_trajectory=self._state_trajectory,
-                )
+            (
+                mean_trajectory,
+                std_trajectory,
+            ) = self._compute_system_statistics_trajectory(
+                signal_trajectory=self._state_trajectory,
             )
             self._plot_systems_statistics_trajectory(
                 mean_trajectory=mean_trajectory,
@@ -263,7 +264,9 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                         **kwargs,
                     )
                     ylim_range = (
-                        self._position_range if d == 0 else self._velocity_range
+                        self._position_range
+                        if d == 0
+                        else self._velocity_range
                     )
                     self._subplots[d][j].set_ylim(*ylim_range)
         for d, state_name in enumerate(self._state_name):

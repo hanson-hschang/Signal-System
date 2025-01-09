@@ -7,7 +7,6 @@ from ss.utility.callback import Callback
 
 
 class TestCallback:
-
     @pytest.fixture
     def callback(self) -> Callback:
         return Callback(step_skip=10)

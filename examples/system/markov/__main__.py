@@ -1,10 +1,8 @@
-import os
-from pathlib import Path
-
 import click
 from tqdm import tqdm
 
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.utility import basic_config
 
 
 @click.command()
@@ -26,11 +24,25 @@ from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
     default=1,
     help="Set the number of systems (positive integers).",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
 def main(
     simulation_time_steps: int,
     step_skip: int,
     number_of_systems: int,
+    verbose: bool,
+    debug: bool,
 ) -> None:
+    result_directory = basic_config(__file__, verbose, debug)
+
     epsilon = 0.01
     transition_probability_matrix = [
         [0, 0.5, 0.5],
@@ -61,9 +73,7 @@ def main(
     system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
-    parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
-    data_folder_directory = parent_directory / Path(__file__).stem
-    system_callback.save(data_folder_directory / "system.hdf5")
+    system_callback.save(result_directory / "system.hdf5")
 
 
 if __name__ == "__main__":

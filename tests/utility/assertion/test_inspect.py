@@ -6,11 +6,9 @@ from ss.utility.assertion.inspect import inspect_arguments
 
 
 def test_inspect_arguments() -> None:
-
-    def func(
-        a: NDArray[np.float64], b: NDArray[np.float64]
-    ) -> NDArray[np.float64]:
-        return a + b
+    def func(a: NDArray, b: NDArray) -> NDArray:
+        result: NDArray = a + b
+        return result
 
     arg_name_shape_dict = {"a": (1,), "b": (1,)}
     result_func = inspect_arguments(

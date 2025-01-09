@@ -39,22 +39,20 @@ class System:
         self._observation_dim = int(observation_dim)
         self._control_dim = int(control_dim)
         self._number_of_systems = int(number_of_systems)
-        self._state = np.zeros(
-            (self._number_of_systems, self._state_dim), dtype=np.float64
-        )
+        self._state = np.zeros((self._number_of_systems, self._state_dim))
         self._observation = np.zeros(
-            (self._number_of_systems, self._observation_dim), dtype=np.float64
+            (self._number_of_systems, self._observation_dim)
         )
-        self._control = np.zeros(
-            (self._number_of_systems, self._control_dim), dtype=np.float64
-        )
+        self._control = np.zeros((self._number_of_systems, self._control_dim))
 
     state_dim = ReadOnlyDescriptor[int]()
     observation_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
     state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemNDArrayDescriptor("_number_of_systems", "_control_dim")
+    control = MultiSystemNDArrayDescriptor(
+        "_number_of_systems", "_control_dim"
+    )
 
     def duplicate(self, number_of_systems: int) -> "System":
         """
@@ -98,7 +96,7 @@ class System:
         )
         return time
 
-    def observe(self) -> NDArray[np.float64]:
+    def observe(self) -> NDArray:
         """
         Make observation of each system based on the current state.
 
@@ -112,7 +110,7 @@ class System:
             self._compute_observation_process(),
             self._compute_observation_noise(),
         )
-        observation: NDArray[np.float64] = (
+        observation: NDArray = (
             self._observation[0]
             if self._number_of_systems == 1
             else self._observation
@@ -122,22 +120,22 @@ class System:
     @staticmethod
     @njit(cache=True)  # type: ignore
     def _update(
-        array: NDArray[np.float64],
-        process: NDArray[np.float64],
-        noise: NDArray[np.float64],
+        array: NDArray,
+        process: NDArray,
+        noise: NDArray,
     ) -> None:
         array[:, :] = process + noise
 
-    def _compute_process_noise(self) -> NDArray[np.float64]:
+    def _compute_process_noise(self) -> NDArray:
         return np.zeros_like(self._state)
 
-    def _compute_observation_noise(self) -> NDArray[np.float64]:
+    def _compute_observation_noise(self) -> NDArray:
         return np.zeros_like(self._observation)
 
-    def _compute_state_process(self) -> NDArray[np.float64]:
+    def _compute_state_process(self) -> NDArray:
         return self._state
 
-    def _compute_observation_process(self) -> NDArray[np.float64]:
+    def _compute_observation_process(self) -> NDArray:
         return np.zeros_like(self._observation)
 
 

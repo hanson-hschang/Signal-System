@@ -5,7 +5,6 @@ from ss.system import ContinuousTimeSystem, DiscreteTimeSystem
 
 
 class TestSystem:
-
     @pytest.fixture
     def continuous_time_system(self) -> ContinuousTimeSystem:
         return ContinuousTimeSystem(

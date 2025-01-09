@@ -81,8 +81,11 @@ class LearningHiddenMarkovModelFilterBlock(
         return self._estimated_next_state_probability
 
     def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
-
-        batch_size, horizon_of_observation_trajectory, _ = (
+        (
+            batch_size,
+            horizon_of_observation_trajectory,
+            _,
+        ) = (
             emission_trajectory.shape
         )  # (batch_size, horizon_of_observation_trajectory, state_dim)
         estimated_next_state_probability_trajectory = torch.zeros(
@@ -100,7 +103,6 @@ class LearningHiddenMarkovModelFilterBlock(
         )  # (batch_size, state_dim)
 
         for k in range(horizon_of_observation_trajectory):
-
             unnormalized_conditional_probability = (
                 estimated_next_state_probability * emission_trajectory[:, k, :]
             )

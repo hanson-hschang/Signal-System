@@ -8,6 +8,7 @@ from ss.system.examples.mass_spring_damper import (
     MassSpringDamperSystem,
     ObservationChoice,
 )
+from ss.utility import basic_config
 
 
 @click.command()
@@ -65,6 +66,16 @@ from ss.system.examples.mass_spring_damper import (
     default=ControlChoice.NO_CONTROL,
     help="Set the control choice.",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
 def main(
     number_of_connections: int,
     damping_coefficient: float,
@@ -74,7 +85,11 @@ def main(
     observation_noise_variance: float,
     observation_choice: str,
     control_choice: str,
+    verbose: bool,
+    debug: bool,
 ) -> None:
+    result_directory = basic_config(__file__, verbose, debug)
+
     control_choice = ControlChoice(control_choice)
     observation_choice = ObservationChoice(observation_choice)
     match observation_choice:
@@ -87,7 +102,9 @@ def main(
                 [observation_noise_variance] * number_of_connections
             )
         case ObservationChoice.LAST_POSITION:
-            observation_noise_covariance = np.diag([observation_noise_variance])
+            observation_noise_covariance = np.diag(
+                [observation_noise_variance]
+            )
         case _ as unmatched_observation_choice:
             assert_never(unmatched_observation_choice)
     process_noise_covariance = process_noise_variance * np.eye(

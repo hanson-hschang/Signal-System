@@ -22,7 +22,6 @@ class MatrixClass:
 
 
 class TestTensorDescriptor:
-
     @pytest.fixture
     def vector(self) -> VectorClass:
         return VectorClass()

@@ -31,7 +31,10 @@ from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
-from ss.utility.learning.registration import register_numpy, register_subclasses
+from ss.utility.learning.registration import (
+    register_numpy,
+    register_subclasses,
+)
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -39,7 +42,6 @@ logger = Logging.get_logger(__name__)
 
 @dataclass
 class BaseLearningParameters:
-
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert dataclass to a dictionary suitable for ** unpacking.
@@ -54,7 +56,6 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
 class BaseLearningModule(nn.Module, Generic[BLP]):
-
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
     def __init__(self, params: BLP) -> None:
@@ -153,7 +154,6 @@ class CheckpointInfo(dict):
 
 
 class BaseLearningProcess:
-
     class _NumberOfEpochsValidator(PositiveIntegerValidator):
         def __init__(self, number_of_epochs: int) -> None:
             super().__init__(number_of_epochs, "number_of_epochs")
@@ -252,13 +252,14 @@ class BaseLearningProcess:
         training_loader: DataLoader,
         evaluation_loader: DataLoader,
     ) -> None:
-
         logger.info("Model evaluation before training...")
         loss = self.evaluate_model(evaluation_loader)
         self.update_evaluation_loss(loss)
 
         epoch_idx, checkpoint_idx = 0, 0
-        checkpoint_idx = self.save_intermediate_model(epoch_idx, checkpoint_idx)
+        checkpoint_idx = self.save_intermediate_model(
+            epoch_idx, checkpoint_idx
+        )
 
         logger.info("Training...")
         for epoch_idx in range(1, self._number_of_epochs + 1):

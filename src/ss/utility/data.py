@@ -23,9 +23,9 @@ class MetaData(dict):
         ) -> None:
             super().__init__()
             self._meta_data = meta_data
-            self._validated_meta_data: Dict[str, Union[NDArray, "MetaData"]] = (
-                dict()
-            )
+            self._validated_meta_data: Dict[
+                str, Union[NDArray, "MetaData"]
+            ] = dict()
             self.add_validation(self._validate_meta_data)
 
         def _validate_meta_data(self) -> bool:
@@ -82,7 +82,6 @@ MetaInfoValueType = Union[bool, int, float, str]
 
 
 class MetaInfo(dict):
-
     class _MetaInfoValidator(Validator):
         def __init__(self, meta_info: Dict[str, MetaInfoValueType]) -> None:
             super().__init__()

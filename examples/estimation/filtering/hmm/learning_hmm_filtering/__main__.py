@@ -53,7 +53,6 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-
     path_manager = PathManager(__file__)
     result_directory = path_manager.result_directory
     Logging.basic_config(

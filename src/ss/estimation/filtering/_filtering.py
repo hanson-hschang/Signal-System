@@ -2,7 +2,6 @@ from ss.estimation import Estimator
 
 
 class Filter(Estimator):
-
     def __init__(
         self,
         state_dim: int,
