@@ -12,7 +12,7 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 ## Dependency & installation
 
 ### Requirements
-- Python >= 3.10, < 3.12
+- Python == 3.11
 - Additional package dependencies include: NumPy, SciPy, Numba, PyTorch, Matplotlib, H5py, tqdm, and Click (detailed in `pyproject.toml`)
 
 ### Installation
