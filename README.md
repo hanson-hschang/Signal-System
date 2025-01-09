@@ -17,7 +17,34 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 
 ### Installation
 
+Before installation, create a Python virtual environment to manage dependencies and ensure a clean installation of the **Signal & System** package.
+
+  1. Create and activate a virtual environment in your working folder: (one may use your preferred way to create a virtual environment)
+
 ```bash
+# Change directory to your working folder
+cd /path/to/your/working/folder
+
+# Create a virtual environment with python version 3.11
+python3.11 -m venv .venv
+
+# Activate the virtual environment
+# On Windows:
+.venv\Scripts\activate
+# On macOS/Linux:
+source .venv/bin/activate
+
+# Note: Exit the virtual environment
+deactivate
+```
+
+  2. Install Package: (two methods)
+
+```bash
+# Install directly from GitHub
+python -m pip install git+https://github.com/hanson-hschang/Signal-System.git
+
+# Or clone and install
 git clone https://github.com/hanson-hschang/Signal-System.git
 cd Signal-System
 pip install .
@@ -25,7 +52,7 @@ pip install .
 
 ## Example
 
-Please refer to [`examples` directory](https://github.com/hanson-hschang/Signal-System/tree/main/examples) and learn how to use this **Signal & System** library.
+Please refer to [`examples` directory](https://github.com/hanson-hschang/Signal-System/tree/main/examples) and learn how to use this **Signal & System** package.
 Three types of examples are provided:
   - [`system`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/system) provides various dynamic system simulations.
   - [`control`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/control) provides various control methods over dynamic systems.
@@ -102,7 +129,7 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Run the tests (`pytest tests/`)
+4. Run the tests (`pytest -c pyproject.toml`)
 5. Commit your changes (`git commit -m "feat: Add some amazing feature"`)
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
