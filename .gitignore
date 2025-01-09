@@ -1,5 +1,9 @@
-# model files
+# visualization results
+*.png
+
+# pytorch model files
 *.pt
+*.pth
 
 # data files
 *.hdf5

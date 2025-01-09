@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 
 from pathlib import Path
 
@@ -37,6 +37,12 @@ def is_nonnegative_integer(number: Union[int, float]) -> bool:
     return False
 
 
+def check_directory_existence(directory: Union[str, Path]) -> bool:
+    if not isinstance(directory, (str, Path)):
+        return False
+    return Path(directory).is_dir()
+
+
 def check_parent_directory_existence(filename: Union[str, Path]) -> bool:
     if not isinstance(filename, (str, Path)):
         return False
@@ -46,15 +52,17 @@ def check_parent_directory_existence(filename: Union[str, Path]) -> bool:
     return directory.exists()
 
 
-def is_extension_valid(extension: str) -> bool:
-    if not isinstance(extension, str):
-        return False
-    return extension.startswith(".")
+def is_extension_valid(extension: Union[str, Iterable[str]]) -> bool:
+    if isinstance(extension, str):
+        return extension.startswith(".")
+    if isinstance(extension, Iterable):
+        return all([ext.startswith(".") for ext in extension])
+    return False
 
 
 def is_filepath_valid(
     filename: Union[str, Path],
-    extension: Optional[str] = None,
+    extension: Optional[Union[str, Iterable[str]]] = None,
 ) -> bool:
     if not isinstance(filename, (str, Path)):
         return False
@@ -62,13 +70,16 @@ def is_filepath_valid(
     if not check_parent_directory_existence(filepath):
         return False
     if extension is not None:
-        return filepath.suffix == extension
+        extension = (
+            extension if isinstance(extension, Iterable) else (extension,)
+        )
+        return filepath.suffix in extension
     return filepath.is_file()
 
 
 def check_filepath_existence(
     filename: Union[str, Path],
-    extension: Optional[str] = None,
+    extension: Optional[Union[str, Iterable[str]]] = None,
 ) -> bool:
     if not is_filepath_valid(filename, extension):
         return False

@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Optional, Union
+
+from pathlib import Path
 
 import numpy as np
 from numba import njit
@@ -275,3 +277,10 @@ class MarkovChainCallback(SystemCallback):
         self._callback_params["observation_value"].append(
             self._system.observation_value.copy()
         )
+
+    def save(self, filename: Union[str, Path]) -> None:
+        self.add_meta_data(
+            transition_probability_matrix=self._system.transition_probability_matrix,
+            emission_probability_matrix=self._system.emission_probability_matrix,
+        )
+        super().save(filename)

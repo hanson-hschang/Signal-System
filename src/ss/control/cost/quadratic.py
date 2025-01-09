@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.control.cost import Cost
 from ss.utility.assertion.validator import Validator
-from ss.utility.descriptor import TensorDescriptor
+from ss.utility.descriptor import NDArrayDescriptor
 
 
 class QuadraticCost(Cost):
@@ -113,16 +113,16 @@ class QuadraticCost(Cost):
             number_of_systems=number_of_systems,
         )
 
-    running_cost_state_weight = TensorDescriptor("_state_dim", "_state_dim")
-    running_cost_control_weight = TensorDescriptor(
+    running_cost_state_weight = NDArrayDescriptor("_state_dim", "_state_dim")
+    running_cost_control_weight = NDArrayDescriptor(
         "_control_dim", "_control_dim"
     )
-    terminal_cost_state_weight = TensorDescriptor("_state_dim", "_state_dim")
-    terminal_cost_control_weight = TensorDescriptor(
+    terminal_cost_state_weight = NDArrayDescriptor("_state_dim", "_state_dim")
+    terminal_cost_control_weight = NDArrayDescriptor(
         "_control_dim", "_control_dim"
     )
-    intrinsic_state = TensorDescriptor("_state_dim")
-    intrinsic_control = TensorDescriptor("_control_dim")
+    intrinsic_state = NDArrayDescriptor("_state_dim")
+    intrinsic_control = NDArrayDescriptor("_control_dim")
 
     def duplicate(self, number_of_systems: int) -> "QuadraticCost":
         """

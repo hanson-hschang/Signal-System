@@ -10,23 +10,23 @@ from numpy.typing import ArrayLike, NDArray
 from ss.utility.assertion import is_positive_integer, is_positive_number
 
 
-class TimeTrajectoryFigure:
+class SequenceTrajectoryFigure:
     def __init__(
         self,
-        time_trajectory: ArrayLike,
+        sequence_trajectory: ArrayLike,
         number_of_systems: int = 1,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
     ) -> None:
-        time_trajectory = np.array(time_trajectory)
-        assert time_trajectory.ndim == 1, (
-            f"time_trajectory must be in the shape of (time_horizon,). "
-            f"time_trajectory given has the shape of {time_trajectory.shape}."
+        sequence_trajectory = np.array(sequence_trajectory)
+        assert sequence_trajectory.ndim == 1, (
+            f"sequency_trajectory must be in the shape of (sequence_length,). "
+            f"sequency_trajectory given has the shape of {sequence_trajectory.shape}."
         )
-        assert np.all(np.diff(time_trajectory) > 0), (
-            f"time_trajectory must be monotonically increasing. "
-            f"time_trajectory given is {time_trajectory}."
+        assert np.all(np.diff(sequence_trajectory) > 0), (
+            f"sequency_trajectory must be monotonically increasing. "
+            f"sequency_trajectory given is {sequence_trajectory}."
         )
         assert is_positive_integer(
             number_of_systems
@@ -47,8 +47,8 @@ class TimeTrajectoryFigure:
             ]
         ), f"values of {fig_layout = } must be positive integers."
 
-        self._time_trajectory = time_trajectory
-        self._time_length = time_trajectory.shape[0]
+        self._sequence_trajectory = sequence_trajectory
+        self._sequence_length = sequence_trajectory.shape[0]
         self._number_of_systems = number_of_systems
         self._default_color = "C0"
         self._default_alpha = 0.2
@@ -68,7 +68,7 @@ class TimeTrajectoryFigure:
                     self._fig.add_subplot(self._grid_spec[row, col])
                 )
 
-        self._sup_xlabel = "Time (sec)"
+        self._sup_xlabel = "sequence"
         self._color_map = plt.get_cmap("Greys")
 
     def plot(self) -> Self:
@@ -82,16 +82,16 @@ class TimeTrajectoryFigure:
         self,
         ax: Axes,
         signal_trajectory: NDArray[np.float64],
-        label: Optional[str] = None,
+        ylabel: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
         ax.plot(
-            self._time_trajectory,
+            self._sequence_trajectory,
             signal_trajectory,
             **kwargs,
         )
-        if label is not None:
-            ax.set_ylabel(label)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
         ax.grid(True)
 
     def _compute_system_statistics_trajectory(
@@ -109,11 +109,11 @@ class TimeTrajectoryFigure:
         std_trajectory: NDArray[np.float64],
     ) -> None:
         ax.plot(
-            self._time_trajectory,
+            self._sequence_trajectory,
             mean_trajectory,
         )
         ax.fill_between(
-            self._time_trajectory,
+            self._sequence_trajectory,
             mean_trajectory - std_trajectory,
             mean_trajectory + std_trajectory,
             alpha=self._default_std_alpha,
@@ -124,21 +124,23 @@ class TimeTrajectoryFigure:
         ax: Axes,
         probability_trajectory: NDArray[np.float64],
     ) -> QuadMesh:
-        time_horizon = self._time_trajectory[-1] - self._time_trajectory[0]
+        time_horizon = (
+            self._sequence_trajectory[-1] - self._sequence_trajectory[0]
+        )
         time_lim = (
-            self._time_trajectory[0] - time_horizon * 0.05,
-            self._time_trajectory[-1] + time_horizon * 0.05,
+            self._sequence_trajectory[0] - time_horizon * 0.05,
+            self._sequence_trajectory[-1] + time_horizon * 0.05,
         )
         dimension = probability_trajectory.shape[0]
         for d in range(dimension - 1):
             ax.axhline(d + 0.5, color="black", linewidth=0.5, linestyle="--")
 
-        time_grid, probability_grid = np.meshgrid(
-            self._time_trajectory,
+        sequence_grid, probability_grid = np.meshgrid(
+            self._sequence_trajectory,
             np.arange(dimension),
         )
         image_mesh = ax.pcolormesh(
-            time_grid,
+            sequence_grid,
             probability_grid,
             probability_trajectory,
             cmap=self._color_map,
@@ -149,3 +151,22 @@ class TimeTrajectoryFigure:
         ax.set_xlim(time_lim)
         ax.set_yticks(np.arange(dimension))
         return image_mesh
+
+
+class TimeTrajectoryFigure(SequenceTrajectoryFigure):
+    def __init__(
+        self,
+        time_trajectory: ArrayLike,
+        number_of_systems: int = 1,
+        fig_size: Tuple = (12, 8),
+        fig_title: Optional[str] = None,
+        fig_layout: Tuple[int, int] = (1, 1),
+    ) -> None:
+        super().__init__(
+            sequence_trajectory=time_trajectory,
+            number_of_systems=number_of_systems,
+            fig_size=fig_size,
+            fig_title=fig_title,
+            fig_layout=fig_layout,
+        )
+        self._sup_xlabel = "Time (sec)"

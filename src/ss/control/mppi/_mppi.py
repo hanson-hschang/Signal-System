@@ -15,7 +15,7 @@ from ss.utility.assertion.validator import (
     Validator,
 )
 from ss.utility.descriptor import (
-    MultiSystemTensorDescriptor,
+    MultiSystemNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -251,11 +251,11 @@ class ModelPredictivePathIntegralController(Controller):
     time_horizon = ReadOnlyDescriptor[int]()
     number_of_samples = ReadOnlyDescriptor[int]()
     smoothing_window_size = ReadOnlyDescriptor[int]()
-    system_state = MultiSystemTensorDescriptor(
+    system_state = MultiSystemNDArrayDescriptor(
         "_number_of_systems",
         "_state_dim",
     )
-    control_trajectory = MultiSystemTensorDescriptor(
+    control_trajectory = MultiSystemNDArrayDescriptor(
         "_number_of_systems",
         "_control_dim",
         "_time_horizon",

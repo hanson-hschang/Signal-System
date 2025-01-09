@@ -8,7 +8,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system.nonlinear import ContinuousTimeNonlinearSystem
-from ss.utility.figure import TimeTrajectoryFigure
+from ss.utility.figure import SequenceTrajectoryFigure
 
 
 class CartPoleSystem(ContinuousTimeNonlinearSystem):
@@ -114,7 +114,7 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
         )
 
 
-class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
+class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
     """
     Figure for plotting the state trajectories of a cart-pole system.
     """
@@ -147,7 +147,7 @@ class CartPoleStateTrajectoryFigure(TimeTrajectoryFigure):
             fig_title="Cart-Pole System State Trajectory",
             fig_layout=(2, 2),
         )
-        assert state_trajectory.shape[2] == self._time_length, (
+        assert state_trajectory.shape[2] == self._sequence_length, (
             "state_trajectory must have the same length of time_trajectory."
             "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
         )

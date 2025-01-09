@@ -1,0 +1,48 @@
+from typing import Union
+
+import os
+from datetime import datetime
+from pathlib import Path
+
+from ss.utility.assertion.validator import FolderPathExistenceValidator
+
+
+class PathManager:
+    def __init__(self, file: str) -> None:
+        self._file = Path(file)
+        self._abspath = os.path.abspath(self._file)
+        self._date = datetime.now().strftime(r"%Y%m%d")
+        self._parent_directory_path = Path(os.path.dirname(self._abspath))
+        self._result_directory_appendix = "_result"
+        if self._file.stem == "__main__":
+            self._result_directory_path = Path(
+                self._parent_directory_path.as_posix()
+                + self._result_directory_appendix
+            )
+        else:
+            self._result_directory_path = self._parent_directory_path / (
+                self._file.stem + self._result_directory_appendix
+            )
+        self._logger_filename = self._date + ".log"
+
+    @property
+    def parent_directory(self) -> Path:
+        return self._parent_directory_path
+
+    @property
+    def result_directory(self) -> Path:
+        return self._result_directory_path
+
+    @property
+    def current_date_directory(self) -> Path:
+        return Path(self._date)
+
+    @property
+    def logging_filepath(self) -> Path:
+        return self._result_directory_path / Path(self._logger_filename)
+
+    def get_other_result_directory(self, foldername: Union[str, Path]) -> Path:
+        other_result_directory = FolderPathExistenceValidator(
+            self._result_directory_path / Path(foldername)
+        ).get_folderpath()
+        return other_result_directory

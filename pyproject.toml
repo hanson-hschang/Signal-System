@@ -26,7 +26,6 @@ classifiers = [
 # ...
 packages = [
     { include = "ss", from = "src" },
-    { include = "lss", from = "src" },
 ]
 
 [tool.poetry.dependencies]
@@ -96,7 +95,7 @@ strict = true
 allow_redefinition = false
 check_untyped_defs = false  # TODO: Disabled cuz it might be to harsh condition, but open to discussion.
 disallow_subclassing_any = false # TODO: Disabled cuz it might be to harsh condition, but open to discussion.
-disallow_untyped_calls = true
+disallow_untyped_calls = false # TODO: loss.backward() -> error: Call to untyped function "backward" in typed context  [no-untyped-call]
 disallow_any_generics = false
 disallow_incomplete_defs = true
 ignore_missing_imports = true

@@ -1,5 +1,7 @@
 from typing import Union
 
+from pathlib import Path
+
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
@@ -7,7 +9,7 @@ from numpy.typing import NDArray
 from ss.utility.assertion import is_nonnegative_integer, is_positive_integer
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
-    MultiSystemTensorDescriptor,
+    MultiSystemNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -51,8 +53,8 @@ class System:
     observation_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
-    state = MultiSystemTensorDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemTensorDescriptor("_number_of_systems", "_control_dim")
+    state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
+    control = MultiSystemNDArrayDescriptor("_number_of_systems", "_control_dim")
 
     def duplicate(self, number_of_systems: int) -> "System":
         """
@@ -158,3 +160,12 @@ class SystemCallback(Callback):
         self._callback_params["observation"].append(
             self._system.observe().copy()
         )
+
+    def save(self, filename: Union[str, Path]) -> None:
+        self.add_meta_info(
+            state_dim=self._system.state_dim,
+            observation_dim=self._system.observation_dim,
+            control_dim=self._system.control_dim,
+            number_of_systems=self._system.number_of_systems,
+        )
+        super().save(filename)

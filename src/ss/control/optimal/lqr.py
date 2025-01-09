@@ -13,7 +13,7 @@ from ss.system.linear import (
 )
 from ss.utility.assertion import is_nonnegative_integer
 from ss.utility.descriptor import (
-    MultiSystemTensorDescriptor,
+    MultiSystemNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -90,7 +90,7 @@ class LinearQuadraticRegulatorController(Controller):
             pass
 
     time_horizon = ReadOnlyDescriptor[int]()
-    system_state = MultiSystemTensorDescriptor(
+    system_state = MultiSystemNDArrayDescriptor(
         "_number_of_systems",
         "_state_dim",
     )
