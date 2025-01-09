@@ -8,18 +8,18 @@ class TestDiscreteTimeLinearSystem:
     @pytest.fixture
     def control_system(self) -> DiscreteTimeLinearSystem:
         return DiscreteTimeLinearSystem(
-            state_space_matrix_A=np.array([[1, 1], [0, 1]]),
-            state_space_matrix_B=np.array([[0], [1]]),
-            state_space_matrix_C=np.array([[1, 0], [1, 1]]),
+            state_space_matrix_A=np.array([[1.0, 1.0], [0.0, 1.0]]),
+            state_space_matrix_B=np.array([[0.0], [1.0]]),
+            state_space_matrix_C=np.array([[1.0, 0.0], [1.0, 1.0]]),
         )
 
     @pytest.fixture
     def stochastic_system(self) -> DiscreteTimeLinearSystem:
         return DiscreteTimeLinearSystem(
-            state_space_matrix_A=np.array([[1]]),
-            state_space_matrix_C=np.array([[1]]),
-            process_noise_covariance=np.array([[1]]),
-            observation_noise_covariance=np.array([[1]]),
+            state_space_matrix_A=np.array([[1.0]]),
+            state_space_matrix_C=np.array([[1.0]]),
+            process_noise_covariance=np.array([[1.0]]),
+            observation_noise_covariance=np.array([[1.0]]),
         )
 
     def test_wrong_initialization(self) -> None:
@@ -72,12 +72,12 @@ class TestDiscreteTimeLinearSystem:
     def test_control_system_process(
         self, control_system: DiscreteTimeLinearSystem
     ) -> None:
-        control_system.state = np.array([1, 2])
-        control_system.control = [1]
+        control_system.state = np.array([1.0, 2.0])
+        control_system.control = [1.0]
         time = control_system.process(0)
-        assert np.all(control_system.state == np.array([3, 3]))
+        assert np.all(control_system.state == np.array([3.0, 3.0]))
         observation = control_system.observe()
-        assert np.all(observation == np.array([3, 6]))
+        assert np.all(observation == np.array([3.0, 6.0]))
         assert time == 1
 
     def test_stochastic_system_process(

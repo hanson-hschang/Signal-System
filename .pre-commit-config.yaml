@@ -21,13 +21,20 @@ repos:
     hooks:
       - id: isort
         name: isort
-        entry: isort --settings-path pyproject.toml
+        entry: isort --settings-path pyproject.toml ./
         types: [python]
         language: system
   - repo: local
     hooks:
       - id: black
         name: black
-        entry: black --config pyproject.toml
+        entry: black --config pyproject.toml ./
+        types: [python]
+        language: system
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy --config-file pyproject.toml
         types: [python]
         language: system

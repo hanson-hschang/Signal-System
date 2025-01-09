@@ -13,9 +13,7 @@ class TestNonlinearSystem:
     @pytest.fixture
     def nonlinear_control_system(self) -> ContinuousTimeNonlinearSystem:
         @njit(cache=True)  # type: ignore
-        def process_function(
-            state: NDArray[np.float64], control: NDArray[np.float64]
-        ) -> NDArray[np.float64]:
+        def process_function(state: NDArray, control: NDArray) -> NDArray:
             process = np.zeros_like(state)
             process[:, 0] = state[:, 1] * state[:, 1]
             process[:, 1] = -state[:, 0] + control[:, 0]
@@ -23,14 +21,14 @@ class TestNonlinearSystem:
 
         @njit(cache=True)  # type: ignore
         def observation_function(
-            state: NDArray[np.float64],
-        ) -> NDArray[np.float64]:
+            state: NDArray,
+        ) -> NDArray:
             return state[:, 0:1]
 
         @njit(cache=True)  # type: ignore
         def state_constraint_function(
-            state: NDArray[np.float64],
-        ) -> NDArray[np.float64]:
+            state: NDArray,
+        ) -> NDArray:
             state[:, 1] = (state[:, 1] + np.pi) % (2 * np.pi) - np.pi
             return state
 
@@ -47,7 +45,7 @@ class TestNonlinearSystem:
     @pytest.fixture
     def stochastic_nonlinear_system(self) -> ContinuousTimeNonlinearSystem:
         @njit(cache=True)  # type: ignore
-        def process_function(state: NDArray[np.float64]) -> NDArray[np.float64]:
+        def process_function(state: NDArray) -> NDArray:
             process = np.zeros_like(state)
             process[:, 0] = state[:, 1] * state[:, 1]
             process[:, 1] = -state[:, 0]
@@ -55,8 +53,8 @@ class TestNonlinearSystem:
 
         @njit(cache=True)  # type: ignore
         def observation_function(
-            state: NDArray[np.float64],
-        ) -> NDArray[np.float64]:
+            state: NDArray,
+        ) -> NDArray:
             return state[:, 0:1]
 
         return ContinuousTimeNonlinearSystem(
@@ -74,7 +72,7 @@ class TestNonlinearSystem:
         self,
     ) -> DiscreteTimeNonlinearSystem:
         @njit(cache=True)  # type: ignore
-        def process_function(state: NDArray[np.float64]) -> NDArray[np.float64]:
+        def process_function(state: NDArray) -> NDArray:
             process = np.zeros_like(state)
             process[:, 0] = state[:, 1] * state[:, 1]
             process[:, 1] = -state[:, 0]
@@ -82,8 +80,8 @@ class TestNonlinearSystem:
 
         @njit(cache=True)  # type: ignore
         def observation_function(
-            state: NDArray[np.float64],
-        ) -> NDArray[np.float64]:
+            state: NDArray,
+        ) -> NDArray:
             return state[:, 0:1]
 
         return DiscreteTimeNonlinearSystem(
@@ -100,9 +98,7 @@ class TestNonlinearSystem:
         self,
     ) -> DiscreteTimeNonlinearSystem:
         @njit(cache=True)  # type: ignore
-        def process_function(
-            state: NDArray[np.float64], control: NDArray[np.float64]
-        ) -> NDArray[np.float64]:
+        def process_function(state: NDArray, control: NDArray) -> NDArray:
             process = np.zeros_like(state)
             process[:, 0] = state[:, 1] * state[:, 1]
             process[:, 1] = -state[:, 0] + control[:, 0]
@@ -110,8 +106,8 @@ class TestNonlinearSystem:
 
         @njit(cache=True)  # type: ignore
         def observation_function(
-            state: NDArray[np.float64],
-        ) -> NDArray[np.float64]:
+            state: NDArray,
+        ) -> NDArray:
             return state[:, 0:1]
 
         return DiscreteTimeNonlinearSystem(

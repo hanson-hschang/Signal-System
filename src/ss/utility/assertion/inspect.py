@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import inspect
 
@@ -14,6 +14,7 @@ _array_like_types: tuple = (
     np.ndarray,
     list,
     tuple,
+    np.ndarray[Any, np.dtype[np.float64]],
 )
 
 
@@ -27,9 +28,10 @@ def inspect_arguments(
             arg_name in signature.parameters
         ), f"{arg_name} should be an argument for {func.__name__}"
         param = signature.parameters[arg_name]
-        assert (
-            param.annotation in _array_like_types
-        ), f"{arg_name} should be of type ArrayLike"
+        assert param.annotation in _array_like_types, (
+            f"{arg_name} should be of type ArrayLike "
+            f"but is of type {param.annotation}"
+        )
         arg_dict[arg_name] = np.zeros(arg_name_shape_dict[arg_name])
     try:
         result: NDArray = func(**arg_dict)

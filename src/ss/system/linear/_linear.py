@@ -180,6 +180,8 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         state: NDArray,
         state_space_matrix_A: NDArray,
     ) -> NDArray:
+        # _state_space_matrix_A = np.array(state_space_matrix_A, dtype=np.float64)
+        # _state = np.array(state, dtype=np.float64)
         state_process = np.zeros_like(state)
         for i in range(state.shape[0]):
             state_process[i, :] = state_space_matrix_A @ state[i, :]
@@ -194,6 +196,10 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         state_space_matrix_B: NDArray,
     ) -> NDArray:
         state_process_with_control = np.zeros_like(state)
+        # _state_space_matrix_A = np.array(state_space_matrix_A, dtype=np.float64)
+        # _state = np.array(state, dtype=np.float64)
+        # _control = np.array(control, dtype=np.float64)
+        # _state_space_matrix_B = np.array(state_space_matrix_B, dtype=np.float64)
         for i in range(state.shape[0]):
             state_process_with_control[i, :] = (
                 state_space_matrix_A @ state[i, :]
