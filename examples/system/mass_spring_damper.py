@@ -87,7 +87,9 @@ def main(
                 [observation_noise_variance] * number_of_connections
             )
         case ObservationChoice.LAST_POSITION:
-            observation_noise_covariance = np.diag([observation_noise_variance])
+            observation_noise_covariance = np.diag(
+                [observation_noise_variance]
+            )
         case _ as unmatched_observation_choice:
             assert_never(unmatched_observation_choice)
     process_noise_covariance = process_noise_variance * np.eye(

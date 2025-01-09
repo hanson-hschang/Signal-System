@@ -70,7 +70,9 @@ class IterationFigure(SequenceTrajectoryFigure):
             label="training",
         )
         if self._validation_loss_trajectory is not None:
-            iteration_trajectory = self._validation_loss_trajectory["iteration"]
+            iteration_trajectory = self._validation_loss_trajectory[
+                "iteration"
+            ]
             validation_loss_trajectory = self._validation_loss_trajectory[
                 "loss"
             ]

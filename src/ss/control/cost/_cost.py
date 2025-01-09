@@ -113,7 +113,9 @@ class Cost:
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
     state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemNDArrayDescriptor("_number_of_systems", "_control_dim")
+    control = MultiSystemNDArrayDescriptor(
+        "_number_of_systems", "_control_dim"
+    )
 
     def duplicate(self, number_of_systems: int) -> "Cost":
         """
@@ -162,7 +164,9 @@ class CostCallback(Callback):
         step_skip: int,
         cost: Cost,
     ) -> None:
-        assert issubclass(type(cost), Cost), "cost must be an instance of Cost."
+        assert issubclass(
+            type(cost), Cost
+        ), "cost must be an instance of Cost."
         self._cost = cost
         super().__init__(step_skip)
 

@@ -63,7 +63,7 @@ packages = ["ss"]
 [tool.black]
 # https://github.com/psf/black
 target-version = ["py311"]
-line-length = 80
+line-length = 79
 color = true
 
 exclude = '''
@@ -84,7 +84,7 @@ exclude = '''
 
 [tool.isort]
 # https://github.com/timothycrosley/isort/
-line_length = 80  # https://peps.python.org/pep-0008/
+line_length = 79  # https://peps.python.org/pep-0008/
 known_typing = [
     "typing",
     "types",

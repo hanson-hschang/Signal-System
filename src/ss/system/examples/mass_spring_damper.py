@@ -264,7 +264,9 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                         **kwargs,
                     )
                     ylim_range = (
-                        self._position_range if d == 0 else self._velocity_range
+                        self._position_range
+                        if d == 0
+                        else self._velocity_range
                     )
                     self._subplots[d][j].set_ylim(*ylim_range)
         for d, state_name in enumerate(self._state_name):

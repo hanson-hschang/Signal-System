@@ -98,7 +98,9 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
             sequence_trajectory=time_trajectory,
             fig_size=fig_size,
             fig_title=(
-                "Hidden Markov Model Filter" if fig_title is None else fig_title
+                "Hidden Markov Model Filter"
+                if fig_title is None
+                else fig_title
             ),
             fig_layout=fig_layout,
         )

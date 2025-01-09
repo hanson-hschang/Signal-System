@@ -108,7 +108,9 @@ class LinearQuadraticRegulatorController(Controller):
         state: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         number_of_systems = state.shape[0]
-        control = np.zeros((number_of_systems, gain.shape[0]), dtype=np.float64)
+        control = np.zeros(
+            (number_of_systems, gain.shape[0]), dtype=np.float64
+        )
         for i in range(number_of_systems):
             control[i, :] = gain @ state[i, :]
         return control

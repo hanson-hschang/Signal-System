@@ -23,7 +23,8 @@ class Estimator:
     class _HorizonOfObservationHistoryValidator(PositiveIntegerValidator):
         def __init__(self, horizon_of_observation_history: int) -> None:
             super().__init__(
-                horizon_of_observation_history, "horizon_of_observation_history"
+                horizon_of_observation_history,
+                "horizon_of_observation_history",
             )
 
     class _NumberOfSystemsValidator(PositiveIntegerValidator):

@@ -63,4 +63,6 @@ class TestController:
         with pytest.raises(AssertionError):
             multi_system_controller.control = np.array([[1.0], [2.0]])
         with pytest.raises(AssertionError):
-            multi_system_controller.control = np.array([[1.0, 2.0], [3.0, 4.0]])
+            multi_system_controller.control = np.array(
+                [[1.0, 2.0], [3.0, 4.0]]
+            )

@@ -122,7 +122,9 @@ def observation_generator(
 ) -> Generator[Tuple[NDArray, NDArray], None, None]:
     time_horizon = observation_trajectory.shape[-1]
     for k in range(time_horizon - 1):
-        yield observation_trajectory[..., k], observation_trajectory[..., k + 1]
+        yield observation_trajectory[..., k], observation_trajectory[
+            ..., k + 1
+        ]
 
 
 @njit(cache=True)  # type: ignore

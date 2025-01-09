@@ -31,7 +31,10 @@ from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
-from ss.utility.learning.registration import register_numpy, register_subclasses
+from ss.utility.learning.registration import (
+    register_numpy,
+    register_subclasses,
+)
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -254,7 +257,9 @@ class BaseLearningProcess:
         self.update_evaluation_loss(loss)
 
         epoch_idx, checkpoint_idx = 0, 0
-        checkpoint_idx = self.save_intermediate_model(epoch_idx, checkpoint_idx)
+        checkpoint_idx = self.save_intermediate_model(
+            epoch_idx, checkpoint_idx
+        )
 
         logger.info("Training...")
         for epoch_idx in range(1, self._number_of_epochs + 1):

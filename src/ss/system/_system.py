@@ -50,7 +50,9 @@ class System:
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
     state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemNDArrayDescriptor("_number_of_systems", "_control_dim")
+    control = MultiSystemNDArrayDescriptor(
+        "_number_of_systems", "_control_dim"
+    )
 
     def duplicate(self, number_of_systems: int) -> "System":
         """
