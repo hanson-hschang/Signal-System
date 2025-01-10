@@ -23,7 +23,7 @@ Before installation, create a Python virtual environment to manage dependencies 
 
 ```bash
 # Change directory to your working folder
-cd /path/to/your/working/folder
+cd path_to_your_working_folder
 
 # Create a virtual environment with python version 3.11
 python3.11 -m venv .venv

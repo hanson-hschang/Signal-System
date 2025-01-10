@@ -3,10 +3,10 @@
 name: CI
 
 # The "on" controls when the action will run.
-# The workflow is triggered on push request events
-# for the master branch, and pull request events for all branches.
+# The workflow is triggered on push and pull request events for the master branch.
 on:
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
