@@ -10,12 +10,12 @@ class NDArrayDescriptor:
         self.name = name
         self.private_name = "_" + name
 
-    def __get__(self, obj: object, obj_type: type) -> NDArray[np.float64]:
-        value: NDArray[np.float64] = getattr(obj, self.private_name)
+    def __get__(self, obj: object, obj_type: type) -> NDArray:
+        value: NDArray = getattr(obj, self.private_name)
         return value.copy()
 
     def __set__(self, obj: object, value: ArrayLike) -> None:
-        value = np.array(value, dtype=np.float64)
+        value = np.array(value)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
         assert value.shape == shape, (
             f"{self.name} must be in the shape of {shape}. "
@@ -41,8 +41,8 @@ class MultiSystemNDArrayReadOnlyDescriptor:
         self.name = name
         self.private_name = "_" + name
 
-    def __get__(self, obj: object, obj_type: type) -> NDArray[np.float64]:
-        value: NDArray[np.float64] = getattr(obj, self.private_name)
+    def __get__(self, obj: object, obj_type: type) -> NDArray:
+        value: NDArray = getattr(obj, self.private_name)
         if getattr(obj, "_number_of_systems") == 1:
             value = value[0]
         return value
@@ -50,7 +50,7 @@ class MultiSystemNDArrayReadOnlyDescriptor:
 
 class MultiSystemNDArrayDescriptor(MultiSystemNDArrayReadOnlyDescriptor):
     def __set__(self, obj: object, value: ArrayLike) -> None:
-        value = np.array(value, dtype=np.float64)
+        value = np.array(value)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
         if (getattr(obj, "_number_of_systems") == 1) and (
             (len(shape) - value.ndim) == 1

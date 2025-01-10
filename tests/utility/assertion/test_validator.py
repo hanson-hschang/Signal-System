@@ -13,7 +13,6 @@ def test_validator_base_class_initialization() -> None:
 
 
 def test_validator_post_init_failure() -> None:
-
     class FailingValidator(Validator):
         def __init__(self) -> None:
             super().__init__()

@@ -5,7 +5,6 @@ from ss.system.examples.mass_spring_damper import MassSpringDamperSystem
 
 
 class TestMassSpringDamperSystem:
-
     @pytest.fixture
     def system(self) -> MassSpringDamperSystem:
         return MassSpringDamperSystem(

@@ -10,7 +10,6 @@ from ss.utility.descriptor import NDArrayDescriptor
 
 
 class ContinuousTimeSystem(System):
-
     class _NoiseCovarianceValidator(Validator):
         def __init__(
             self,
@@ -21,9 +20,7 @@ class ContinuousTimeSystem(System):
             super().__init__()
             if noise_covariance is None:
                 noise_covariance = np.zeros((dimension, dimension))
-            self._noise_covariance = np.array(
-                noise_covariance, dtype=np.float64
-            )
+            self._noise_covariance = np.array(noise_covariance)
             self._dimension = dimension
             self._name = name if name is not None else "noise_covariance"
             self._validate_functions.append(self._validate_shape)

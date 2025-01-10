@@ -1,6 +1,3 @@
-import os
-from pathlib import Path
-
 import click
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,6 +10,7 @@ from ss.system.examples.cart_pole import (
     CartPoleStateTrajectoryFigure,
     CartPoleSystem,
 )
+from ss.utility import basic_config
 
 
 @click.command()
@@ -34,11 +32,25 @@ from ss.system.examples.cart_pole import (
     default=1,
     help="Set the step skip (positive integers).",
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
 def main(
     simulation_time: float,
     time_step: float,
     step_skip: int,
+    verbose: bool,
+    debug: bool,
 ) -> None:
+    result_directory = basic_config(__file__, verbose, debug)
+
     simulation_time_steps = int(simulation_time / time_step)
     system = CartPoleSystem(
         cart_mass=1.0,
@@ -72,7 +84,6 @@ def main(
 
     current_time = 0.0
     for k in range(simulation_time_steps):
-
         # Get the current state
         current_state = system.state
 
@@ -102,11 +113,9 @@ def main(
     cost_callback.record(simulation_time_steps, current_time)
     system_callback.record(simulation_time_steps, current_time)
 
-    parent_directory = Path(os.path.dirname(os.path.abspath(__file__)))
-    data_folder_directory = parent_directory / Path(__file__).stem
-
-    system_callback.save(data_folder_directory / "system.hdf5")
-    cost_callback.save(data_folder_directory / "cost.hdf5")
+    # Save the data
+    system_callback.save(result_directory / "system.hdf5")
+    cost_callback.save(result_directory / "cost.hdf5")
 
     CartPoleStateTrajectoryFigure(
         system_callback["time"],

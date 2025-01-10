@@ -1,8 +1,7 @@
 import click
 import numpy as np
 
-from ss.utility.logging import Logging
-from ss.utility.path import PathManager
+from ss.utility import basic_config
 
 from . import hmm_filtering
 
@@ -64,14 +63,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-
-    path_manager = PathManager(__file__)
-    result_directory = path_manager.result_directory
-    Logging.basic_config(
-        filename=path_manager.logging_filepath,
-        verbose=verbose,
-        debug=debug,
-    )
+    result_directory = basic_config(__file__, verbose, debug)
     np.random.seed(random_seed)
 
     hmm_filtering(

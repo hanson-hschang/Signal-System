@@ -113,7 +113,9 @@ class Cost:
     control_dim = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
     state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemNDArrayDescriptor("_number_of_systems", "_control_dim")
+    control = MultiSystemNDArrayDescriptor(
+        "_number_of_systems", "_control_dim"
+    )
 
     def duplicate(self, number_of_systems: int) -> "Cost":
         """
@@ -162,7 +164,9 @@ class CostCallback(Callback):
         step_skip: int,
         cost: Cost,
     ) -> None:
-        assert issubclass(type(cost), Cost), "cost must be an instance of Cost."
+        assert issubclass(
+            type(cost), Cost
+        ), "cost must be an instance of Cost."
         self._cost = cost
         super().__init__(step_skip)
 
@@ -224,10 +228,11 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
                 cumsum_cost_trajectory=cumsum_cost_trajectory,
                 **kwargs,
             )
-            mean_trajectory, std_trajectory = (
-                self._compute_system_statistics_trajectory(
-                    signal_trajectory=cumsum_cost_trajectory[:, np.newaxis, :],
-                )
+            (
+                mean_trajectory,
+                std_trajectory,
+            ) = self._compute_system_statistics_trajectory(
+                signal_trajectory=cumsum_cost_trajectory[:, np.newaxis, :],
             )
             self._plot_system_statistics_cost_trajectory(
                 mean_trajectory=mean_trajectory,

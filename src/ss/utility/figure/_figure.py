@@ -59,7 +59,9 @@ class SequenceTrajectoryFigure:
         self._fig_layout = fig_layout
 
         self._fig = plt.figure(figsize=self._fig_size)
-        self._grid_spec = gridspec.GridSpec(*self._fig_layout, figure=self._fig)
+        self._grid_spec = gridspec.GridSpec(
+            *self._fig_layout, figure=self._fig
+        )
         self._subplots: List[List[Axes]] = []
         for row in range(self._fig_layout[0]):
             self._subplots.append([])

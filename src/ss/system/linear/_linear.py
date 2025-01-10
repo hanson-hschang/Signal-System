@@ -14,9 +14,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     class _StateSpaceMatrixAValidator(Validator):
         def __init__(self, state_space_matrix_A: ArrayLike) -> None:
             super().__init__()
-            self._state_space_matrix_A = np.array(
-                state_space_matrix_A, dtype=np.float64
-            )
+            self._state_space_matrix_A = np.array(state_space_matrix_A)
             self._validate_functions.append(self._validate_shape)
 
         def _validate_shape(self) -> bool:
@@ -28,7 +26,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrix(self) -> NDArray[np.float64]:
+        def get_matrix(self) -> NDArray:
             return self._state_space_matrix_A
 
     class _StateSpaceMatrixBValidator(Validator):
@@ -40,9 +38,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             super().__init__()
             if state_space_matrix_B is None:
                 state_space_matrix_B = np.zeros((state_dim, 0))
-            self._state_space_matrix_B = np.array(
-                state_space_matrix_B, dtype=np.float64
-            )
+            self._state_space_matrix_B = np.array(state_space_matrix_B)
             self._state_dim = state_dim
             self._validate_functions.append(self._validate_shape)
 
@@ -55,7 +51,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrix(self) -> NDArray[np.float64]:
+        def get_matrix(self) -> NDArray:
             return self._state_space_matrix_B
 
     class _StateSpaceMatrixCValidator(Validator):
@@ -63,9 +59,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             self, state_dim: int, state_space_matrix_C: ArrayLike
         ) -> None:
             super().__init__()
-            self._state_space_matrix_C = np.array(
-                state_space_matrix_C, dtype=np.float64
-            )
+            self._state_space_matrix_C = np.array(state_space_matrix_C)
             self._state_dim = state_dim
             self._validate_functions.append(self._validate_shape)
 
@@ -78,7 +72,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrix(self) -> NDArray[np.float64]:
+        def get_matrix(self) -> NDArray:
             return self._state_space_matrix_C
 
     def __init__(
@@ -116,15 +110,15 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         )
 
     @property
-    def state_space_matrix_A(self) -> NDArray[np.float64]:
+    def state_space_matrix_A(self) -> NDArray:
         return self._state_space_matrix_A
 
     @property
-    def state_space_matrix_B(self) -> NDArray[np.float64]:
+    def state_space_matrix_B(self) -> NDArray:
         return self._state_space_matrix_B
 
     @property
-    def state_space_matrix_C(self) -> NDArray[np.float64]:
+    def state_space_matrix_C(self) -> NDArray:
         return self._state_space_matrix_C
 
     def duplicate(self, number_of_systems: int) -> "DiscreteTimeLinearSystem":
@@ -151,23 +145,19 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         )
 
     def _set_compute_state_process(self, control_flag: bool) -> None:
-        def _compute_state_process_without_control() -> NDArray[np.float64]:
-            state_process: NDArray[np.float64] = (
-                self._state_process_without_control(
-                    self._state,
-                    self._state_space_matrix_A,
-                )
+        def _compute_state_process_without_control() -> NDArray:
+            state_process: NDArray = self._state_process_without_control(
+                self._state,
+                self._state_space_matrix_A,
             )
             return state_process
 
-        def _compute_state_process_with_control() -> NDArray[np.float64]:
-            state_process: NDArray[np.float64] = (
-                self._state_process_with_control(
-                    self._state,
-                    self._state_space_matrix_A,
-                    self._control,
-                    self._state_space_matrix_B,
-                )
+        def _compute_state_process_with_control() -> NDArray:
+            state_process: NDArray = self._state_process_with_control(
+                self._state,
+                self._state_space_matrix_A,
+                self._control,
+                self._state_space_matrix_B,
             )
             return state_process
 
@@ -187,9 +177,11 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     @staticmethod
     @njit(cache=True)  # type: ignore
     def _state_process_without_control(
-        state: NDArray[np.float64],
-        state_space_matrix_A: NDArray[np.float64],
-    ) -> NDArray[np.float64]:
+        state: NDArray,
+        state_space_matrix_A: NDArray,
+    ) -> NDArray:
+        # _state_space_matrix_A = np.array(state_space_matrix_A, dtype=np.float64)
+        # _state = np.array(state, dtype=np.float64)
         state_process = np.zeros_like(state)
         for i in range(state.shape[0]):
             state_process[i, :] = state_space_matrix_A @ state[i, :]
@@ -198,12 +190,16 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     @staticmethod
     @njit(cache=True)  # type: ignore
     def _state_process_with_control(
-        state: NDArray[np.float64],
-        state_space_matrix_A: NDArray[np.float64],
-        control: NDArray[np.float64],
-        state_space_matrix_B: NDArray[np.float64],
-    ) -> NDArray[np.float64]:
+        state: NDArray,
+        state_space_matrix_A: NDArray,
+        control: NDArray,
+        state_space_matrix_B: NDArray,
+    ) -> NDArray:
         state_process_with_control = np.zeros_like(state)
+        # _state_space_matrix_A = np.array(state_space_matrix_A, dtype=np.float64)
+        # _state = np.array(state, dtype=np.float64)
+        # _control = np.array(control, dtype=np.float64)
+        # _state_space_matrix_B = np.array(state_space_matrix_B, dtype=np.float64)
         for i in range(state.shape[0]):
             state_process_with_control[i, :] = (
                 state_space_matrix_A @ state[i, :]
@@ -211,8 +207,8 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             )
         return state_process_with_control
 
-    def _compute_observation_process(self) -> NDArray[np.float64]:
-        observation_process: NDArray[np.float64] = self._observation_process(
+    def _compute_observation_process(self) -> NDArray:
+        observation_process: NDArray = self._observation_process(
             self._state,
             self._state_space_matrix_C,
         )
@@ -221,9 +217,9 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     @staticmethod
     @njit(cache=True)  # type: ignore
     def _observation_process(
-        state: NDArray[np.float64],
-        state_space_matrix_C: NDArray[np.float64],
-    ) -> NDArray[np.float64]:
+        state: NDArray,
+        state_space_matrix_C: NDArray,
+    ) -> NDArray:
         observation = np.zeros((state.shape[0], state_space_matrix_C.shape[0]))
         for i in range(state.shape[0]):
             observation[i, :] = state_space_matrix_C @ state[i, :]
@@ -265,7 +261,7 @@ class ContinuousTimeLinearSystem(DiscreteTimeLinearSystem):
         )
 
         self._state_space_matrix_A = np.array(
-            expm(self._state_space_matrix_A * self._time_step), dtype=np.float64
+            expm(self._state_space_matrix_A * self._time_step)
         )
         self._state_space_matrix_B = (
             self._state_space_matrix_A
@@ -274,13 +270,13 @@ class ContinuousTimeLinearSystem(DiscreteTimeLinearSystem):
         )
 
     @property
-    def state_space_matrix_A(self) -> NDArray[np.float64]:
+    def state_space_matrix_A(self) -> NDArray:
         return self._continuous_time_state_space_matrix_A
 
     @property
-    def state_space_matrix_B(self) -> NDArray[np.float64]:
+    def state_space_matrix_B(self) -> NDArray:
         return self._continuous_time_state_space_matrix_B
 
     @property
-    def state_space_matrix_C(self) -> NDArray[np.float64]:
+    def state_space_matrix_C(self) -> NDArray:
         return self._continuous_time_state_space_matrix_C

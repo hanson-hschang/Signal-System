@@ -20,13 +20,13 @@ logger = Logging.get_logger(__name__)
 
 
 def get_observation_model(
-    transition_probability_matrix: NDArray[np.float64],
-    emission_probability_matrix: NDArray[np.float64],
+    transition_probability_matrix: NDArray,
+    emission_probability_matrix: NDArray,
     future_time_steps: int = 0,
 ) -> Any:
     @njit(cache=True)  # type: ignore
     def observation_model(
-        estimated_state: NDArray[np.float64],
+        estimated_state: NDArray,
         transition_probability_matrix: NDArray[
             np.float64
         ] = transition_probability_matrix,
@@ -34,7 +34,7 @@ def get_observation_model(
             np.float64
         ] = emission_probability_matrix,
         future_time_steps: int = future_time_steps,
-    ) -> NDArray[np.float64]:
+    ) -> NDArray:
         for _ in range(future_time_steps):
             estimated_state = estimated_state @ transition_probability_matrix
         estimated_next_observation = (
@@ -53,7 +53,6 @@ def hmm_filtering(
     number_of_systems: int,
     result_directory: Path,
 ) -> None:
-
     def normalize_rows(
         matrix: NDArray,
         temperature: float = 10.0,
@@ -93,7 +92,6 @@ def hmm_filtering(
 
     current_time = 0.0
     for k in tqdm(range(simulation_time_steps)):
-
         # Compute the estimation
         estimator.update(observation=system.observe())
         estimator.estimate()
