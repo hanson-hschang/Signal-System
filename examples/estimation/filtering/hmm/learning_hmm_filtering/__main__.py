@@ -33,7 +33,7 @@ from . import inference, train, visualization
 @click.option(
     "--data-filename",
     type=click.Path(),
-    default="system.hdf5",
+    default="system_train.hdf5",
 )
 @click.option(
     "--verbose",

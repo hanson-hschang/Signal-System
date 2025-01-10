@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
+from numpy.typing import NDArray
 from tqdm import tqdm
 from tqdm.contrib.logging import logging_redirect_tqdm
 
@@ -23,9 +24,9 @@ from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.logging import Logging
 
+from ._learning_hmm_filtering_figure import add_optimal_loss_line
 from ._learning_hmm_filtering_utility import (
     ObservationDataset,
-    add_optimal_loss,
     cross_entropy,
     data_split,
     get_observation_model,
@@ -62,6 +63,10 @@ def train(
 ) -> None:
     # Prepare data
     data = Data.load(data_filename)
+    emission_probability_matrix: NDArray = np.array(
+        data.meta_data["emission_probability_matrix"]
+    )
+    state_dim = emission_probability_matrix.shape[0]
     observation = data["observation_value"]
     number_of_systems = int(data.meta_info["number_of_systems"])
     observation_dim = int(data.meta_info["observation_dim"])
@@ -73,13 +78,14 @@ def train(
 
     # Prepare model
     params = LearningHiddenMarkovModelFilterParameters(
-        state_dim=3,  # similar to embedding dimension in the transformer
+        state_dim=state_dim,  # similar to embedding dimension in the transformer
         observation_dim=observation_dim,  # similar to number of tokens in the transformer
         feature_dim=1,  # similar to number of heads in the transformer
         layer_dim=1,  # similar to number of layers in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
     )
     filter = LearningHiddenMarkovModelFilter(params)
+    filter.set_emission_matrix(emission_probability_matrix, trainable=False)
 
     # Prepare loss function
     loss_function = torch.nn.functional.cross_entropy
@@ -112,16 +118,18 @@ def visualization(
     # Prepare data
     data = Data.load(data_filename)
     time_horizon = data["time"].shape[-1]
-    observation_trajectory = data[
-        "observation"
-    ]  # (number_of_systems, observation_dim, time_horizon)
+    observation_trajectory: NDArray = np.array(
+        data["observation"]
+    )  # (number_of_systems, observation_dim, time_horizon)
 
     # Prepare filter
     number_of_systems = int(data.meta_info["number_of_systems"])
-    transition_probability_matrix = data.meta_data[
-        "transition_probability_matrix"
-    ]
-    emission_probability_matrix = data.meta_data["emission_probability_matrix"]
+    transition_probability_matrix: NDArray = np.array(
+        data.meta_data["transition_probability_matrix"]
+    )
+    emission_probability_matrix: NDArray = np.array(
+        data.meta_data["emission_probability_matrix"]
+    )
     estimator = HiddenMarkovModelFilter(
         system=HiddenMarkovModel(
             transition_probability_matrix=transition_probability_matrix,
@@ -134,6 +142,10 @@ def visualization(
             future_time_steps=1,
         ),
     )
+
+    # Load the model
+    model_filename = result_directory / model_filename
+    filter = LearningHiddenMarkovModelFilter.load(model_filename)
 
     # Estimate the optimal loss
     logger.info(
@@ -156,10 +168,8 @@ def visualization(
     average_loss = float(np.mean(loss_trajectory))
     logger.info(f"{average_loss=}")
 
-    # Load the model
-    model_filename = result_directory / model_filename
-    filter = LearningHiddenMarkovModelFilter.load(model_filename)
     with torch.no_grad():
+        logger.info(f"{emission_probability_matrix=}")
         logger.info(f"\n{filter.emission_matrix=}")
 
     # Plot the training and validation loss together with the optimal loss
@@ -168,7 +178,7 @@ def visualization(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
         validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
     ).plot()
-    add_optimal_loss(fig.loss_plot_ax, average_loss)
+    add_optimal_loss_line(fig.loss_plot_ax, average_loss)
     plt.show()
 
 

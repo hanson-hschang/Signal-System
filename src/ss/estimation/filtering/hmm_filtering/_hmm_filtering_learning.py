@@ -1,8 +1,9 @@
-from typing import Tuple
+from typing import Iterable, Tuple
 
 from dataclasses import dataclass
 
 import torch
+from numpy.typing import ArrayLike
 from torch import nn
 
 from ss.learning import BaseLearningModule, BaseLearningParameters
@@ -237,11 +238,23 @@ class LearningHiddenMarkovModelFilter(
     )
 
     @property
+    def transition_layer(self) -> LearningTransitionProcess:
+        return self._transition_layer
+
+    @property
     def emission_matrix(self) -> torch.Tensor:
         _emission_matrix = nn.functional.softmax(
             self._emission_layer.weight, dim=1
         )
         return _emission_matrix
+
+    def set_emission_matrix(
+        self, emission_matrix: ArrayLike, trainable: bool = True
+    ) -> None:
+        log_emission_matrix = torch.log(torch.tensor(emission_matrix))
+        self._emission_layer.weight = nn.Parameter(
+            log_emission_matrix, requires_grad=trainable
+        )
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """

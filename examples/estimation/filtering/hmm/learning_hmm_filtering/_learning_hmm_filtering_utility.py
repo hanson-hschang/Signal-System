@@ -132,27 +132,29 @@ def cross_entropy(
     input_probability: NDArray,
     target_probability: NDArray,
 ) -> float:
-    return -float(np.mean(target_probability * np.log(input_probability)))
+    """
+    Compute the batch size cross-entropy loss, which is defined as
+    :math: `-\\frac{1}{N} \\sum_{i=1}^{N} \\sum_{j=1}^{C} p^*_{ij} \\log(p_{ij})`
+    where :math: `N` is the batch size, :math: `C` is the number of classes,
+    :math: `p^*_{ij}` is the `target_probability`, and :math: `p_{ij}` is the `input_probability`.
 
+    Parameters
+    ----------
+    input_probability : NDArray
+        probability of input with shape (num_classes,) or (batch_size, num_classes)
+        values should be in the range of :math: `(0, 1]`
+    target_probability : NDArray
+        probability of target with the same shape as input_probability
+        values should be in the range of :math: `[0, 1]`
 
-def add_optimal_loss(
-    ax: Axes,
-    average_loss: float,
-) -> None:
-    ax.axhline(y=average_loss, color="black", linestyle="--")
-    bbox = dict(boxstyle="round", fc="0.8")
-    arrowprops = dict(
-        arrowstyle="->",
-        connectionstyle="angle,angleA=0,angleB=90,rad=10",
+    Returns
+    -------
+    loss : float
+        The cross-entropy loss of the input and target probability.
+    """
+
+    num_classes = input_probability.shape[1]
+    loss = (
+        -np.mean(target_probability * np.log(input_probability)) * num_classes
     )
-    offset = 64
-    xlim_min, xlim_max = ax.get_xlim()
-    xlim_range = xlim_max - xlim_min
-    ax.annotate(
-        f"optimal loss: {average_loss:.2f}",
-        (xlim_min + 0.1 * xlim_range, average_loss),
-        xytext=(2 * offset, offset),
-        textcoords="offset pixels",
-        bbox=bbox,
-        arrowprops=arrowprops,
-    )
+    return float(loss)
