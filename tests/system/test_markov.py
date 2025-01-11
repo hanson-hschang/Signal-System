@@ -17,13 +17,13 @@ class TestMarkovChain:
     def test_initialization(
         self, hidden_markov_model: HiddenMarkovModel
     ) -> None:
-        assert hidden_markov_model.state_dim == 2
-        assert hidden_markov_model.observation_dim == 2
+        assert hidden_markov_model.discrete_state_dim == 2
+        assert hidden_markov_model.discrete_observation_dim == 2
         assert hidden_markov_model.number_of_systems == 2
 
     def test_process(self, hidden_markov_model: HiddenMarkovModel) -> None:
         time = hidden_markov_model.process(0)
         assert time == 1
         np.testing.assert_allclose(
-            hidden_markov_model.state, [[0.0, 1.0], [0.0, 1.0]]
+            hidden_markov_model.state_one_hot, [[0.0, 1.0], [0.0, 1.0]]
         )

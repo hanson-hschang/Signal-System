@@ -170,13 +170,6 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             f"The initial_distribution given has shape {self._initial_distribution.shape}."
         )
 
-        # self._transition_probability_cumsum = np.cumsum(
-        #     self._transition_probability_matrix, axis=1
-        # )
-        # self._emission_probability_cumsum = np.cumsum(
-        #     self._emission_probability_matrix, axis=1
-        # )
-
         self._state = np.random.choice(
             self._discrete_state_dim,
             size=self._state.shape,
@@ -190,13 +183,12 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         self._observation_encoder_basis = np.identity(
             self._discrete_observation_dim, dtype=np.float64
         )
-        self._state_one_hot: NDArray = np.zeros(
-            (self._number_of_systems, self._discrete_state_dim)
+        self._state_one_hot: NDArray = one_hot_encoding(
+            self._state[:, 0].astype(np.int64), self._state_encoder_basis
         )  # (number_of_systems, discrete_state_dim)
         self._observation_one_hot: NDArray = np.zeros(
             (self._number_of_systems, self._discrete_observation_dim)
         )  # (number_of_systems, discrete_observation_dim)
-        self.process(0)
         self.observe()
 
     discrete_state_dim = ReadOnlyDescriptor[int]()
@@ -223,9 +215,6 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             matrix,
             discrete_state_dim=self._discrete_state_dim,
         ).get_matrices()
-        # self._transition_probability_cumsum = np.cumsum(
-        #     self._transition_probability_matrix, axis=1
-        # )
 
     @property
     def emission_probability_matrix(self) -> NDArray:
@@ -240,9 +229,6 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             discrete_state_dim=self._discrete_state_dim,
             emission_probability_matrix=matrix,
         ).get_matrices()
-        # self._emission_probability_cumsum = np.cumsum(
-        #     self._emission_probability_matrix, axis=1
-        # )
 
     def duplicate(self, number_of_systems: int) -> "HiddenMarkovModel":
         return HiddenMarkovModel(
