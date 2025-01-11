@@ -24,6 +24,7 @@ class TestMarkovChain:
     def test_process(self, hidden_markov_model: HiddenMarkovModel) -> None:
         time = hidden_markov_model.process(0)
         assert time == 1
+        np.testing.assert_allclose(hidden_markov_model.state, [[1], [1]])
         np.testing.assert_allclose(
             hidden_markov_model.state_one_hot, [[0.0, 1.0], [0.0, 1.0]]
         )
