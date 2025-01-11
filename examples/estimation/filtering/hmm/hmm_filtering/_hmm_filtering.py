@@ -19,30 +19,20 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-def get_observation_model(
-    transition_probability_matrix: NDArray,
+def get_estimation_model(
     emission_probability_matrix: NDArray,
-    future_time_steps: int = 0,
 ) -> Any:
     @njit(cache=True)  # type: ignore
-    def observation_model(
+    def estimation_model(
         estimated_state: NDArray,
-        transition_probability_matrix: NDArray[
-            np.float64
-        ] = transition_probability_matrix,
         emission_probability_matrix: NDArray[
             np.float64
         ] = emission_probability_matrix,
-        future_time_steps: int = future_time_steps,
     ) -> NDArray:
-        for _ in range(future_time_steps):
-            estimated_state = estimated_state @ transition_probability_matrix
-        estimated_next_observation = (
-            estimated_state @ emission_probability_matrix
-        )
-        return estimated_next_observation
+        estimation = estimated_state @ emission_probability_matrix
+        return estimation
 
-    return observation_model
+    return estimation_model
 
 
 def hmm_filtering(
@@ -80,8 +70,7 @@ def hmm_filtering(
 
     estimator = HiddenMarkovModelFilter(
         system=system,
-        estimation_model=get_observation_model(
-            transition_probability_matrix=transition_probability_matrix,
+        estimation_model=get_estimation_model(
             emission_probability_matrix=emission_probability_matrix,
         ),
     )
@@ -116,31 +105,31 @@ def hmm_filtering(
     estimator_callback.save(result_directory / "filter.hdf5")
 
     # Plot the data
-    state_trajectory = (
-        system_callback["state"]
+    state_one_hot_trajectory = (
+        system_callback["state_one_hot"]
         if number_of_systems == 1
-        else system_callback["state"][0]
+        else system_callback["state_one_hot"][0]
     )
-    observation_trajectory = (
-        system_callback["observation"]
+    observation_one_hot_trajectory = (
+        system_callback["observation_one_hot"]
         if number_of_systems == 1
-        else system_callback["observation"][0]
+        else system_callback["observation_one_hot"][0]
     )
     estimated_state_trajectory = (
         estimator_callback["estimated_state"]
         if number_of_systems == 1
         else estimator_callback["estimated_state"][0]
     )
-    estimated_function_value_trajectory = (
-        estimator_callback["estimated_function_value"]
+    estimation_trajectory = (
+        estimator_callback["estimation"]
         if number_of_systems == 1
-        else estimator_callback["estimated_function_value"][0]
+        else estimator_callback["estimation"][0]
     )
     HiddenMarkovModelFilterFigure(
         time_trajectory=estimator_callback["time"],
-        state_trajectory=state_trajectory,
-        observation_trajectory=observation_trajectory,
+        state_one_hot_trajectory=state_one_hot_trajectory,
+        observation_one_hot_trajectory=observation_one_hot_trajectory,
         estimated_state_trajectory=estimated_state_trajectory,
-        estimated_function_value_trajectory=estimated_function_value_trajectory,
+        estimation_trajectory=estimation_trajectory,
     ).plot()
     plt.show()
