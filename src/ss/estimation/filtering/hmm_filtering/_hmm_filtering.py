@@ -25,6 +25,7 @@ class HiddenMarkovModelFilter(Filter):
         super().__init__(
             state_dim=self._system.discrete_state_dim,
             observation_dim=self._system.observation_dim,
+            estimation_model=estimation_model,
             number_of_systems=self._system.number_of_systems,
         )
 
@@ -37,43 +38,18 @@ class HiddenMarkovModelFilter(Filter):
         )
         self._estimated_state[...] = initial_distribution[np.newaxis, :]
 
-        if estimation_model is None:
-
-            @njit(cache=True)  # type: ignore
-            def _estimation_model(
-                estimated_state: NDArray[np.float64],
-                number_of_systems: int = self._system.number_of_systems,
-            ) -> NDArray[np.float64]:
-                return np.full((number_of_systems, 1), np.nan)
-
-            estimation_model = _estimation_model
-        self._estimation_model = estimation_model
-
-        self._estimation: NDArray[np.float64] = self._estimation_model(
-            self._estimated_state
-        )
-        self._estimation_dim = self._estimation.shape[1]
-
-    estimation = MultiSystemNDArrayReadOnlyDescriptor(
-        "_number_of_systems", "_estimation_dim"
-    )
-
-    def _compute_estimation_process(self) -> NDArray[np.float64]:
-        estimation_process: NDArray[np.float64] = self._estimation_process(
+    def _compute_estimated_state_process(self) -> NDArray[np.float64]:
+        estimated_state: NDArray[np.float64] = self._estimated_state_process(
             estimated_state=self._estimated_state,
             observation=self._observation_history[:, 0, 0].astype(np.int64),
             transition_probability_matrix=self._system.transition_probability_matrix,
             emission_probability_matrix=self._system.emission_probability_matrix,
         )
-        # self._estimated_state will only be updated by estimation_process
-        # in the next step in _update method, so the computation of self._estimated_function_value
-        # directly use the estimation_process (instead of self._estimated_state) to avoid one step delay
-        self._estimation[...] = self._estimation_model(estimation_process)
-        return estimation_process
+        return estimated_state
 
     @staticmethod
     @njit(cache=True)  # type: ignore
-    def _estimation_process(
+    def _estimated_state_process(
         estimated_state: NDArray[np.float64],
         observation: NDArray[np.int64],
         transition_probability_matrix: NDArray[np.float64],
@@ -109,9 +85,3 @@ class HiddenMarkovModelFilterCallback(EstimatorCallback):
         )
         super().__init__(step_skip, estimator)
         self._estimator: HiddenMarkovModelFilter = estimator
-
-    def _record(self, time: float) -> None:
-        super()._record(time)
-        self._callback_params["estimation"].append(
-            self._estimator.estimation.copy()
-        )
