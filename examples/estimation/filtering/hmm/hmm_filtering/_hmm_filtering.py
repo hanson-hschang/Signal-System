@@ -105,15 +105,15 @@ def hmm_filtering(
     estimator_callback.save(result_directory / "filter.hdf5")
 
     # Plot the data
-    state_one_hot_trajectory = (
-        system_callback["state_one_hot"]
+    state_trajectory = (
+        system_callback["state"]
         if number_of_systems == 1
-        else system_callback["state_one_hot"][0]
+        else system_callback["state"][0]
     )
-    observation_one_hot_trajectory = (
-        system_callback["observation_one_hot"]
+    observation_trajectory = (
+        system_callback["observation"]
         if number_of_systems == 1
-        else system_callback["observation_one_hot"][0]
+        else system_callback["observation"][0]
     )
     estimated_state_trajectory = (
         estimator_callback["estimated_state"]
@@ -127,8 +127,8 @@ def hmm_filtering(
     )
     HiddenMarkovModelFilterFigure(
         time_trajectory=estimator_callback["time"],
-        state_one_hot_trajectory=state_one_hot_trajectory,
-        observation_one_hot_trajectory=observation_one_hot_trajectory,
+        state_trajectory=state_trajectory,
+        observation_trajectory=observation_trajectory,
         estimated_state_trajectory=estimated_state_trajectory,
         estimation_trajectory=estimation_trajectory,
     ).plot()

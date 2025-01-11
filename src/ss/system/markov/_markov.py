@@ -183,12 +183,6 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         self._observation_encoder_basis = np.identity(
             self._discrete_observation_dim, dtype=np.float64
         )
-        self._state_one_hot: NDArray = one_hot_encoding(
-            self._state[:, 0].astype(np.int64), self._state_encoder_basis
-        )  # (number_of_systems, discrete_state_dim)
-        self._observation_one_hot: NDArray = np.zeros(
-            (self._number_of_systems, self._discrete_observation_dim)
-        )  # (number_of_systems, discrete_observation_dim)
         self.observe()
 
     discrete_state_dim = ReadOnlyDescriptor[int]()
@@ -196,11 +190,23 @@ class HiddenMarkovModel(DiscreteTimeSystem):
 
     @property
     def state_one_hot(self) -> NDArray:
-        return self._state_one_hot.squeeze()
+        state_one_hot: NDArray = one_hot_encoding(
+            self._state[:, 0].astype(dtype=np.int64),
+            self._state_encoder_basis,
+        )  # (number_of_systems, discrete_state_dim)
+        if self._number_of_systems == 1:
+            return state_one_hot[0, :]
+        return state_one_hot
 
     @property
     def observation_one_hot(self) -> NDArray:
-        return self._observation_one_hot.squeeze()
+        observation_one_hot: NDArray = one_hot_encoding(
+            self._observation[:, 0].astype(dtype=np.int64),
+            self._observation_encoder_basis,
+        )  # (number_of_systems, discrete_observation_dim)
+        if self._number_of_systems == 1:
+            return observation_one_hot[0, :]
+        return observation_one_hot
 
     @property
     def transition_probability_matrix(self) -> NDArray:
@@ -242,9 +248,6 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._state.astype(np.int64),
             self._transition_probability_cumsum,
         )  # (number_of_systems, 1)
-        self._state_one_hot[...] = one_hot_encoding(
-            state[:, 0], self._state_encoder_basis
-        )  # (number_of_systems, discrete_state_dim)
         return state.astype(np.float64)
 
     def _compute_observation_process(self) -> NDArray:
@@ -252,9 +255,6 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._state.astype(np.int64),
             self._emission_probability_cumsum,
         )  # (number_of_systems, 1)
-        self._observation_one_hot[...] = one_hot_encoding(
-            observation[:, 0], self._observation_encoder_basis
-        )  # (number_of_systems, discrete_observation_dim)
         return observation.astype(np.float64)
 
     @staticmethod
@@ -287,18 +287,13 @@ class MarkovChainCallback(SystemCallback):
         super().__init__(step_skip, system)
         self._system: HiddenMarkovModel = system
 
-    def _record(self, time: float) -> None:
-        super()._record(time)
-        self._callback_params["state_one_hot"].append(
-            self._system.state_one_hot.copy()
-        )
-        self._callback_params["observation_one_hot"].append(
-            self._system.observation_one_hot.copy()
-        )
-
     def save(self, filename: Union[str, Path]) -> None:
         self.add_meta_data(
             transition_probability_matrix=self._system.transition_probability_matrix,
             emission_probability_matrix=self._system.emission_probability_matrix,
+        )
+        self.add_meta_info(
+            discrete_state_dim=self._system.discrete_state_dim,
+            discrete_observation_dim=self._system.discrete_observation_dim,
         )
         super().save(filename)
