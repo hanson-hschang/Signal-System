@@ -1,4 +1,4 @@
-from typing import Iterable, Tuple
+from typing import Tuple
 
 from dataclasses import dataclass
 
@@ -6,7 +6,11 @@ import torch
 from numpy.typing import ArrayLike
 from torch import nn
 
-from ss.learning import BaseLearningModule, BaseLearningParameters
+from ss.learning import (
+    BaseLearningModule,
+    BaseLearningParameters,
+    reset_module,
+)
 from ss.utility.descriptor import TensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
@@ -80,6 +84,9 @@ class LearningHiddenMarkovModelFilterBlock(
                 self._initial_state, dim=0
             )
         return self._estimated_next_state_probability
+
+    def reset(self) -> None:
+        self._is_initialized = False
 
     def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
         (
@@ -166,6 +173,10 @@ class LearningHiddenMarkovModelFilterLayer(
             weighted_average += block(x) * weight[i]
         return weighted_average
 
+    def reset(self) -> None:
+        for block in self.blocks:
+            reset_module(block)
+
 
 class LearningTransitionProcess(
     BaseLearningModule[LearningHiddenMarkovModelFilterParameters]
@@ -185,6 +196,10 @@ class LearningTransitionProcess(
         for layer in self.layers:
             x = layer(x)
         return x
+
+    def reset(self) -> None:
+        for layer in self.layers:
+            reset_module(layer)
 
 
 class LearningHiddenMarkovModelFilter(
@@ -323,6 +338,9 @@ class LearningHiddenMarkovModelFilter(
             estimated_next_observation_probability_trajectory,
             estimated_next_state_probability,
         )
+
+    def reset(self) -> None:
+        self._transition_layer.reset()
 
     @torch.inference_mode()
     def update(self, observation_trajectory: torch.Tensor) -> None:

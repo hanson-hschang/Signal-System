@@ -5,7 +5,7 @@ def add_optimal_loss_line(
     ax: Axes,
     optimal_loss: float,
     arrowhead_x_offset_ratio: float = 0.05,
-    text_offset: tuple[float, float] = (96, 64),
+    text_offset: tuple[float, float] = (64, 32),
     text_coordinates: str = "offset pixels",
 ) -> None:
     ax.axhline(y=optimal_loss, color="black", linestyle="--")

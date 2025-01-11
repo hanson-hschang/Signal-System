@@ -4,5 +4,6 @@ from ss.learning._learning import (
     BaseLearningProcess,
     CheckpointInfo,
     Mode,
+    reset_module,
 )
 from ss.learning._learning_figure import IterationFigure

@@ -2,7 +2,6 @@ from typing import Any, Generator, List, Sequence, Tuple
 
 import numpy as np
 import torch
-from matplotlib.axes import Axes
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 from torch.utils.data import DataLoader, Dataset, random_split

@@ -66,6 +66,8 @@ class BaseLearningModule(nn.Module, Generic[BLP]):
         self._params: BLP = params
         self.inference = False
 
+    def reset(self) -> None: ...
+
     def inference_mode(self, inference: bool = True) -> None:
         if inference:
             self.eval()
@@ -104,6 +106,14 @@ class BaseLearningModule(nn.Module, Generic[BLP]):
         model = cls(model_info.pop("params"))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model
+
+
+def reset_module(instance: Any) -> None:
+    reset_method: Optional[Callable[[], Any]] = getattr(
+        instance, "reset", None
+    )
+    if callable(reset_method):
+        reset_method()
 
 
 class CheckpointInfo(dict):

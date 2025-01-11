@@ -69,6 +69,9 @@ def main(
                 )
                 / data_filename
             )
+            data_filename = (
+                path_manager.parent_directory / data_foldername / data_filename
+            )
             train(
                 data_filename,
                 result_directory / path_manager.current_date_directory,
@@ -80,7 +83,10 @@ def main(
             )
             visualization(data_filename, result_directory, model_filename)
         case Mode.INFERENCE:
-            inference(result_directory, model_filename)
+            data_filename = (
+                path_manager.parent_directory / data_foldername / data_filename
+            )
+            inference(data_filename, result_directory, model_filename)
         case _ as _mode:
             assert_never(_mode)
 
