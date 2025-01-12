@@ -11,7 +11,7 @@ from ss.learning import (
     BaseLearningParameters,
     reset_module,
 )
-from ss.utility.descriptor import TensorReadOnlyDescriptor
+from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -89,19 +89,10 @@ class LearningHiddenMarkovModelFilterBlock(
         self._is_initialized = False
 
     def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
-        (
-            batch_size,
-            horizon_of_observation_trajectory,
-            _,
-        ) = (
-            emission_trajectory.shape
-        )  # (batch_size, horizon_of_observation_trajectory, state_dim)
+        batch_size, horizon, _ = emission_trajectory.shape
+        # (batch_size, horizon, state_dim)
         estimated_next_state_probability_trajectory = torch.zeros(
-            (
-                batch_size,
-                horizon_of_observation_trajectory,
-                self._params.state_dim,
-            ),
+            (batch_size, horizon, self._params.state_dim),
             dtype=torch.float64,
         )
 
@@ -110,7 +101,7 @@ class LearningHiddenMarkovModelFilterBlock(
             self.estimated_next_state_probability.repeat(batch_size, 1)
         )  # (batch_size, state_dim)
 
-        for k in range(horizon_of_observation_trajectory):
+        for k in range(horizon):
             unnormalized_conditional_probability = (
                 estimated_next_state_probability * emission_trajectory[:, k, :]
             )
@@ -236,20 +227,39 @@ class LearningHiddenMarkovModelFilter(
         )
         self._transition_layer = LearningTransitionProcess(params)
 
-        # Initialize the estimated next state, and next observation
+        self._is_initialized = False
+        # Initialize the estimated next state, and next observation for the inference mode
+        self._init_batch_size(batch_size=1)
+        # self._batch_size = 1
+        # with torch.no_grad():
+        #     self._estimated_next_state_probability = (
+        #         torch.ones((self._batch_size, self._state_dim), dtype=torch.float64)
+        #         / self._state_dim
+        #     )  # (batch_size, state_dim)
+        #     self._estimated_next_observation_probability = torch.matmul(
+        #         self._estimated_next_state_probability,
+        #         self.emission_matrix,
+        #     )  # (batch_size, observation_dim)
+
+    def _init_batch_size(self, batch_size: int) -> None:
+        self._batch_size = batch_size
         with torch.no_grad():
             self._estimated_next_state_probability = (
-                torch.ones(self._state_dim, dtype=torch.float64)
+                torch.ones(
+                    (self._batch_size, self._state_dim), dtype=torch.float64
+                )
                 / self._state_dim
-            )
+            )  # (batch_size, state_dim)
             self._estimated_next_observation_probability = torch.matmul(
                 self._estimated_next_state_probability,
                 self.emission_matrix,
-            )
+            )  # (batch_size, observation_dim)
 
-    estimated_next_state_probability = TensorReadOnlyDescriptor("_state_dim")
-    estimated_next_observation_probability = TensorReadOnlyDescriptor(
-        "_observation_dim"
+    estimated_next_state_probability = BatchTensorReadOnlyDescriptor(
+        "_batch_size", "_state_dim"
+    )
+    estimated_next_observation_probability = BatchTensorReadOnlyDescriptor(
+        "_batch_size", "_observation_dim"
     )
 
     @property
@@ -278,12 +288,12 @@ class LearningHiddenMarkovModelFilter(
         Arguments:
         ----------
             observation_trajectory : torch.Tensor
-                shape (batch_size, horizon_of_observation_trajectory)
+                shape (batch_size, horizon)
 
         Returns:
         --------
-            estimated_next_observation_log_probability_trajectory: torch.Tensor
-                shape (batch_size, horizon_of_observation_trajectory, observation_dim)
+            estimated_next_observation_log_probability_trajectory : torch.Tensor
+                shape (batch_size, horizon, observation_dim)
         """
         estimated_next_observation_probability_trajectory, _ = self._forward(
             observation_trajectory
@@ -303,12 +313,12 @@ class LearningHiddenMarkovModelFilter(
         Arguments:
         ----------
             observation_trajectory : torch.Tensor
-                shape (batch_size, horizon_of_observation_trajectory)
+                shape (batch_size, horizon)
 
         Returns:
         --------
             estimated_next_observation_probability_trajectory: torch.Tensor
-                shape (batch_size, horizon_of_observation_trajectory, observation_dim)
+                shape (batch_size, horizon, observation_dim)
             estimated_next_state_probability: torch.Tensor
                 shape (batch_size, state_dim)
         """
@@ -319,16 +329,16 @@ class LearningHiddenMarkovModelFilter(
         # Get emission probabilities for each observation in the trajectory
         emission_trajectory = torch.moveaxis(
             emission_matrix[:, observation_trajectory], 0, 2
-        )  # (batch_size, horizon_of_observation_trajectory, state_dim)
+        )  # (batch_size, horizon, state_dim)
 
         estimated_next_state_probability_trajectory = self._transition_layer(
             emission_trajectory
-        )  # (batch_size, horizon_of_observation_trajectory, state_dim)
+        )  # (batch_size, horizon, state_dim)
 
         estimated_next_observation_probability_trajectory = torch.matmul(
-            estimated_next_state_probability_trajectory,  # (batch_size, horizon_of_observation_trajectory, state_dim)
+            estimated_next_state_probability_trajectory,  # (batch_size, horizon, state_dim)
             emission_matrix,  # (state_dim, observation_dim)
-        )  # (batch_size, horizon_of_observation_trajectory, observation_dim)
+        )  # (batch_size, horizon, observation_dim)
 
         estimated_next_state_probability = (
             estimated_next_state_probability_trajectory[:, -1, :]
@@ -340,7 +350,14 @@ class LearningHiddenMarkovModelFilter(
         )
 
     def reset(self) -> None:
+        self._is_initialized = False
         self._transition_layer.reset()
+
+    def _set_batch_size(self, batch_size: int) -> None:
+        if self._is_initialized:
+            return
+        self._is_initialized = True
+        self._init_batch_size(batch_size)
 
     @torch.inference_mode()
     def update(self, observation_trajectory: torch.Tensor) -> None:
@@ -351,21 +368,27 @@ class LearningHiddenMarkovModelFilter(
         Arguments:
         ----------
             observation_trajectory : torch.Tensor
-                shape (horizon_of_observation_trajectory,)
+                shape = (horizon,) or (batch_size, horizon)
         """
-
         if observation_trajectory.ndim == 0:
-            observation_trajectory = observation_trajectory.unsqueeze(0)
-        assert observation_trajectory.ndim == 1, (
-            f"observation_trajectory must be in the shape of (horizon_of_observation_trajectory,). "
+            observation_trajectory = observation_trajectory.unsqueeze(
+                0
+            )  # (horizon=1,)
+        if observation_trajectory.ndim == 1:
+            observation_trajectory = observation_trajectory.unsqueeze(
+                0
+            )  # (batch_size=1, horizon)
+        assert observation_trajectory.ndim == 2, (
+            f"observation_trajectory must be in the shape of (batch_size, horizon). "
             f"observation_trajectory given has the shape of {observation_trajectory.shape}."
         )
+        self._set_batch_size(batch_size=observation_trajectory.shape[0])
 
         _, estimated_next_state_probability = self._forward(
-            observation_trajectory.unsqueeze(0),
+            observation_trajectory
         )
         self._estimated_next_state_probability = (
-            estimated_next_state_probability.squeeze(0)
+            estimated_next_state_probability
         )
 
     @torch.inference_mode()
@@ -379,3 +402,20 @@ class LearningHiddenMarkovModelFilter(
             self._estimated_next_state_probability,
             self.emission_matrix,
         )
+
+    @torch.inference_mode()
+    def predict(self, horizon: int) -> torch.Tensor:
+        """
+        Predict the next observation for the given horizon.
+
+        Arguments
+        ---------
+        horizon : int
+            The horizon to predict the next observation
+
+        Returns
+        -------
+        predicted_observation: torch.Tensor
+            shape = (batch_size, horizon)
+        """
+        return torch.zeros((self._batch_size, horizon), dtype=torch.float64)

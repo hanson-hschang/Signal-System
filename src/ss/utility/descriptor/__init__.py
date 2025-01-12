@@ -5,6 +5,8 @@ from ss.utility.descriptor._descriptor_ndarray import (
     NDArrayDescriptor,
 )
 from ss.utility.descriptor._descriptor_tensor import (
+    BatchTensorDescriptor,
+    BatchTensorReadOnlyDescriptor,
     TensorDescriptor,
     TensorReadOnlyDescriptor,
 )
