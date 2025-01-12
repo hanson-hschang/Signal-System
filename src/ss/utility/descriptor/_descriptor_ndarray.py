@@ -2,7 +2,7 @@ import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
 
-class NDArrayDescriptor:
+class NDArrayReadOnlyDescriptor:
     def __init__(self, *name_of_dimensions: str) -> None:
         self._name_of_dimensions = list(name_of_dimensions)
 
@@ -14,6 +14,8 @@ class NDArrayDescriptor:
         value: NDArray = getattr(obj, self.private_name)
         return value.copy()
 
+
+class NDArrayDescriptor(NDArrayReadOnlyDescriptor):
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
