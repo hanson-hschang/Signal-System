@@ -1,4 +1,4 @@
-from typing import assert_never
+from typing import Optional, assert_never
 
 from pathlib import Path
 
@@ -21,19 +21,24 @@ from . import inference, train, visualization
     default=Mode.INFERENCE,
 )
 @click.option(
-    "--model-filename",
-    type=click.Path(),
-    default="learning_filter.pt",
-)
-@click.option(
     "--data-foldername",
     type=click.Path(),
-    default="../hmm_filtering_result",
+    default="hmm_filtering_result",
 )
 @click.option(
     "--data-filename",
     type=click.Path(),
     default="system_train.hdf5",
+)
+@click.option(
+    "--model-foldername",
+    type=click.Path(),
+    default=None,
+)
+@click.option(
+    "--model-filename",
+    type=click.Path(),
+    default="learning_filter.pt",
 )
 @click.option(
     "--verbose",
@@ -47,46 +52,40 @@ from . import inference, train, visualization
 )
 def main(
     mode: Mode,
-    model_filename: Path,
     data_foldername: Path,
     data_filename: Path,
+    model_foldername: Optional[Path],
+    model_filename: Path,
     verbose: bool,
     debug: bool,
 ) -> None:
     path_manager = PathManager(__file__)
-    result_directory = path_manager.result_directory
     Logging.basic_config(
         filename=path_manager.logging_filepath,
         verbose=verbose,
         debug=debug,
     )
-
+    data_filepath = path_manager.get_directory(data_foldername) / data_filename
+    result_directory = path_manager.result_directory
+    model_folderpath = (
+        result_directory
+        if model_foldername is None
+        else path_manager.get_directory(model_foldername)
+    )
     match mode:
         case Mode.TRAIN:
-            data_filename = (
-                path_manager.get_other_result_directory(
-                    path_manager.parent_directory / data_foldername
-                )
-                / data_filename
+            model_filepath = (
+                model_folderpath / path_manager.current_date / model_filename
+                if model_foldername is None
+                else model_folderpath / model_filename
             )
-            data_filename = (
-                path_manager.parent_directory / data_foldername / data_filename
-            )
-            train(
-                data_filename,
-                result_directory / path_manager.current_date_directory,
-                model_filename,
-            )
+            train(data_filepath, model_filepath)
         case Mode.VISUALIZATION:
-            data_filename = (
-                path_manager.parent_directory / data_foldername / data_filename
-            )
-            visualization(data_filename, result_directory, model_filename)
+            model_filepath = model_folderpath / model_filename
+            visualization(data_filepath, model_filepath)
         case Mode.INFERENCE:
-            data_filename = (
-                path_manager.parent_directory / data_foldername / data_filename
-            )
-            inference(data_filename, result_directory, model_filename)
+            model_filepath = model_folderpath / model_filename
+            inference(data_filepath, model_filepath)
         case _ as _mode:
             assert_never(_mode)
 

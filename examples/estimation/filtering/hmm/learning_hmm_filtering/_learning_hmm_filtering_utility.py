@@ -1,4 +1,4 @@
-from typing import Any, Generator, List, Sequence, Tuple
+from typing import Any, Generator, List, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -6,6 +6,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 from torch.utils.data import DataLoader, Dataset, random_split
 
+from ss.system.markov import one_hot_encoding
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -22,11 +23,12 @@ class ObservationDataset(Dataset):
         observation = np.array(observation)
         if number_of_systems == 1:
             observation = observation[np.newaxis, ...]
-        assert observation.ndim == 2, (
-            "observation must be a NDArray of 2 dimensions "
-            "with the shape of (number_of_systems, time_horizon). "
+        assert observation.ndim == 3, (
+            "observation must be a NDArray of 3 dimensions "
+            "with the shape of (number_of_systems, 1, time_horizon). "
             f"observation given has the shape of {observation.shape}."
         )
+        observation = observation[:, 0, ...].astype(np.int64)
 
         time_horizon = observation.shape[-1]
         self._input_trajectory = []
@@ -117,13 +119,23 @@ def get_observation_model(
 
 
 def observation_generator(
-    observation_trajectory: NDArray,
+    observation_trajectory: NDArray[np.int64],
+    discrete_observation_dim: Optional[int] = None,
 ) -> Generator[Tuple[NDArray, NDArray], None, None]:
     time_horizon = observation_trajectory.shape[-1]
+    if discrete_observation_dim is None:
+        discrete_observation_dim = int(np.max(observation_trajectory)) + 1
+    observation_encoder_basis = np.identity(
+        discrete_observation_dim, dtype=np.float64
+    )
     for k in range(time_horizon - 1):
-        yield observation_trajectory[..., k], observation_trajectory[
-            ..., k + 1
-        ]
+        yield (
+            observation_trajectory[..., k],
+            one_hot_encoding(
+                observation_trajectory[:, 0, k + 1],
+                observation_encoder_basis,
+            ),
+        )
 
 
 @njit(cache=True)  # type: ignore

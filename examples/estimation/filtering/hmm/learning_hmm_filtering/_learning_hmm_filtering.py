@@ -57,19 +57,18 @@ class LearningHMMFilterProcess(BaseLearningProcess):
 
 
 def train(
-    data_filename: Path,
-    result_directory: Path,
-    model_filename: Path,
+    data_filepath: Path,
+    model_filepath: Path,
 ) -> None:
     # Prepare data
-    data = Data.load(data_filename)
+    data = Data.load(data_filepath)
     emission_probability_matrix: NDArray = np.array(
         data.meta_data["emission_probability_matrix"]
     )
     state_dim = emission_probability_matrix.shape[0]
-    observation = data["observation_value"]
+    observation = data["observation"]
     number_of_systems = int(data.meta_info["number_of_systems"])
-    observation_dim = int(data.meta_info["observation_dim"])
+    discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
     training_loader, evaluation_loader, testing_loader = data_split(
         observation=observation,
         split_ratio=[0.7, 0.2, 0.1],
@@ -79,7 +78,7 @@ def train(
     # Prepare model
     params = LearningHiddenMarkovModelFilterParameters(
         state_dim=state_dim,  # similar to embedding dimension in the transformer
-        observation_dim=observation_dim,  # similar to number of tokens in the transformer
+        observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
         feature_dim=1,  # similar to number of heads in the transformer
         layer_dim=1,  # similar to number of layers in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
@@ -101,7 +100,7 @@ def train(
         loss_function=loss_function,
         optimizer=optimizer,
         number_of_epochs=5,
-        model_filename=result_directory / model_filename,
+        model_filename=model_filepath,
         save_model_epoch_skip=1,
     )
     learning_process.train(training_loader, evaluation_loader)
@@ -111,16 +110,16 @@ def train(
 
 
 def visualization(
-    data_filename: Path,
-    result_directory: Path,
-    model_filename: Path,
+    data_filepath: Path,
+    model_filepath: Path,
 ) -> None:
     # Prepare data
-    data = Data.load(data_filename)
+    data = Data.load(data_filepath)
     time_horizon = data["time"].shape[-1]
     observation_trajectory: NDArray = np.array(
-        data["observation"]
-    )  # (number_of_systems, observation_dim, time_horizon)
+        data["observation"], dtype=np.int64
+    )  # (number_of_systems, 1, time_horizon)
+    discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
 
     # Prepare filter
     number_of_systems = int(data.meta_info["number_of_systems"])
@@ -144,8 +143,7 @@ def visualization(
     )
 
     # Load the model
-    model_filename = result_directory / model_filename
-    filter = LearningHiddenMarkovModelFilter.load(model_filename)
+    filter = LearningHiddenMarkovModelFilter.load(model_filepath)
 
     # Estimate the optimal loss
     logger.info(
@@ -154,14 +152,17 @@ def visualization(
     loss_trajectory = []
     with logging_redirect_tqdm(loggers=[logger]):
         for observation, next_observation in tqdm(
-            observation_generator(observation_trajectory),
+            observation_generator(
+                observation_trajectory,
+                discrete_observation_dim=discrete_observation_dim,
+            ),
             total=time_horizon - 1,
         ):
             estimator.update(observation=observation)
             estimator.estimate()
             loss_trajectory.append(
                 cross_entropy(
-                    input_probability=estimator.estimated_function_value,
+                    input_probability=estimator.estimation,
                     target_probability=next_observation,
                 )
             )
@@ -173,7 +174,7 @@ def visualization(
         logger.info(f"\n{filter.emission_matrix=}")
 
     # Plot the training and validation loss together with the optimal loss
-    checkpoint_info = CheckpointInfo.load(model_filename.with_suffix(".hdf5"))
+    checkpoint_info = CheckpointInfo.load(model_filepath.with_suffix(".hdf5"))
     fig = IterationFigure(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
         validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
@@ -183,28 +184,32 @@ def visualization(
 
 
 def inference(
-    data_filename: Path,
-    result_directory: Path,
-    model_filename: Path,
+    data_filepath: Path,
+    model_filepath: Path,
 ) -> None:
     # Prepare data
-    data = Data.load(data_filename)
+    data = Data.load(data_filepath)
     number_of_systems = int(data.meta_info["number_of_systems"])
     observation_trajectory: NDArray = np.array(
-        data["observation_value"][0]
-        if number_of_systems != 1
-        else data["observation_value"]
-    )  # (time_horizon,)
+        (
+            data["observation"]
+            if number_of_systems == 1
+            else data["observation"][0]
+        ),
+        dtype=np.int64,
+    )[
+        0
+    ]  # (time_horizon,)
 
     # Load the model
-    model_filename = result_directory / model_filename
-    filter = LearningHiddenMarkovModelFilter.load(model_filename)
+    filter = LearningHiddenMarkovModelFilter.load(model_filepath)
     with torch.no_grad():
         logger.info(f"\n{filter.emission_matrix=}")
 
     # Inference
     given_time_horizon = 20  # This is like prompt length
     future_time_steps = 5  # This is like how many next token to predict
+    number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
     with Mode.inference(filter):
         filter.update(
             torch.tensor(
