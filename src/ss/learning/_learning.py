@@ -41,7 +41,7 @@ logger = Logging.get_logger(__name__)
 
 
 @dataclass
-class BaseLearningParameters:
+class BaseLearningConfig:
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert dataclass to a dictionary suitable for ** unpacking.
@@ -50,20 +50,20 @@ class BaseLearningParameters:
         return asdict(self)
 
 
-BLP = TypeVar("BLP", bound="BaseLearningParameters")
+BLC = TypeVar("BLC", bound="BaseLearningConfig")
 
 BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
-class BaseLearningModule(nn.Module, Generic[BLP]):
+class BaseLearningModule(nn.Module, Generic[BLC]):
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
-    def __init__(self, params: BLP) -> None:
+    def __init__(self, config: BLC) -> None:
         super().__init__()
         assert issubclass(
-            type(params), BaseLearningParameters
-        ), f"{type(params) = } must be a subclass of {BaseLearningParameters}"
-        self._params: BLP = params
+            type(config), BaseLearningConfig
+        ), f"{type(config) = } must be a subclass of {BaseLearningConfig}"
+        self._config: BLC = config
         self.inference = False
 
     def reset(self) -> None: ...
@@ -89,7 +89,7 @@ class BaseLearningModule(nn.Module, Generic[BLP]):
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
         model_info = dict(
-            params=self._params,
+            config=self._config,
             model_state_dict=self.state_dict(),
         )
         torch.save(model_info, filepath)
@@ -100,10 +100,10 @@ class BaseLearningModule(nn.Module, Generic[BLP]):
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
 
-        register_subclasses(BaseLearningParameters, "ss")
+        register_subclasses(BaseLearningConfig, "ss")
         register_numpy()
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
-        model = cls(model_info.pop("params"))
+        model = cls(model_info.pop("config"))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model
 
@@ -219,6 +219,12 @@ class BaseLearningProcess:
                 + self._model_filepath.suffix
             )
 
+    def update_epoch(self, epoch_idx: int) -> None:
+        self._epoch_history["iteration"].append(self._iteration_idx)
+        self._epoch_history["epoch"].append(epoch_idx)
+        logger.info(f"Finish epoch: {epoch_idx} / {self._number_of_epochs}")
+        logger.info("")
+
     def update_evaluation_loss(self, loss: float) -> None:
         self._evaluation_loss_history["iteration"].append(self._iteration_idx)
         self._evaluation_loss_history["loss"].append(loss)
@@ -232,6 +238,7 @@ class BaseLearningProcess:
         raise NotImplementedError
 
     def evaluate_model(self, data_loader: DataLoader) -> float:
+        logger.info("Evaluating model...")
         self._model.eval()
         loss = 0.0
         with torch.no_grad():
@@ -248,6 +255,7 @@ class BaseLearningProcess:
         return _loss
 
     def train_model(self, data_loader: DataLoader) -> float:
+        logger.info("Training one epoch...")
         self._model.train()
         with logging_redirect_tqdm(loggers=[logger]):
             for data_batch in tqdm(data_loader, total=len(data_loader)):
@@ -262,32 +270,34 @@ class BaseLearningProcess:
         training_loader: DataLoader,
         evaluation_loader: DataLoader,
     ) -> None:
+
         logger.info("Model evaluation before training...")
+        epoch_idx, checkpoint_idx = 0, 0
+
         loss = self.evaluate_model(evaluation_loader)
         self.update_evaluation_loss(loss)
 
-        epoch_idx, checkpoint_idx = 0, 0
+        self.update_epoch(epoch_idx)
         checkpoint_idx = self.save_intermediate_model(
             epoch_idx, checkpoint_idx
         )
 
-        logger.info("Training...")
+        logger.info("Start training...")
         for epoch_idx in range(1, self._number_of_epochs + 1):
-            logger.info(f"Epoch: {epoch_idx} / {self._number_of_epochs}")
 
             loss = self.train_model(training_loader)
             logger.info(f"Training loss (running average): {loss}")
 
-            logger.info("Evaluating intermediate model...")
             loss = self.evaluate_model(evaluation_loader)
             self.update_evaluation_loss(loss)
 
+            self.update_epoch(epoch_idx)
             checkpoint_idx = self.save_intermediate_model(
                 epoch_idx, checkpoint_idx
             )
 
         logger.info("Training is completed")
-        self.save_model(self._number_of_epochs)
+        self.save_model()
 
     def test_model(
         self,
@@ -306,13 +316,11 @@ class BaseLearningProcess:
                     f"Intermediate models are saved every {self._save_model_step_skip} epoch(s)"
                 )
             if epoch_idx % self._save_model_step_skip == 0:
-                self.save_model(epoch_idx, checkpoint_idx)
+                self.save_model(checkpoint_idx)
                 return checkpoint_idx + 1
         return checkpoint_idx
 
-    def save_model(
-        self, epoch_idx: int, checkpoint_idx: Optional[int] = None
-    ) -> None:
+    def save_model(self, checkpoint_idx: Optional[int] = None) -> None:
         if checkpoint_idx is None:
             model_filepath = self._model_filepath
         else:
