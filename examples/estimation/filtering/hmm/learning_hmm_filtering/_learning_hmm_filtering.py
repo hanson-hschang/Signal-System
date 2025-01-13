@@ -4,8 +4,6 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from numpy.typing import NDArray
-from tqdm import tqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilter,
@@ -21,9 +19,9 @@ from ss.utility.logging import Logging
 
 from ._learning_hmm_filtering_figure import add_optimal_loss_line
 from ._learning_hmm_filtering_utility import (
-    cross_entropy,
+    compute_loss,
+    compute_optimal_loss,
     get_observation_model,
-    observation_generator,
 )
 
 logger = Logging.get_logger(__name__)
@@ -113,45 +111,39 @@ def visualization(
     emission_probability_matrix: NDArray = np.array(
         data.meta_data["emission_probability_matrix"]
     )
+    system = HiddenMarkovModel(
+        transition_probability_matrix=transition_probability_matrix,
+        emission_probability_matrix=emission_probability_matrix,
+        number_of_systems=number_of_systems,
+    )
+    emission_model = get_observation_model(
+        transition_probability_matrix=transition_probability_matrix,
+        emission_probability_matrix=emission_probability_matrix,
+        future_time_steps=1,
+    )
     filter = HiddenMarkovModelFilter(
-        system=HiddenMarkovModel(
-            transition_probability_matrix=transition_probability_matrix,
-            emission_probability_matrix=emission_probability_matrix,
-            number_of_systems=number_of_systems,
-        ),
-        estimation_model=get_observation_model(
-            transition_probability_matrix=transition_probability_matrix,
-            emission_probability_matrix=emission_probability_matrix,
-            future_time_steps=1,
-        ),
+        system=system, estimation_model=emission_model
     )
 
     # Load the model
     learning_filter = LearningHiddenMarkovModelFilter.load(model_filepath)
 
-    # Estimate the optimal loss
+    # Compute the loss trajectory of the filter and learning_filter
     logger.info(
-        "Start estimating the optimal loss (the cross-entropy loss of the hmm-filter)"
+        "Computing the loss trajectory of the filter and learning_filter"
     )
-    loss_trajectory = []
-    with logging_redirect_tqdm(loggers=[logger]):
-        for observation, next_observation in tqdm(
-            observation_generator(
-                observation_trajectory,
-                discrete_observation_dim=discrete_observation_dim,
-            ),
-            total=time_horizon - 1,
-        ):
-            filter.update(observation=observation)
-            filter.estimate()
-            loss_trajectory.append(
-                cross_entropy(
-                    input_probability=filter.estimation,
-                    target_probability=next_observation,
-                )
-            )
-    average_loss = float(np.mean(loss_trajectory))
-    logger.info(f"{average_loss=}")
+    # filter_loss, learning_filter_loss = compute_loss(
+    #     filter=filter.duplicate(number_of_systems=1),
+    #     learning_filter=learning_filter,
+    #     observation_trajectory=observation_trajectory[0],
+    # )
+
+    # Compute the empirical optimal loss
+    logger.info(
+        "Computing the empirical optimal loss (the cross-entropy loss of the hmm-filter)"
+    )
+    average_loss = compute_optimal_loss(filter, observation_trajectory)
+    logger.info(f"{average_loss = }")
 
     with torch.no_grad():
         logger.info(f"{emission_probability_matrix=}")

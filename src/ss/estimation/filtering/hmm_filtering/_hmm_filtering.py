@@ -16,27 +16,55 @@ class HiddenMarkovModelFilter(Filter):
         system: HiddenMarkovModel,
         initial_distribution: Optional[ArrayLike] = None,
         estimation_model: Optional[Callable] = None,
+        number_of_systems: Optional[int] = None,
     ) -> None:
         assert issubclass(type(system), HiddenMarkovModel), (
             f"system must be an instance of HiddenMarkovModel or its subclasses. "
             f"system given is an instance of {type(system)}."
         )
         self._system = system
+        number_of_systems = (
+            system.number_of_systems
+            if number_of_systems is None
+            else number_of_systems
+        )
         super().__init__(
             state_dim=self._system.discrete_state_dim,
             observation_dim=self._system.observation_dim,
+            initial_distribution=initial_distribution,
             estimation_model=estimation_model,
-            number_of_systems=self._system.number_of_systems,
+            number_of_systems=number_of_systems,
         )
+        self.reset()
+        # if initial_distribution is None:
+        #     initial_distribution = np.ones(self._state_dim) / self._state_dim
+        # initial_distribution = np.array(initial_distribution, dtype=np.float64)
+        # assert initial_distribution.shape[0] == self._state_dim, (
+        #     f"initial_distribution must be in the shape of {(self._state_dim,) = }. "
+        #     f"initial_distribution given has the shape of {initial_distribution.shape}."
+        # )
+        # self._estimated_state[...] = initial_distribution[np.newaxis, :]
 
-        if initial_distribution is None:
-            initial_distribution = np.ones(self._state_dim) / self._state_dim
-        initial_distribution = np.array(initial_distribution, dtype=np.float64)
-        assert initial_distribution.shape[0] == self._state_dim, (
-            f"initial_distribution must be in the shape of {(self._state_dim,) = }. "
-            f"initial_distribution given has the shape of {initial_distribution.shape}."
+    def duplicate(self, number_of_systems: int) -> "HiddenMarkovModelFilter":
+        """
+        Create multiple filters based on the current filter.
+
+        Parameters
+        ----------
+        number_of_systems: int
+            The number of systems to be created.
+
+        Returns
+        -------
+        filter: HiddenMarkovModelFilter
+            The created multi-filter.
+        """
+        return self.__class__(
+            system=self._system,
+            initial_distribution=self._initial_distribution,
+            estimation_model=self._estimation_model,
+            number_of_systems=number_of_systems,
         )
-        self._estimated_state[...] = initial_distribution[np.newaxis, :]
 
     def _compute_estimated_state_process(self) -> NDArray[np.float64]:
         estimated_state: NDArray[np.float64] = self._estimated_state_process(

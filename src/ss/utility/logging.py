@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Dict, Iterable, Optional, Union
 
 import logging
 import sys
@@ -6,6 +6,9 @@ from collections import OrderedDict
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
+
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.singleton import SingletonMeta
@@ -39,15 +42,25 @@ class VerboseSetting:
     log_format: str
 
 
+class Logger(logging.Logger):
+    def __init__(self, name: str, level: LogLevel) -> None:
+        super().__init__(name, level)
+
+    def progress_bar(
+        self, iterable: Iterable, total: Optional[int] = None
+    ) -> tqdm:
+        return tqdm(iterable, total=total)
+
+
 class Logging(metaclass=SingletonMeta):
-    _logger: Dict[str, logging.Logger] = OrderedDict()
+    _logger: Dict[str, Logger] = OrderedDict()
 
     @classmethod
     def get_logger(
         cls,
         name: str,
         level: LogLevel = LogLevel.DEBUG,
-    ) -> logging.Logger:
+    ) -> Logger:
         """
         Get a logger with the specified name.
 
@@ -60,7 +73,7 @@ class Logging(metaclass=SingletonMeta):
 
         Returns:
         --------
-            logger: logging.Logger
+            logger: Logger
                 The logger with the specified name and log level
         """
         names = name.split(".")
@@ -72,8 +85,7 @@ class Logging(metaclass=SingletonMeta):
             name = ".".join(names[:-1])
         if name in cls._logger:
             return cls._logger[name]
-        logger = logging.getLogger(name)
-        logger.setLevel(level)
+        logger = Logger(name, level)
         cls._logger[name] = logger
         return logger
 

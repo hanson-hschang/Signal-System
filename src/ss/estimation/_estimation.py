@@ -87,6 +87,7 @@ class Estimator:
 
     state_dim = ReadOnlyDescriptor[int]()
     observation_dim = ReadOnlyDescriptor[int]()
+    estimation_dim = ReadOnlyDescriptor[int]()
     number_of_observation_history = ReadOnlyDescriptor[int]()
     number_of_systems = ReadOnlyDescriptor[int]()
     estimated_state = MultiSystemNDArrayDescriptor(
@@ -102,6 +103,28 @@ class Estimator:
         "_number_of_systems",
         "_estimation_dim",
     )
+
+    def duplicate(self, number_of_systems: int) -> "Estimator":
+        """
+        Create multiple estimators based on the current estimator.
+
+        Parameters
+        ----------
+        number_of_systems: int
+            The number of systems to be created.
+
+        Returns
+        -------
+        estimator: Estimator
+            The created multi-estimator.
+        """
+        return self.__class__(
+            state_dim=self._state_dim,
+            observation_dim=self._observation_dim,
+            horizon_of_observation_history=self._horizon_of_observation_history,
+            estimation_model=self._estimation_model,
+            number_of_systems=number_of_systems,
+        )
 
     def update(self, observation: ArrayLike) -> None:
         """

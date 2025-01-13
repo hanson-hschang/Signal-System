@@ -233,16 +233,6 @@ class LearningHiddenMarkovModelFilter(
 
         # Initialize the estimated next state, and next observation for the inference mode
         self._init_batch_size(batch_size=1)
-        # self._batch_size = 1
-        # with torch.no_grad():
-        #     self._estimated_next_state_probability = (
-        #         torch.ones((self._batch_size, self._state_dim), dtype=torch.float64)
-        #         / self._state_dim
-        #     )  # (batch_size, state_dim)
-        #     self._estimated_next_observation_probability = torch.matmul(
-        #         self._estimated_next_state_probability,
-        #         self.emission_matrix,
-        #     )  # (batch_size, observation_dim)
 
     def _init_batch_size(
         self, batch_size: int, is_initialized: bool = False
