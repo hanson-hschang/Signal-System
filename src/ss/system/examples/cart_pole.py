@@ -203,7 +203,7 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
                 self._plot_signal_trajectory(
                     state_subplot,
                     state_trajectory,
-                    state_name,
+                    ylabel=state_name,
                     **kwargs,
                 )
 

@@ -17,7 +17,10 @@ from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.logging import Logging
 
-from ._learning_hmm_filtering_figure import add_optimal_loss_line
+from ._learning_hmm_filtering_figure import (
+    FilterResultFigure,
+    add_optimal_loss_line,
+)
 from ._learning_hmm_filtering_utility import (
     compute_loss,
     compute_optimal_loss,
@@ -97,14 +100,13 @@ def visualization(
 ) -> None:
     # Prepare data
     data = Data.load(data_filepath)
-    time_horizon = data["time"].shape[-1]
+    time_trajectory: NDArray = np.array(data["time"])
+    time_horizon = time_trajectory.shape[-1]
     observation_trajectory: NDArray = np.array(
         data["observation"], dtype=np.int64
     )  # (number_of_systems, 1, time_horizon)
-    discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
 
     # Prepare filter
-    number_of_systems = int(data.meta_info["number_of_systems"])
     transition_probability_matrix: NDArray = np.array(
         data.meta_data["transition_probability_matrix"]
     )
@@ -114,7 +116,6 @@ def visualization(
     system = HiddenMarkovModel(
         transition_probability_matrix=transition_probability_matrix,
         emission_probability_matrix=emission_probability_matrix,
-        number_of_systems=number_of_systems,
     )
     emission_model = get_observation_model(
         transition_probability_matrix=transition_probability_matrix,
@@ -132,30 +133,48 @@ def visualization(
     logger.info(
         "Computing the loss trajectory of the filter and learning_filter"
     )
-    # filter_loss, learning_filter_loss = compute_loss(
-    #     filter=filter.duplicate(number_of_systems=1),
-    #     learning_filter=learning_filter,
-    #     observation_trajectory=observation_trajectory[0],
-    # )
+    max_time_horizon = 100
+    time_slice = slice(min(time_horizon, max_time_horizon))
+    time_trajectory_test = time_trajectory[time_slice]
+    observation_trajectory_test = observation_trajectory[0, :, time_slice]
+    filter_result_trajectory, learning_filter_result_trajectory = compute_loss(
+        filter=filter,
+        learning_filter=learning_filter,
+        observation_trajectory=observation_trajectory_test,
+    )
 
     # Compute the empirical optimal loss
     logger.info(
         "Computing the empirical optimal loss (the cross-entropy loss of the hmm-filter)"
     )
-    average_loss = compute_optimal_loss(filter, observation_trajectory)
+    number_of_systems = int(data.meta_info["number_of_systems"])
+    average_loss = compute_optimal_loss(
+        filter.duplicate(number_of_systems),
+        observation_trajectory,
+    )
     logger.info(f"{average_loss = }")
 
     with torch.no_grad():
-        logger.info(f"{emission_probability_matrix=}")
-        logger.info(f"\n{learning_filter.emission_matrix=}")
+        logger.info(f"{emission_probability_matrix = }")
+        logger.info(f"\n{learning_filter.emission_matrix = }")
 
     # Plot the training and validation loss together with the optimal loss
     checkpoint_info = CheckpointInfo.load(model_filepath.with_suffix(".hdf5"))
-    fig = IterationFigure(
+    loss_figure = IterationFigure(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
         validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
     ).plot()
-    add_optimal_loss_line(fig.loss_plot_ax, average_loss)
+    add_optimal_loss_line(loss_figure.loss_plot_ax, average_loss)
+
+    # Plot the filter result comparison
+    result_figure = FilterResultFigure(
+        time_trajectory=time_trajectory_test,
+        target_trajectory=observation_trajectory_test,
+        filter_result_trajectory_dict=dict(
+            filter=filter_result_trajectory,
+            learning_filter=learning_filter_result_trajectory,
+        ),
+    ).plot()
     plt.show()
 
 

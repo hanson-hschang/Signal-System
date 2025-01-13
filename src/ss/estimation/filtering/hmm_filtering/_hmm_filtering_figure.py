@@ -113,6 +113,7 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
             ),
             fig_layout=fig_layout,
         )
+        self._sup_xlabel = "time step"
 
         if discrete_state_dim is None:
             discrete_state_dim = int(np.max(self._state_trajectory)) + 1
@@ -175,7 +176,6 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
             )
             self._estimation_subplot.set_ylabel("Estimation\n")
 
-        self._sup_xlabel = "Time Step"
         super().plot()
 
         self._create_color_bar()
