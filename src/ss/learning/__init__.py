@@ -1,8 +1,10 @@
 from ss.learning._learning import (
+    BaseLearningConfig,
     BaseLearningModule,
-    BaseLearningParameters,
     BaseLearningProcess,
     CheckpointInfo,
     Mode,
+    reset_module,
 )
+from ss.learning._learning_data import dataset_split_to_loaders
 from ss.learning._learning_figure import IterationFigure

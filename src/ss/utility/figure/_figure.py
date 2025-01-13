@@ -84,11 +84,17 @@ class SequenceTrajectoryFigure:
         self,
         ax: Axes,
         signal_trajectory: NDArray[np.float64],
+        sequence_trajectory: Optional[NDArray] = None,
         ylabel: Optional[str] = None,
         **kwargs: Any,
     ) -> None:
+        sequence_trajectory = (
+            self._sequence_trajectory
+            if sequence_trajectory is None
+            else np.array(sequence_trajectory)
+        )
         ax.plot(
-            self._sequence_trajectory,
+            sequence_trajectory,
             signal_trajectory,
             **kwargs,
         )
@@ -125,20 +131,25 @@ class SequenceTrajectoryFigure:
         self,
         ax: Axes,
         probability_trajectory: NDArray[np.float64],
+        sequence_trajectory: Optional[NDArray] = None,
+        ylabel: Optional[str] = None,
     ) -> QuadMesh:
-        time_horizon = (
-            self._sequence_trajectory[-1] - self._sequence_trajectory[0]
+        sequence_trajectory = (
+            self._sequence_trajectory
+            if sequence_trajectory is None
+            else np.array(sequence_trajectory)
         )
+        time_horizon = sequence_trajectory[-1] - sequence_trajectory[0]
         time_lim = (
-            self._sequence_trajectory[0] - time_horizon * 0.05,
-            self._sequence_trajectory[-1] + time_horizon * 0.05,
+            sequence_trajectory[0] - time_horizon * 0.05,
+            sequence_trajectory[-1] + time_horizon * 0.05,
         )
         dimension = probability_trajectory.shape[0]
         for d in range(dimension - 1):
             ax.axhline(d + 0.5, color="black", linewidth=0.5, linestyle="--")
 
         sequence_grid, probability_grid = np.meshgrid(
-            self._sequence_trajectory,
+            sequence_trajectory,
             np.arange(dimension),
         )
         image_mesh = ax.pcolormesh(
@@ -152,6 +163,8 @@ class SequenceTrajectoryFigure:
         ax.invert_yaxis()
         ax.set_xlim(time_lim)
         ax.set_yticks(np.arange(dimension))
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
         return image_mesh
 
 
@@ -171,4 +184,4 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
             fig_title=fig_title,
             fig_layout=fig_layout,
         )
-        self._sup_xlabel = "Time (sec)"
+        self._sup_xlabel = "time (sec)"

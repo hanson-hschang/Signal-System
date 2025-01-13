@@ -33,8 +33,8 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         arg_name_shape_dict = {"state": self._state.shape}
         self._observation_function: Callable = inspect_arguments(
             func=observation_function,
-            result_shape=self._observation.shape,
             arg_name_shape_dict=arg_name_shape_dict,
+            result_shape=self._observation.shape,
         )
         if state_constraint_function is None:
 
@@ -46,15 +46,15 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
             state_constraint_function = default_state_constraint_function
         self._state_constraint_function: Callable = inspect_arguments(
             func=state_constraint_function,
-            result_shape=self._state.shape,
             arg_name_shape_dict=arg_name_shape_dict,
+            result_shape=self._state.shape,
         )
         if self._control_dim > 0:
             arg_name_shape_dict["control"] = self._control.shape
         self._process_function: Callable = inspect_arguments(
             func=process_function,
-            result_shape=self._state.shape,
             arg_name_shape_dict=arg_name_shape_dict,
+            result_shape=self._state.shape,
         )
         self._set_compute_state_process(control_flag=(control_dim > 0))
 

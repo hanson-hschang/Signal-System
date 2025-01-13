@@ -1,98 +1,21 @@
-from typing import Any, Generator, List, Sequence, Tuple
+from typing import Any, Generator, Optional, Tuple
+
+from dataclasses import dataclass
 
 import numpy as np
 import torch
-from matplotlib.axes import Axes
 from numba import njit
-from numpy.typing import ArrayLike, NDArray
-from torch.utils.data import DataLoader, Dataset, random_split
+from numpy.typing import NDArray
 
+from ss.estimation.filtering.hmm_filtering import (
+    HiddenMarkovModelFilter,
+    LearningHiddenMarkovModelFilter,
+)
+from ss.learning import Mode
+from ss.system.markov import one_hot_encoding
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
-
-
-class ObservationDataset(Dataset):
-    def __init__(
-        self,
-        observation: ArrayLike,
-        number_of_systems: int = 1,
-        max_length: int = 256,
-        stride: int = 64,
-    ) -> None:
-        observation = np.array(observation)
-        if number_of_systems == 1:
-            observation = observation[np.newaxis, ...]
-        assert observation.ndim == 2, (
-            "observation must be a NDArray of 2 dimensions "
-            "with the shape of (number_of_systems, time_horizon). "
-            f"observation given has the shape of {observation.shape}."
-        )
-
-        time_horizon = observation.shape[-1]
-        self._input_trajectory = []
-        self._output_trajectory = []
-
-        with torch.no_grad():
-            for i in range(number_of_systems):
-                _observation: torch.Tensor = torch.tensor(
-                    observation[i], dtype=torch.int64
-                )  # (time_horizon,)
-                for t in range(0, time_horizon - max_length, stride):
-                    input_trajectory: torch.Tensor = _observation[
-                        t : t + max_length
-                    ]  # (max_length,)
-                    output_trajectory: torch.Tensor = _observation[
-                        t + 1 : t + max_length + 1
-                    ]  # (max_length,)
-                    self._input_trajectory.append(
-                        input_trajectory.detach().clone()
-                    )
-                    self._output_trajectory.append(
-                        output_trajectory.detach().clone()
-                    )
-
-        self._length = len(self._input_trajectory)
-
-    def __len__(self) -> int:
-        return self._length
-
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self._input_trajectory[index], self._output_trajectory[index]
-
-    @classmethod
-    def from_batch(cls, batch: Any) -> Tuple[torch.Tensor, torch.Tensor]:
-        # The indexing of batch is defined by the __getitem__ method.
-        input_trajectory, output_trajectory = batch[0], batch[1]
-        return input_trajectory, output_trajectory
-
-
-def data_split(
-    observation: ArrayLike,
-    split_ratio: Sequence[float],
-    number_of_systems: int = 1,
-    batch_size: int = 128,
-    max_length: int = 256,
-    stride: int = 64,
-    random_seed: int = 2025,
-) -> List[DataLoader]:
-    generator = torch.Generator().manual_seed(random_seed)
-    datasets = random_split(
-        dataset=ObservationDataset(
-            observation=observation,
-            number_of_systems=number_of_systems,
-            max_length=max_length,
-            stride=stride,
-        ),
-        lengths=split_ratio,
-        generator=generator,
-    )
-    dataloaders = []
-    for dataset in datasets:
-        dataloaders.append(
-            DataLoader(dataset, batch_size=batch_size, shuffle=True)
-        )
-    return dataloaders
 
 
 def get_observation_model(
@@ -118,41 +41,200 @@ def get_observation_model(
 
 
 def observation_generator(
-    observation_trajectory: NDArray,
+    observation_trajectory: NDArray[np.int64],
+    discrete_observation_dim: Optional[int] = None,
 ) -> Generator[Tuple[NDArray, NDArray], None, None]:
+    """
+    Generate the pair (observation, next_observation) from the observation_trajectory over the time_horizon.
+
+    Parameters
+    ----------
+    observation_trajectory : NDArray[np.int64]
+        shape = (number_of_systems, 1, time_horizon)
+    discrete_observation_dim : int, optional
+        The dimension of discrete observations.
+        If not provided, it will be inferred from the observation_trajectory.
+
+    Yields
+    ------
+    observation : NDArray
+        shape = (number_of_systems, 1)
+    next_observation : NDArray
+        shape = (number_of_systems, discrete_observation_dim)
+        one-hot encoding of the next observation.
+    """
     time_horizon = observation_trajectory.shape[-1]
+    if discrete_observation_dim is None:
+        discrete_observation_dim = int(np.max(observation_trajectory)) + 1
+    observation_encoder_basis = np.identity(
+        discrete_observation_dim, dtype=np.float64
+    )
+    system_dim = True
+    if observation_trajectory.ndim == 2:
+        observation_trajectory = observation_trajectory[np.newaxis, ...]
+        system_dim = False
     for k in range(time_horizon - 1):
-        yield observation_trajectory[..., k], observation_trajectory[
-            ..., k + 1
-        ]
+        observation = observation_trajectory[..., k]
+        next_observation = one_hot_encoding(
+            observation_trajectory[:, 0, k + 1],
+            observation_encoder_basis,
+        )
+        if system_dim:
+            yield observation, next_observation
+        else:
+            yield observation[0], next_observation[0]
 
 
 @njit(cache=True)  # type: ignore
 def cross_entropy(
-    input_probability: NDArray,
-    target_probability: NDArray,
+    input_probability: NDArray[np.float64],
+    target_probability: NDArray[np.float64],
 ) -> float:
-    return -float(np.mean(target_probability * np.log(input_probability)))
+    """
+    Compute the batch size cross-entropy loss, which is defined as
+    :math: `-\\frac{1}{N} \\sum_{i=1}^{N} \\sum_{j=1}^{C} p^*_{ij} \\log(p_{ij})`
+    where :math: `N` is the batch size, :math: `C` is the number of classes,
+    :math: `p^*_{ij}` is the `target_probability`, and :math: `p_{ij}` is the `input_probability`.
+
+    Parameters
+    ----------
+    input_probability : NDArray
+        probability of input with shape (num_classes,) or (batch_size, num_classes)
+        values should be in the range of :math: `(0, 1]`
+    target_probability : NDArray
+        probability of target with the same shape as input_probability
+        values should be in the range of :math: `[0, 1]`
+
+    Returns
+    -------
+    loss : float
+        The cross-entropy loss of the input and target probability.
+    """
+    if input_probability.ndim == 1:
+        loss = -np.sum(target_probability * np.log(input_probability))
+    else:
+        num_classes = input_probability.shape[1]
+        loss = (
+            -np.mean(target_probability * np.log(input_probability))
+            * num_classes
+        )
+    return float(loss)
 
 
-def add_optimal_loss(
-    ax: Axes,
-    average_loss: float,
-) -> None:
-    ax.axhline(y=average_loss, color="black", linestyle="--")
-    bbox = dict(boxstyle="round", fc="0.8")
-    arrowprops = dict(
-        arrowstyle="->",
-        connectionstyle="angle,angleA=0,angleB=90,rad=10",
+def compute_optimal_loss(
+    filter: HiddenMarkovModelFilter,
+    observation_trajectory: NDArray,
+) -> float:
+    """
+    Compute the empirical optimal loss of the hmm-filter.
+
+    Parameters
+    ----------
+    filter : HiddenMarkovModelFilter
+        The filter to be used for the estimation.
+    observation_trajectory : NDArray
+        shape = (number_of_systems, 1, time_horizon)
+
+    Returns
+    -------
+    average_loss : float
+        The average loss of the optimal estimation.
+    """
+    time_horizon = observation_trajectory.shape[-1]
+    loss_trajectory = np.empty(time_horizon - 1)
+    for k, (observation, next_observation) in logger.progress_bar(
+        enumerate(
+            observation_generator(
+                observation_trajectory=observation_trajectory,
+                discrete_observation_dim=filter.estimation_dim,
+            )
+        ),
+        total=time_horizon - 1,
+    ):
+        filter.update(observation=observation)
+        filter.estimate()
+        loss_trajectory[k] = cross_entropy(
+            input_probability=filter.estimation,
+            target_probability=next_observation,
+        )
+    average_loss = float(np.mean(loss_trajectory))
+    return average_loss
+
+
+@dataclass
+class FilterResultTrajectory:
+    loss: NDArray
+    estimated_next_observation_probability: NDArray
+
+
+def compute_loss(
+    filter: HiddenMarkovModelFilter,
+    learning_filter: LearningHiddenMarkovModelFilter,
+    observation_trajectory: NDArray,
+) -> Tuple[FilterResultTrajectory, FilterResultTrajectory]:
+    """
+    Compute the loss trajectory of the filter and learning_filter.
+
+    Parameters
+    ----------
+    filter : HiddenMarkovModelFilter
+        The filter to be used for the estimation.
+    learning_filter : LearningHiddenMarkovModelFilter
+        The learning filter to be used for the estimation.
+    observation_trajectory : NDArray
+        shape = (1, time_horizon)
+
+    Returns
+    -------
+    filter_result_trajectory : FilterResultTrajectory
+        The result of the filter estimation, including the loss and estimated_next_observation_probability.
+    learning_filter_result_trajectory : FilterResultTrajectory
+        The result of the learning_filter, including the loss and estimated_next_observation_probability.
+    """
+    time_horizon = observation_trajectory.shape[-1]
+    discrete_observation_dim = filter.estimation_dim
+    filter_loss_trajectory = np.empty(time_horizon - 1)
+    learning_filter_loss_trajectory = np.empty(time_horizon - 1)
+    filter_estimated_next_observation_probability = np.empty(
+        (discrete_observation_dim, time_horizon - 1)
     )
-    offset = 64
-    xlim_min, xlim_max = ax.get_xlim()
-    xlim_range = xlim_max - xlim_min
-    ax.annotate(
-        f"optimal loss: {average_loss:.2f}",
-        (xlim_min + 0.1 * xlim_range, average_loss),
-        xytext=(2 * offset, offset),
-        textcoords="offset pixels",
-        bbox=bbox,
-        arrowprops=arrowprops,
+    learning_filter_estimated_next_observation_probability = np.empty(
+        (discrete_observation_dim, time_horizon - 1)
     )
+    with Mode.inference(learning_filter):
+        for k, (observation, next_observation) in logger.progress_bar(
+            enumerate(
+                observation_generator(
+                    observation_trajectory=observation_trajectory,
+                    discrete_observation_dim=filter.estimation_dim,
+                )
+            ),
+            total=time_horizon - 1,
+        ):
+            filter.update(observation)
+            filter.estimate()
+            learning_filter.update(torch.tensor(observation))
+            learning_filter.estimate()
+            filter_estimated_next_observation_probability[:, k] = (
+                filter.estimation
+            )
+            filter_loss_trajectory[k] = cross_entropy(
+                input_probability=filter.estimation,
+                target_probability=next_observation,
+            )
+            learning_filter_estimated_next_observation_probability[:, k] = (
+                learning_filter.estimated_next_observation_probability.detach().numpy()
+            )
+            learning_filter_loss_trajectory[k] = cross_entropy(
+                input_probability=learning_filter.estimated_next_observation_probability.detach().numpy(),
+                target_probability=next_observation,
+            )
+    filter_result_trajectory = FilterResultTrajectory(
+        loss=filter_loss_trajectory,
+        estimated_next_observation_probability=filter_estimated_next_observation_probability,
+    )
+    learning_filter_result_trajectory = FilterResultTrajectory(
+        loss=learning_filter_loss_trajectory,
+        estimated_next_observation_probability=learning_filter_estimated_next_observation_probability,
+    )
+    return filter_result_trajectory, learning_filter_result_trajectory

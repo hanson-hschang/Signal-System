@@ -19,7 +19,9 @@ _array_like_types: tuple = (
 
 
 def inspect_arguments(
-    func: Callable, result_shape: Tuple, arg_name_shape_dict: Dict[str, Tuple]
+    func: Callable,
+    arg_name_shape_dict: Dict[str, Tuple],
+    result_shape: Tuple,
 ) -> Callable:
     signature = inspect.signature(func)
     arg_dict = {}

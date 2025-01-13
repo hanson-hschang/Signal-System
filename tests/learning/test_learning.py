@@ -5,11 +5,11 @@ import pytest
 import torch
 from torch import nn
 
-from ss.learning import BaseLearningModule, BaseLearningParameters
+from ss.learning import BaseLearningConfig, BaseLearningModule
 
 
 @dataclass
-class SimpleParameters(BaseLearningParameters):
+class SimpleParameters(BaseLearningConfig):
     input_dim: int = 10
     output_dim: int = 2
 
@@ -43,7 +43,7 @@ class TestBaseLearningModule:
     ) -> None:
         simple_model = SimpleModel(simple_params)
         assert isinstance(simple_model, BaseLearningModule)
-        assert simple_model._params == simple_params
+        assert simple_model._config == simple_params
 
     def test_model_save(
         self, simple_model: SimpleModel, tmp_path: Path
@@ -57,7 +57,7 @@ class TestBaseLearningModule:
         simple_model.save(tmp_path / "model.pt")
         loaded_model = SimpleModel.load(tmp_path / "model.pt")
         assert isinstance(loaded_model, SimpleModel)
-        assert loaded_model._params == simple_model._params
+        assert loaded_model._config == simple_model._config
         for (
             simple_model_key,
             simple_model_value,

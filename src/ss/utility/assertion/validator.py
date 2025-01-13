@@ -171,14 +171,14 @@ class SignalTrajectoryValidator(Validator):
 
 
 class PathValidator(Validator):
-    def _clear_path(self, path: Union[str, Path]) -> Path:
+    def _resolve_path(self, path: Union[str, Path]) -> Path:
         return Path(path).resolve()
 
 
 class FolderPathExistenceValidator(PathValidator):
     def __init__(self, foldername: Union[str, Path]) -> None:
         super().__init__()
-        self._foldername = self._clear_path(foldername)
+        self._foldername = self._resolve_path(foldername)
         self.add_validation(self._validate_folderpath_existence)
 
     def _validate_folderpath_existence(self) -> bool:
@@ -218,7 +218,7 @@ class FilePathExistenceValidator(PathValidator):
         self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
     ) -> None:
         super().__init__()
-        self._filename = self._clear_path(filename)
+        self._filename = self._resolve_path(filename)
         self._extension = extension
         self.add_validation(self._validate_filepath_existence)
 
@@ -250,7 +250,7 @@ class FilePathValidator(PathValidator):
         self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
     ) -> None:
         super().__init__()
-        self._filename = self._clear_path(filename)
+        self._filename = self._resolve_path(filename)
         self._extension = extension
         self.add_validation(self._validate_filepath)
 

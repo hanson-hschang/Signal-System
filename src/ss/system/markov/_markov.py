@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 from pathlib import Path
 
@@ -8,6 +8,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.system import DiscreteTimeSystem, SystemCallback
 from ss.utility.assertion.validator import Validator
+from ss.utility.descriptor import ReadOnlyDescriptor
 
 
 @njit(cache=True)  # type: ignore
@@ -34,13 +35,13 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         def __init__(
             self,
             transition_probability_matrix: ArrayLike,
-            state_dim: Optional[int] = None,
+            discrete_state_dim: Optional[int] = None,
         ) -> None:
             super().__init__()
             self._transition_probability_matrix = np.array(
                 transition_probability_matrix, dtype=np.float64
             )
-            self._state_dim = state_dim
+            self._discrete_state_dim = discrete_state_dim
             self._validate_functions.append(self._validate_shape)
             self._validate_functions.append(self._validate_row_sum)
 
@@ -52,9 +53,13 @@ class HiddenMarkovModel(DiscreteTimeSystem):
                     "transition_probability_matrix should be a square matrix"
                 )
                 is_valid = False
-            if self._state_dim is not None and shape[0] != self._state_dim:
+            if (
+                self._discrete_state_dim is not None
+                and shape[0] != self._discrete_state_dim
+            ):
                 self._errors.append(
-                    f"transition_probability_matrix should have the shape as (state_dim, state_dim) with state_dim={self._state_dim}."
+                    f"transition_probability_matrix should have the shape as (discrete_state_dim, discrete_state_dim) "
+                    f"with discrete_state_dim={self._discrete_state_dim}. "
                     f"The transition_probability_matrix given has the shape {shape}."
                 )
                 is_valid = False
@@ -69,27 +74,35 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrix(self) -> NDArray[np.float64]:
-            return self._transition_probability_matrix
+        def get_matrices(self) -> Tuple[NDArray, NDArray]:
+            transition_probability_cumsum = np.cumsum(
+                self._transition_probability_matrix, axis=1
+            )
+            return (
+                self._transition_probability_matrix,
+                transition_probability_cumsum,
+            )
 
     class _EmissionProbabilityMatrixValidator(Validator):
         def __init__(
-            self, state_dim: int, emission_probability_matrix: ArrayLike
+            self,
+            discrete_state_dim: int,
+            emission_probability_matrix: ArrayLike,
         ) -> None:
             super().__init__()
             self._emission_probability_matrix = np.array(
                 emission_probability_matrix, dtype=np.float64
             )
-            self._state_dim = state_dim
+            self._discrete_state_dim = discrete_state_dim
             self._validate_functions.append(self._validate_shape)
             self._validate_functions.append(self._validate_row_sum)
 
         def _validate_shape(self) -> bool:
             shape = self._emission_probability_matrix.shape
-            if len(shape) == 2 and (shape[0] == self._state_dim):
+            if len(shape) == 2 and (shape[0] == self._discrete_state_dim):
                 return True
             self._errors.append(
-                "transition_probability_matrix and emission_probability_matrix should have the same number of rows (state_dim)"
+                "transition_probability_matrix and emission_probability_matrix should have the same number of rows (discrete_state_dim)"
             )
             return False
 
@@ -102,8 +115,14 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrix(self) -> NDArray[np.float64]:
-            return self._emission_probability_matrix
+        def get_matrices(self) -> Tuple[NDArray, NDArray]:
+            emission_probability_cumsum = np.cumsum(
+                self._emission_probability_matrix, axis=1
+            )
+            return (
+                self._emission_probability_matrix,
+                emission_probability_cumsum,
+            )
 
     def __init__(
         self,
@@ -112,101 +131,110 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         initial_distribution: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
-        self._transition_probability_matrix = (
-            self._TransitionProbabilityMatrixValidator(
-                transition_probability_matrix
-            ).get_matrix()
-        )
-        state_dim = self._transition_probability_matrix.shape[0]
+        (
+            self._transition_probability_matrix,
+            self._transition_probability_cumsum,
+        ) = self._TransitionProbabilityMatrixValidator(
+            transition_probability_matrix
+        ).get_matrices()
+        self._discrete_state_dim = self._transition_probability_matrix.shape[0]
 
-        self._emission_probability_matrix = (
-            self._EmissionProbabilityMatrixValidator(
-                state_dim=state_dim,
-                emission_probability_matrix=emission_probability_matrix,
-            ).get_matrix()
+        (
+            self._emission_probability_matrix,
+            self._emission_probability_cumsum,
+        ) = self._EmissionProbabilityMatrixValidator(
+            discrete_state_dim=self._discrete_state_dim,
+            emission_probability_matrix=emission_probability_matrix,
+        ).get_matrices()
+        self._discrete_observation_dim = (
+            self._emission_probability_matrix.shape[1]
         )
-        observation_dim = self._emission_probability_matrix.shape[1]
 
         super().__init__(
-            state_dim=state_dim,
-            observation_dim=observation_dim,
+            state_dim=1,
+            observation_dim=1,
             number_of_systems=number_of_systems,
         )
 
         if initial_distribution is None:
-            initial_distribution = np.ones(self._state_dim) / self._state_dim
-        initial_distribution = np.array(initial_distribution, dtype=np.float64)
-        assert initial_distribution.shape[0] == self._state_dim, (
-            f"initial_distribution should have the same length as state_dim {self._state_dim}."
-            f"The initial_distribution given has shape {initial_distribution.shape}."
+            initial_distribution = (
+                np.ones(self._discrete_state_dim) / self._discrete_state_dim
+            )
+        self._initial_distribution = np.array(
+            initial_distribution, dtype=np.float64
+        )
+        assert (
+            self._initial_distribution.shape[0] == self._discrete_state_dim
+        ), (
+            f"initial_distribution should have the same length as discrete_state_dim {self._discrete_state_dim}. "
+            f"The initial_distribution given has shape {self._initial_distribution.shape}."
         )
 
-        self._transition_probability_cumsum = np.cumsum(
-            self._transition_probability_matrix, axis=1
-        )
-        self._emission_probability_cumsum = np.cumsum(
-            self._emission_probability_matrix, axis=1
-        )
-
-        self._state_value: NDArray[np.int64] = np.random.choice(
-            self._state_dim,
-            size=self._number_of_systems,
-            p=initial_distribution,
-        )
-        self._observation_value: NDArray[np.int64] = np.zeros(
-            self._number_of_systems, dtype=np.int64
-        )
+        self._state = np.random.choice(
+            self._discrete_state_dim,
+            size=self._state.shape,
+            p=self._initial_distribution,
+        ).astype(
+            np.float64
+        )  # (number_of_systems, 1)
         self._state_encoder_basis = np.identity(
-            self._state_dim, dtype=np.float64
+            self._discrete_state_dim, dtype=np.float64
         )
         self._observation_encoder_basis = np.identity(
-            self._observation_dim, dtype=np.float64
-        )
-        self._state[...] = one_hot_encoding(
-            self._state_value,
-            self._state_encoder_basis,
+            self._discrete_observation_dim, dtype=np.float64
         )
         self.observe()
 
-    @property
-    def state_value(self) -> NDArray[np.int64]:
-        return self._state_value.squeeze()
+    discrete_state_dim = ReadOnlyDescriptor[int]()
+    discrete_observation_dim = ReadOnlyDescriptor[int]()
 
     @property
-    def observation_value(self) -> NDArray[np.int64]:
-        return self._observation_value.squeeze()
+    def state_one_hot(self) -> NDArray:
+        state_one_hot: NDArray = one_hot_encoding(
+            self._state[:, 0].astype(dtype=np.int64),
+            self._state_encoder_basis,
+        )  # (number_of_systems, discrete_state_dim)
+        if self._number_of_systems == 1:
+            return state_one_hot[0, :]
+        return state_one_hot
 
     @property
-    def transition_probability_matrix(self) -> NDArray[np.float64]:
+    def observation_one_hot(self) -> NDArray:
+        observation_one_hot: NDArray = one_hot_encoding(
+            self._observation[:, 0].astype(dtype=np.int64),
+            self._observation_encoder_basis,
+        )  # (number_of_systems, discrete_observation_dim)
+        if self._number_of_systems == 1:
+            return observation_one_hot[0, :]
+        return observation_one_hot
+
+    @property
+    def transition_probability_matrix(self) -> NDArray:
         return self._transition_probability_matrix
 
     @transition_probability_matrix.setter
     def transition_probability_matrix(self, matrix: ArrayLike) -> None:
-        self._transition_probability_matrix = (
-            self._TransitionProbabilityMatrixValidator(
-                matrix,
-                state_dim=self.state_dim,
-            ).get_matrix()
-        )
-        self._transition_probability_cumsum = np.cumsum(
-            self._transition_probability_matrix, axis=1
-        )
+        (
+            self._transition_probability_matrix,
+            self._transition_probability_cumsum,
+        ) = self._TransitionProbabilityMatrixValidator(
+            matrix,
+            discrete_state_dim=self._discrete_state_dim,
+        ).get_matrices()
 
     @property
-    def emission_probability_matrix(self) -> NDArray[np.float64]:
+    def emission_probability_matrix(self) -> NDArray:
         return self._emission_probability_matrix
 
     @emission_probability_matrix.setter
     def emission_probability_matrix(self, matrix: ArrayLike) -> None:
-        self._emission_probability_matrix = (
-            self._EmissionProbabilityMatrixValidator(
-                state_dim=self.state_dim,
-                emission_probability_matrix=matrix,
-            ).get_matrix()
-        )
-        self._emission_probability_cumsum = np.cumsum(
-            self._emission_probability_matrix, axis=1
-        )
+        (
+            self._emission_probability_matrix,
+            self._emission_probability_cumsum,
+        ) = self._EmissionProbabilityMatrixValidator(
+            discrete_state_dim=self._discrete_state_dim,
+            emission_probability_matrix=matrix,
+        ).get_matrices()
 
     def duplicate(self, number_of_systems: int) -> "HiddenMarkovModel":
         return HiddenMarkovModel(
@@ -215,29 +243,19 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             number_of_systems=number_of_systems,
         )
 
-    def _compute_state_process(self) -> NDArray[np.float64]:
-        self._state_value = self._process(
-            self._state_value,
+    def _compute_state_process(self) -> NDArray:
+        state: NDArray = self._process(
+            self._state.astype(np.int64),
             self._transition_probability_cumsum,
-        )
-        # state_process is a one-hot embedding of the state_index
-        state_process: NDArray[np.float64] = one_hot_encoding(
-            self._state_value,
-            self._state_encoder_basis,
-        )
-        return state_process
+        )  # (number_of_systems, 1)
+        return state.astype(np.float64)
 
-    def _compute_observation_process(self) -> NDArray[np.float64]:
-        self._observation_value = self._process(
-            self._state_value,
+    def _compute_observation_process(self) -> NDArray:
+        observation: NDArray = self._process(
+            self._state.astype(np.int64),
             self._emission_probability_cumsum,
-        )
-        # observation_process is a one-hot embedding of the observation_index
-        observation_process: NDArray[np.float64] = one_hot_encoding(
-            self._observation_value,
-            self._observation_encoder_basis,
-        )
-        return observation_process
+        )  # (number_of_systems, 1)
+        return observation.astype(np.float64)
 
     @staticmethod
     @njit(cache=True)  # type: ignore
@@ -246,11 +264,11 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         probability_cumsum_matrix: NDArray[np.float64],
     ) -> NDArray[np.int64]:
         number_of_systems = input_index.shape[0]
-        random_numbers = np.random.rand(number_of_systems)
-        output_index = np.empty(number_of_systems, dtype=np.int64)
+        random_numbers: NDArray = np.random.rand(number_of_systems)
+        output_index = np.empty((number_of_systems, 1), dtype=np.int64)
         for i, random_number in enumerate(random_numbers):
-            output_index[i] = np.searchsorted(
-                probability_cumsum_matrix[input_index[i], :],
+            output_index[i, 0] = np.searchsorted(
+                probability_cumsum_matrix[input_index[i, 0], :],
                 random_number,
                 side="right",
             )
@@ -269,18 +287,13 @@ class MarkovChainCallback(SystemCallback):
         super().__init__(step_skip, system)
         self._system: HiddenMarkovModel = system
 
-    def _record(self, time: float) -> None:
-        super()._record(time)
-        self._callback_params["state_value"].append(
-            self._system.state_value.copy()
-        )
-        self._callback_params["observation_value"].append(
-            self._system.observation_value.copy()
-        )
-
     def save(self, filename: Union[str, Path]) -> None:
         self.add_meta_data(
             transition_probability_matrix=self._system.transition_probability_matrix,
             emission_probability_matrix=self._system.emission_probability_matrix,
+        )
+        self.add_meta_info(
+            discrete_state_dim=self._system.discrete_state_dim,
+            discrete_observation_dim=self._system.discrete_observation_dim,
         )
         super().save(filename)

@@ -1,4 +1,4 @@
-from typing import Optional, Self, Tuple, cast
+from typing import Optional, Self, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,6 +7,7 @@ from matplotlib.colorbar import Colorbar
 from matplotlib.colors import Normalize
 from numpy.typing import ArrayLike, NDArray
 
+from ss.system.markov import one_hot_encoding
 from ss.utility.assertion.validator import Validator
 from ss.utility.figure import SequenceTrajectoryFigure
 
@@ -60,37 +61,45 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
         state_trajectory: ArrayLike,
         observation_trajectory: ArrayLike,
         estimated_state_trajectory: ArrayLike,
-        estimated_function_value_trajectory: Optional[ArrayLike] = None,
+        discrete_state_dim: Optional[int] = None,
+        discrete_observation_dim: Optional[int] = None,
+        estimation_trajectory: Optional[ArrayLike] = None,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
     ) -> None:
         time_length = np.array(time_trajectory).shape[0]
-        self._state_trajectory = self._SignalTrajectoryValidator(
-            signal_trajectory=state_trajectory,
-            time_length=time_length,
-            signal_name="state_trajectory",
-        ).get_trajectory()
-        self._observation_trajectory = self._SignalTrajectoryValidator(
-            signal_trajectory=observation_trajectory,
-            time_length=time_length,
-            signal_name="observation_trajectory",
-        ).get_trajectory()
+        self._state_trajectory = (
+            self._SignalTrajectoryValidator(
+                signal_trajectory=state_trajectory,
+                time_length=time_length,
+                signal_name="state_trajectory",
+            )
+            .get_trajectory()
+            .astype(np.int64)
+        )
+        self._observation_trajectory = (
+            self._SignalTrajectoryValidator(
+                signal_trajectory=observation_trajectory,
+                time_length=time_length,
+                signal_name="observation_trajectory",
+            )
+            .get_trajectory()
+            .astype(np.int64)
+        )
         self._estimated_state_trajectory = self._SignalTrajectoryValidator(
             signal_trajectory=estimated_state_trajectory,
             time_length=time_length,
             signal_name="estimated_state_trajectory",
         ).get_trajectory()
-        self._estimated_function_value_trajectory = (
-            self._SignalTrajectoryValidator(
-                signal_trajectory=estimated_function_value_trajectory,
-                time_length=time_length,
-                signal_name="estimated_function_value_trajectory",
-            ).get_trajectory()
-        )
+        self._estimation_trajectory = self._SignalTrajectoryValidator(
+            signal_trajectory=estimation_trajectory,
+            time_length=time_length,
+            signal_name="estimation_trajectory",
+        ).get_trajectory()
 
         fig_layout: Tuple = (3, 1)
         if self._SignalTrajectoryValidator.has_value(
-            self._estimated_function_value_trajectory,
+            self._estimation_trajectory,
         ):
             fig_layout = (4, 1)
 
@@ -104,45 +113,69 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
             ),
             fig_layout=fig_layout,
         )
+        self._sup_xlabel = "time step"
+
+        if discrete_state_dim is None:
+            discrete_state_dim = int(np.max(self._state_trajectory)) + 1
+        if discrete_observation_dim is None:
+            discrete_observation_dim = (
+                int(np.max(self._observation_trajectory)) + 1
+            )
+        self._discrete_state_dim = discrete_state_dim
+        self._discrete_observation_dim = discrete_observation_dim
+
+        state_encoder_basis = np.identity(
+            self._discrete_state_dim, dtype=np.float64
+        )
+        observation_encoder_basis = np.identity(
+            self._discrete_observation_dim, dtype=np.float64
+        )
+        self._state_one_hot_trajectory = np.array(
+            [
+                one_hot_encoding(state, state_encoder_basis)[0]
+                for state in self._state_trajectory.T
+            ],
+        ).T
+        self._observation_one_hot_trajectory = np.array(
+            [
+                one_hot_encoding(observation, observation_encoder_basis)[0]
+                for observation in self._observation_trajectory.T
+            ],
+        ).T
 
         self._state_subplot = self._subplots[0][0]
         self._observation_subplot = self._subplots[1][0]
         self._estimated_state_subplot = self._subplots[2][0]
         if self._SignalTrajectoryValidator.has_value(
-            self._estimated_function_value_trajectory,
+            self._estimation_trajectory,
         ):
-            self._estimated_observation_subplot = self._subplots[3][0]
+            self._estimation_subplot = self._subplots[3][0]
 
     def plot(self) -> Self:
         self._plot_probability_flow(
             self._state_subplot,
-            self._state_trajectory,
+            self._state_one_hot_trajectory,
         )
         self._state_subplot.set_ylabel("State\n")
         self._plot_probability_flow(
             self._observation_subplot,
-            self._observation_trajectory,
+            self._observation_one_hot_trajectory,
         )
         self._observation_subplot.set_ylabel("Observation\n")
         self._plot_probability_flow(
             self._estimated_state_subplot,
             self._estimated_state_trajectory,
         )
-        self._estimated_state_subplot.set_ylabel(
-            "Probability of\nState Estimation\n"
-        )
+        self._estimated_state_subplot.set_ylabel("Estimated State\n")
         if self._SignalTrajectoryValidator.has_value(
-            self._estimated_function_value_trajectory,
+            self._estimation_trajectory,
         ):
             self._plot_probability_flow(
-                self._estimated_observation_subplot,
-                self._estimated_function_value_trajectory,
+                self._estimation_subplot,
+                self._estimation_trajectory,
             )
-            self._estimated_observation_subplot.set_ylabel(
-                "Probability of\nFunction Value\nEstimation\n"
-            )
+            self._estimation_subplot.set_ylabel("Estimation\n")
 
-        self._sup_xlabel = "Time Step"
         super().plot()
 
         self._create_color_bar()
@@ -173,9 +206,9 @@ class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
             self._estimated_state_subplot,
         ]
         if self._SignalTrajectoryValidator.has_value(
-            self._estimated_function_value_trajectory,
+            self._estimation_trajectory,
         ):
-            axes.append(self._estimated_observation_subplot)
+            axes.append(self._estimation_subplot)
         space = 1 / 1.2 / len(axes) / 5
         height = 3 * space
         for k, ax in enumerate(axes):
