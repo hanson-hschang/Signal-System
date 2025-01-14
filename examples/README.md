@@ -6,14 +6,14 @@ This directory contains example implementations using the **Signal & System** pa
 
 ```
 examples
-├── control
-│   ├── lqg_mass_spring_damper
-│   ├── mppi_cart_pole
-│   └── mppi_mass_spring_damper
 ├── system
 │   ├── cart_pole
 │   ├── markov
 │   └── mass_spring_damper
+├── control
+│   ├── lqg_mass_spring_damper
+│   ├── mppi_cart_pole
+│   └── mppi_mass_spring_damper
 └── estimation
     └── filtering
         └── hmm
@@ -26,18 +26,18 @@ examples
 First, ensure you have activated your Python 3.11 virtual environment that is installed with this **Signal & System** package.
 
 Examples can then be run by changing to the specific directory and using Python's module execution. For example:
-```bash
-# For control examples
-cd examples/control
-python -m lqg_mass_spring_damper
-python -m mppi_cart_pole
-python -m mppi_mass_spring_damper
-
+```properties
 # For system examples
 cd examples/system
 python -m cart_pole
 python -m markov
 python -m mass_spring_damper
+
+# For control examples
+cd examples/control
+python -m lqg_mass_spring_damper
+python -m mppi_cart_pole
+python -m mppi_mass_spring_damper
 
 # For HMM examples
 cd examples/estimation/filtering/hmm

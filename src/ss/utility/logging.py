@@ -140,12 +140,14 @@ class Logging(metaclass=SingletonMeta):
             logger.addHandler(self.console_handler)
             logger.addHandler(self.file_handler)
             logging_logger.debug(f"logger: {name} has been initialized")
-        logging_logger.info("logging has been initialized: ")
         logging_logger.info(
-            f"verbose level = {self.verbose_setting.log_level.name}"
+            "logging has been initialized with the following settings:"
         )
         logging_logger.info(
-            f"logfile level = {self.logfile_setting.log_level.name}"
+            f"    verbose level = {self.verbose_setting.log_level.name}"
+        )
+        logging_logger.info(
+            f"    logfile level = {self.logfile_setting.log_level.name}"
         )
         logging_logger.info(f"logfile path = {self.logfile_setting.filepath}")
 

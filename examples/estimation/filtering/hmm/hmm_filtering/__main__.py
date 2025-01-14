@@ -28,7 +28,7 @@ from . import hmm_filtering
 @click.option(
     "--observation-dim",
     type=click.IntRange(min=1),
-    default=7,
+    default=10,
     help="Set the observation dimension (positive integers).",
 )
 @click.option(

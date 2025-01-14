@@ -1,10 +1,7 @@
-from typing import Any
-
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numba import njit
 from numpy.typing import NDArray
 from tqdm import tqdm
 
@@ -16,23 +13,12 @@ from ss.estimation.filtering.hmm_filtering import (
 from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
 from ss.utility.logging import Logging
 
+from ._hmm_filtering_utility import (
+    get_estimation_model,
+    get_probability_matrix,
+)
+
 logger = Logging.get_logger(__name__)
-
-
-def get_estimation_model(
-    emission_probability_matrix: NDArray,
-) -> Any:
-    @njit(cache=True)  # type: ignore
-    def estimation_model(
-        estimated_state: NDArray,
-        emission_probability_matrix: NDArray[
-            np.float64
-        ] = emission_probability_matrix,
-    ) -> NDArray:
-        estimation = estimated_state @ emission_probability_matrix
-        return estimation
-
-    return estimation_model
 
 
 def hmm_filtering(
@@ -43,23 +29,16 @@ def hmm_filtering(
     number_of_systems: int,
     result_directory: Path,
 ) -> None:
-    def normalize_rows(
-        matrix: NDArray,
-        temperature: float = 10.0,
-    ) -> NDArray:
-        matrix = np.exp(temperature * matrix)
-        row_sums = matrix.sum(axis=1, keepdims=True)
-        normalized_matrix: NDArray = matrix / row_sums
-        return normalized_matrix
 
-    transition_probability_matrix = normalize_rows(
-        np.random.rand(state_dim, state_dim)
+    transition_probability_matrix = get_probability_matrix(
+        state_dim, state_dim, temperature=3
     )
-    emission_probability_matrix = normalize_rows(
-        np.random.rand(state_dim, observation_dim)
+    emission_probability_matrix = get_probability_matrix(
+        state_dim, observation_dim, temperature=5
     )
-    logger.info(f"\n{transition_probability_matrix=}")
-    logger.info(f"\n{emission_probability_matrix=}")
+
+    logger.info(f"\n{transition_probability_matrix = }")
+    logger.info(f"\n{emission_probability_matrix = }")
 
     system = HiddenMarkovModel(
         transition_probability_matrix=transition_probability_matrix,
