@@ -1,12 +1,19 @@
 <div align=center>
   <h1>Signal & System</h1>
 
-![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3776AB?logo=Python&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-013243?logo=NumPy&logoColor=white)
+![Numba](https://img.shields.io/badge/Numba-00A3E0?logo=Numba&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=PyTorch&logoColor=white)
+
 [![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
-[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![unit test: pytest](https://img.shields.io/badge/unit_test-pytest-blue)](https://docs.pytest.org/)
+[![code style: black](https://img.shields.io/badge/code_style-black-black)](https://github.com/psf/black)
+[![imports: isort](https://img.shields.io/badge/imports-isort-blue?labelColor=orange)](https://pycqa.github.io/isort/)
+[![static type: mypy](https://img.shields.io/badge/static_type-mypy-blue)](https://mypy-lang.org/)
+
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
 
 </div>
 
@@ -22,14 +29,14 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 
 Before installation, create a Python virtual environment to manage dependencies and ensure a clean installation of the **Signal & System** package.
 
-  1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment. The example uses [Anaconda](https://docs.anaconda.com/) to manage the environments.)
+  1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment. This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage the environments.)
 
-```bash
+```properties
 # Change directory to your working folder
 cd path_to_your_working_folder
 
 # Create a virtual environment of name `myenv`
-# with python version 3.11
+# with Python version 3.11
 conda create --name myenv python=3.11
 
 # Activate the virtual environment
@@ -41,9 +48,9 @@ conda deactivate
 
   2. Install Package: (two methods)
 
-```bash
+```properties
 # Install directly from GitHub
-python -m pip install git+https://github.com/hanson-hschang/Signal-System.git
+pip install git+https://github.com/hanson-hschang/Signal-System.git
 
 # Or clone and install
 git clone https://github.com/hanson-hschang/Signal-System.git
@@ -62,19 +69,19 @@ Three types of examples are provided:
 ## Developer environment setup
 
 1. Install development dependencies:
-```bash
+```properties
 git clone https://github.com/hanson-hschang/Signal-System.git
 cd Signal-System
 pip install -e ".[dev]"
 ```
 
 2. Generate `requirements-dev.txt` including development dependencies
-```bash
+```properties
 pip-compile pyproject.toml --extra=dev --output-file=requirements-dev.txt
 ```
 
 3. Set up pre-commit hooks:
-```bash
+```properties
 pre-commit install
 ```
 
@@ -90,12 +97,12 @@ The project uses several tools for quality assurance:
 
 ### Running Tests
 
-```bash
+```properties
 pytest -c pyproject.toml
 ```
 
 Run tests with coverage report:
-```bash
+```properties
 pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 ```
 
@@ -106,7 +113,7 @@ pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 - Documentation strings should follow [numpydoc](https://numpydoc.readthedocs.io/en/latest/format.html) style
 
 Format codebase:
-```bash
+```properties
 # Upgrade Python syntax
 pyupgrade --exit-zero-even-if-changed --py38-plus src/**/*.py
 
