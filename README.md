@@ -1,24 +1,13 @@
 <div align=center>
   <h1>Signal & System</h1>
 
-<p style="line-height: normal;">
-  <img src="https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white"/>
-  <a href='https://github.com/hanson-hschang/Signal-System/actions'>
-      <img src='https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg' alt='CI' />
-  </a>
-  <a href="https://github.com/psf/black">
-      <img src="https://img.shields.io/badge/code%20style-black-000000.svg" alt="code style: black">
-  </a>
-  <a href="https://pycqa.github.io/isort/">
-    <img src="https://img.shields.io/badge/import-isort-%231674b1?style=flat&labelColor=ef8336" alt="import: isort">
-  </a>
-  <a href="https://mypy-lang.org/">
-    <img src="https://www.mypy-lang.org/static/mypy_badge.svg" alt="type checked with mypy">
-  </a>
-  <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
-  </a>
-</p>
+![Python](https://img.shields.io/badge/Python-3776AB?style=flat&logo=Python&logoColor=white)
+[![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 </div>
 
 A Python package for **Signal & System** simulation, design, analysis, and learning.
