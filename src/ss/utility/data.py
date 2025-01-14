@@ -1,5 +1,6 @@
 from typing import Dict, Optional, Union, get_args
 
+from collections.abc import KeysView
 from pathlib import Path
 
 import h5py
@@ -188,3 +189,6 @@ class Data:
 
     def __len__(self) -> int:
         return len(self._signal_trajectory)
+
+    def keys(self) -> KeysView[str]:
+        return self._signal_trajectory.keys()
