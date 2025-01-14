@@ -187,8 +187,5 @@ class Data:
     def __contains__(self, key: str) -> bool:
         return key in self._signal_trajectory
 
-    def __len__(self) -> int:
-        return len(self._signal_trajectory)
-
     def keys(self) -> KeysView[str]:
         return self._signal_trajectory.keys()
