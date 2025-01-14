@@ -6,13 +6,14 @@
 ![Numba](https://img.shields.io/badge/Numba-00A3E0?logo=Numba&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=PyTorch&logoColor=white)
 
-[![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
-[![unit test: pytest](https://img.shields.io/badge/unit_test-pytest-blue)](https://docs.pytest.org/)
+
+[![pre-commit](https://img.shields.io/badge/CI-pre--commit-FAB040?logo=pre-commit)](https://pre-commit.com/)
+[![unit test: pytest](https://img.shields.io/badge/unit_test-pytest-0A9EDC?logo=pytest)](https://docs.pytest.org/)
 [![code style: black](https://img.shields.io/badge/code_style-black-black)](https://github.com/psf/black)
 [![imports: isort](https://img.shields.io/badge/imports-isort-blue?labelColor=orange)](https://pycqa.github.io/isort/)
 [![static type: mypy](https://img.shields.io/badge/static_type-mypy-blue)](https://mypy-lang.org/)
 
-
+[![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
 
 </div>
@@ -109,7 +110,7 @@ pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 ### Code Style
 
 - Follow [PEP 8](https://peps.python.org/pep-0008/) guidelines
-- Type hints are required for all functions
+- Type hints are required for all functions and variables
 - Documentation strings should follow [numpydoc](https://numpydoc.readthedocs.io/en/latest/format.html) style
 
 Format codebase:
@@ -130,14 +131,14 @@ isort --settings-path pyproject.toml ./
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+This project is licensed under the MIT License - see the [`LICENSE`](https://github.com/hanson-hschang/Signal-System/blob/main/LICENSE) file for details.
 
 ## Contributing
 
-1. Fork the repository
+1. Fork this repository
 2. Create your feature branch (`git checkout -b feat/amazing-feature`)
 3. Make your changes
 4. Run the tests (`pytest -c pyproject.toml`)
 5. Commit your changes (`git commit -m "feat: Add some amazing feature"`)
-6. Push to the branch (`git push origin feat/amazing-feature`)
+6. Push to the feature branch (`git push origin feat/amazing-feature`)
 7. Open a Pull Request

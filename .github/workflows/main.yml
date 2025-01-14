@@ -1,6 +1,6 @@
 # A workflow that runs on ubuntu-latest, windows-latest, and macos-latest
-# and uses a matrix to test with Python 3.10 and 3.11 on each OS.
-name: CI
+# and uses a matrix to test with Python 3.11 on each operating system.
+name: Build
 
 # The "on" controls when the action will run.
 # The workflow is triggered on push and pull request events for the main branch.
