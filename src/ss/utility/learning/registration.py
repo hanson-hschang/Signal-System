@@ -1,7 +1,6 @@
-from typing import Any, List, Set, Type
+from typing import List, Set, Type
 
 import importlib
-import inspect
 import pkgutil
 
 import torch
@@ -11,35 +10,43 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-def import_submodules(module_name: str) -> None:
+def import_submodules(module_name: str, parent_module_name: str = "") -> None:
     """
     Import all submodules of a module recursively
 
     Arguments
     ---------
-        module_name: str
-            The module name to import submodules of
+    module_name: str
+        The module name to import submodules of
+    parent_module_name: str
+        The parent module name
     """
-    # FIXME: The following test module check should not be necessary
-    # but is required to avoid an error when running tests.
-    # Check if module is a test module
-    names = module_name.split(".")
-    if "test" == names[-1][:4]:
-        return
-    # FIXME: The following __main__ file check should not be necessary
-    # but is required to avoid an error when running.
-    # Check if module is a __main__ file
-    if "__main__" == names[-1]:
-        return
 
     # Import the module
+    module_name = (
+        f"{parent_module_name}.{module_name}"
+        if parent_module_name
+        else module_name
+    )
     module = importlib.import_module(module_name)
 
     # Check if module is a package
     if hasattr(module, "__path__"):
         # Iterate through all submodules
-        for _, name, _ in pkgutil.walk_packages(module.__path__):
-            import_submodules(module_name=f"{module_name}.{name}")
+        submodule_name_list = []
+        for _, submodule_name, _ in pkgutil.walk_packages(module.__path__):
+            names = submodule_name.split(".")
+            # FIXME: Not sure why some submodule_name are in the format of
+            # "some_module_name.module_name" and some are in the format of
+            # "module_name". This is a temporary fix to avoid the former.
+            if len(names) > 1:
+                continue
+            submodule_name_list.append(submodule_name)
+        for submodule_name in submodule_name_list:
+            import_submodules(
+                module_name=f"{submodule_name}",
+                parent_module_name=module_name,
+            )
 
 
 def get_subclasses(cls: Type) -> Set[Type]:
@@ -48,14 +55,14 @@ def get_subclasses(cls: Type) -> Set[Type]:
 
     Arguments
     ---------
-        cls: Type
-            The base class to find subclasses of
+    cls: Type
+        The base class to find subclasses of
 
 
     Returns
     -------
-        subclasses: Set[Type]
-            Set of all subclasses
+    subclasses: Set[Type]
+        Set of all subclasses
     """
     subclasses = set()
     for subclass in cls.__subclasses__():
@@ -70,13 +77,14 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
 
     Arguments
     ---------
-        base_class: Type
-            The base class to find subclasses of
-        package_name: str
-            The package name to search in (e.g., "ss")
+    base_class: Type
+        The base class to find subclasses of
+    package_name: str
+        The package name to search in (e.g., "ss")
 
     Returns
     -------
+    all_classes: List[Type]
         List of registered classes
     """
 
@@ -88,6 +96,11 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
 
     # Include base class
     all_classes = list(subclasses.union({base_class}))
+    logger.debug(
+        "Register the following classes as safe globals for torch.load method:"
+    )
+    for cls in all_classes:
+        logger.debug(f"    { cls }")
 
     # Add all classes to safe globals
     torch.serialization.add_safe_globals(all_classes)
@@ -102,8 +115,6 @@ def register_numpy() -> None:
 
     # Add numpy scalar to safe globals before loading
     from numpy import dtype
-
-    # from numpy.core.multiarray import scalar  # type: ignore
     from numpy.dtypes import Float64DType, Int64DType
 
-    torch.serialization.add_safe_globals([dtype, Int64DType])
+    torch.serialization.add_safe_globals([dtype, Int64DType, Float64DType])

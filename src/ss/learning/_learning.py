@@ -101,7 +101,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         ).get_filepath()
 
         register_subclasses(BaseLearningConfig, "ss")
-        register_numpy()
+        # register_numpy() # Uncomment this line to register numpy types
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
         model = cls(model_info.pop("config"))
         model.load_state_dict(model_info.pop("model_state_dict"))
