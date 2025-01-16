@@ -9,6 +9,9 @@ from torch import nn
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
     HiddenMarkovModelObservationDataset,
 )
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_block import (
+    LearningHiddenMarkovModelFilterBlock,
+)
 from ss.learning import (
     BaseLearningConfig,
     BaseLearningModule,
@@ -26,110 +29,24 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
     """
     Configuration of the `LearningHiddenMarkovModelFilter` class.
 
-    Properties:
-    -----------
-        state_dim : int
-            The dimension of the state
-        discrete_observation_dim : int
-            The dimension of the discrete observation
-        feature_dim : int
-            The dimension of the feature
-        layer_dim : int
-            The dimension of the layer
-        dropout_rate : float
-            The dropout rate
+    Properties
+    ----------
+    state_dim : int
+        The dimension of the state.
+    discrete_observation_dim : int
+        The dimension of the discrete observation.
+    feature_dim_over_layers : Tuple[int, ...], default=(1,)
+        The dimension of the feature over layers.
+        The length of the tuple is the number of layers.
+        The values of the tuple (positive integers) are the dimension of features for each layer.
+    dropout_rate : float, default=0.1
+        The dropout rate for the model. (0.0 <= dropout_rate < 1.0)
     """
 
     state_dim: int
     discrete_observation_dim: int
-    feature_dim: int = 1
-    layer_dim: int = 1
+    feature_dim_over_layers: Tuple[int, ...] = (1,)
     dropout_rate: float = 0.1
-
-
-class LearningHiddenMarkovModelFilterBlock(
-    BaseLearningModule[LearningHiddenMarkovModelFilterConfig]
-):
-    def __init__(
-        self,
-        feature_id: int,
-        config: LearningHiddenMarkovModelFilterConfig,
-    ) -> None:
-        super().__init__(config)
-        self._feature_id = feature_id
-
-        self._weight = nn.Parameter(
-            torch.randn(
-                (self._config.state_dim, self._config.state_dim),
-                dtype=torch.float64,
-            )
-        )
-        self._initial_state = nn.Parameter(
-            torch.randn(self._config.state_dim, dtype=torch.float64)
-        )
-
-        self._is_initialized = False
-        self._estimated_next_state_probability = (
-            torch.ones(self._config.state_dim, dtype=torch.float64)
-            / self._config.state_dim
-        )
-
-    @property
-    def estimated_next_state_probability(self) -> torch.Tensor:
-        if self.training:
-            self._is_initialized = False
-            _estimated_next_state_probability = nn.functional.softmax(
-                self._initial_state, dim=0
-            )
-            return _estimated_next_state_probability
-        if not self._is_initialized:
-            self._is_initialized = True
-            self._estimated_next_state_probability = nn.functional.softmax(
-                self._initial_state, dim=0
-            )
-        return self._estimated_next_state_probability
-
-    def reset(self) -> None:
-        self._is_initialized = False
-
-    def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
-        batch_size, horizon, _ = emission_trajectory.shape
-        # (batch_size, horizon, state_dim)
-        estimated_next_state_probability_trajectory = torch.zeros(
-            (batch_size, horizon, self._config.state_dim),
-            dtype=torch.float64,
-        )
-
-        transition_matrix = nn.functional.softmax(self._weight, dim=1)
-        estimated_next_state_probability = (
-            self.estimated_next_state_probability.repeat(batch_size, 1)
-        )  # (batch_size, state_dim)
-
-        for k in range(horizon):
-            unnormalized_conditional_probability = (
-                estimated_next_state_probability * emission_trajectory[:, k, :]
-            )
-            estimated_state_probability = nn.functional.normalize(
-                unnormalized_conditional_probability,
-                p=1,
-                dim=1,
-            )  # (batch_size, state_dim)
-
-            estimated_next_state_probability = torch.matmul(
-                estimated_state_probability,
-                transition_matrix,
-            )  # (batch_size, state_dim)
-
-            estimated_next_state_probability_trajectory[:, k, :] = (
-                estimated_next_state_probability
-            )
-
-        if self.inference:
-            self._estimated_next_state_probability = (
-                estimated_next_state_probability.squeeze(0)
-            )
-
-        return estimated_next_state_probability_trajectory
 
 
 class LearningHiddenMarkovModelFilterLayer(
@@ -142,18 +59,26 @@ class LearningHiddenMarkovModelFilterLayer(
     ) -> None:
         super().__init__(config)
         self._layer_id = layer_id
+        self._feature_dim = self._config.feature_dim_over_layers[
+            self._layer_id
+        ]
         self._weight = nn.Parameter(
-            torch.randn(self._config.feature_dim, dtype=torch.float64)
+            torch.randn(
+                self._config.feature_dim_over_layers[self._layer_id],
+                dtype=torch.float64,
+            )
         )
         dropout_rate = (
-            self._config.dropout_rate if self._config.feature_dim > 1 else 0.0
+            self._config.dropout_rate if self._feature_dim > 1 else 0.0
         )
         self._dropout = nn.Dropout(p=dropout_rate)
         self._mask = torch.ones_like(self._weight)
         self.blocks = nn.ModuleList()
-        for feature_id in range(self._config.feature_dim):
+        for feature_id in range(self._feature_dim):
             self.blocks.append(
-                LearningHiddenMarkovModelFilterBlock(feature_id, self._config)
+                LearningHiddenMarkovModelFilterBlock(
+                    feature_id, self._config.state_dim
+                )
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -182,9 +107,9 @@ class LearningTransitionProcess(
     ) -> None:
         super().__init__(config)
         self.layers = nn.ModuleList()
-        for layer_id in range(config.layer_dim):
+        for layer_id in range(len(self._config.feature_dim_over_layers)):
             self.layers.append(
-                LearningHiddenMarkovModelFilterLayer(layer_id, config)
+                LearningHiddenMarkovModelFilterLayer(layer_id, self._config)
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -229,7 +154,7 @@ class LearningHiddenMarkovModelFilter(
             bias=False,
             dtype=torch.float64,
         )
-        self._transition_layer = LearningTransitionProcess(config)
+        self._transition_layer = LearningTransitionProcess(self._config)
 
         # Initialize the estimated next state, and next observation for the inference mode
         self._init_batch_size(batch_size=1)

@@ -57,8 +57,9 @@ def train(
     config = LearningHiddenMarkovModelFilterConfig(
         state_dim=discrete_state_dim,  # similar to embedding dimension in the transformer
         discrete_observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
-        feature_dim=1,  # similar to number of heads in the transformer
-        layer_dim=1,  # similar to number of layers in the transformer
+        feature_dim_over_layers=(
+            1,
+        ),  # similar to number of heads over each layer in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
     )
     learning_filter = LearningHiddenMarkovModelFilter(config)
