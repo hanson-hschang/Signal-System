@@ -5,6 +5,7 @@ import pkgutil
 
 import torch
 
+from ss.utility.assertion.inspect import get_nondefault_type_fields
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -71,7 +72,33 @@ def get_subclasses(cls: Type) -> Set[Type]:
     return subclasses
 
 
-def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
+def resolve_module_name(module_name: str) -> str:
+    """
+    Resolve the module name to the full module path
+
+    Arguments
+    ---------
+    module_name: str
+        The module name to resolve
+
+    Returns
+    -------
+    full_module_name: str
+        The full module path
+    """
+    names = module_name.split(".")
+    if len(names) == 1:
+        return module_name
+    module_name = names[0]
+    for name in names[1:]:
+        if name[0] == "_":
+            break
+        module_name = f"{module_name}.{name}"
+
+    return module_name
+
+
+def register_subclasses(base_class: Type, package_name: str) -> None:
     """
     Register all subclasses of base_class found in the package.
 
@@ -81,11 +108,6 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
         The base class to find subclasses of
     package_name: str
         The package name to search in (e.g., "ss")
-
-    Returns
-    -------
-    all_classes: List[Type]
-        List of registered classes
     """
 
     # Import all submodules to ensure all classes are loaded
@@ -95,17 +117,29 @@ def register_subclasses(base_class: Type, package_name: str) -> List[Type]:
     subclasses = get_subclasses(base_class)
 
     # Include base class
-    all_classes = list(subclasses.union({base_class}))
+    all_classes = subclasses.union({base_class})
+
+    # Register all classes and their fields as safe globals
     logger.debug(
-        "Register the following classes as safe globals for torch.load method:"
+        "Register the following classes and their fields as safe globals for torch.load method:"
     )
+    unregistered_types: Set = set()
     for cls in all_classes:
-        logger.debug(f"    { cls }")
+        logger.debug(
+            f"    { cls.__name__ } "
+            f"( from { resolve_module_name(cls.__module__) } module )"
+        )
+        unregistered_fields = get_nondefault_type_fields(cls)
+        for field_name, field_type in unregistered_fields.items():
+            logger.debug(
+                f"        { field_name }: "
+                f"{ field_type.__name__ } "
+                f"( from { resolve_module_name(field_type.__module__) } module )"
+            )
+        unregistered_types.update(unregistered_fields.values())
 
-    # Add all classes to safe globals
-    torch.serialization.add_safe_globals(all_classes)
-
-    return all_classes
+    torch.serialization.add_safe_globals(list(all_classes))
+    torch.serialization.add_safe_globals(list(unregistered_types))
 
 
 def register_numpy() -> None:

@@ -10,7 +10,7 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
     HiddenMarkovModelObservationDataset,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_block import (
-    LearningHiddenMarkovModelFilterBlock,
+    LearningHiddenMarkovModelFilterBlockOption,
 )
 from ss.learning import (
     BaseLearningConfig,
@@ -41,12 +41,17 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
         The values of the tuple (positive integers) are the dimension of features for each layer.
     dropout_rate : float, default=0.1
         The dropout rate for the model. (0.0 <= dropout_rate < 1.0)
+    block_option : LearningHiddenMarkovModelFilterBlockOption, default=LearningHiddenMarkovModelFilterBlockOptions.FULL_MATRIX
+        The block option for the model.
     """
 
     state_dim: int
     discrete_observation_dim: int
     feature_dim_over_layers: Tuple[int, ...] = (1,)
     dropout_rate: float = 0.1
+    block_option: LearningHiddenMarkovModelFilterBlockOption = (
+        LearningHiddenMarkovModelFilterBlockOption.FULL_MATRIX
+    )
 
 
 class LearningHiddenMarkovModelFilterLayer(
@@ -76,8 +81,10 @@ class LearningHiddenMarkovModelFilterLayer(
         self.blocks = nn.ModuleList()
         for feature_id in range(self._feature_dim):
             self.blocks.append(
-                LearningHiddenMarkovModelFilterBlock(
-                    feature_id, self._config.state_dim
+                LearningHiddenMarkovModelFilterBlockOption.get_block(
+                    feature_id,
+                    self._config.state_dim,
+                    self._config.block_option,
                 )
             )
 
