@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, List, Set, Tuple, get_type_hints
+from types import NoneType
+from typing import Any, Callable, Dict, List, Set, Tuple, Union, get_type_hints
 
 import inspect
 from dataclasses import dataclass, is_dataclass
@@ -35,6 +36,7 @@ _default_python_types: Set = {
     Dict,
     Tuple,
     Tuple[int, ...],
+    NoneType,
 }
 
 
@@ -79,7 +81,7 @@ def get_nondefault_type_fields(
 
     Returns
     -------
-    Dict[str, type]
+    nondefault_type_parameters : Dict[str, type]
         A dictionary of non-default types found in the dataclass's fields.
 
     Raises
@@ -94,7 +96,18 @@ def get_nondefault_type_fields(
     type_hints: Dict[str, type] = get_type_hints(cls)
 
     for field_name, field_type in type_hints.items():
-        if field_type not in _default_python_types:
+        # Handle Union types (including Optional)
+        if hasattr(field_type, "__origin__"):
+            field_type_origin = getattr(field_type, "__origin__")
+            if field_type_origin is Union:
+                field_types: Set[type] = set(getattr(field_type, "__args__"))
+                nondefault_types = field_types - _default_python_types
+                for i, nondefault_type in enumerate(nondefault_types):
+                    nondefault_type_parameters[field_name + f"({i})"] = (
+                        nondefault_type
+                    )
+        # Handle regular types
+        elif field_type not in _default_python_types:
             nondefault_type_parameters[field_name] = field_type
 
     return nondefault_type_parameters

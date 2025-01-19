@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 from dataclasses import dataclass
 
@@ -18,6 +18,10 @@ from ss.learning import (
     BaseLearningProcess,
     reset_module,
 )
+from ss.utility.assertion.validator import (
+    NonnegativeNumberValidator,
+    PositiveIntegerValidator,
+)
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
@@ -35,23 +39,98 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
         The dimension of the state.
     discrete_observation_dim : int
         The dimension of the discrete observation.
-    feature_dim_over_layers : Tuple[int, ...], default=(1,)
+    feature_dim_over_layers : Optional[Tuple[int, ...]], default = None
         The dimension of the feature over layers.
         The length of the tuple is the number of layers.
         The values of the tuple (positive integers) are the dimension of features for each layer.
-    dropout_rate : float, default=0.1
+    feature_dim : Optional[int], default = None
+        The dimension of the feature for all layers.
+        If `feature_dim_over_layers` is not None, this value is ignored.
+    layer_dim : Optional[int], default = None
+        The dimension of the layer.
+        If `feature_dim_over_layers` is not None, this value is ignored.
+    dropout_rate : float, default = 0.1
         The dropout rate for the model. (0.0 <= dropout_rate < 1.0)
-    block_option : LearningHiddenMarkovModelFilterBlockOption, default=LearningHiddenMarkovModelFilterBlockOptions.FULL_MATRIX
+    block_option : LearningHiddenMarkovModelFilterBlockOption, default = LearningHiddenMarkovModelFilterBlockOptions.FULL_MATRIX
         The block option for the model.
     """
 
     state_dim: int
     discrete_observation_dim: int
-    feature_dim_over_layers: Tuple[int, ...] = (1,)
+    feature_dim_over_layers: Optional[Tuple[int, ...]] = None
+    feature_dim: Optional[int] = None
+    layer_dim: Optional[int] = None
     dropout_rate: float = 0.1
     block_option: LearningHiddenMarkovModelFilterBlockOption = (
         LearningHiddenMarkovModelFilterBlockOption.FULL_MATRIX
     )
+
+    def __post_init__(self) -> None:
+        self.state_dim = PositiveIntegerValidator(
+            self.state_dim, "state_dim"
+        ).get_value()
+        self.discrete_observation_dim = PositiveIntegerValidator(
+            self.discrete_observation_dim, "discrete_observation_dim"
+        ).get_value()
+        assert 0.0 <= self.dropout_rate < 1.0, (
+            f"dropout_rate must be in the range of [0.0, 1.0). "
+            f"dropout_rate given is {self.dropout_rate}."
+        )
+
+        # Check the consistency of feature_dim_over_layers, feature_dim, and layer_dim
+        if self.feature_dim_over_layers is None:
+            if self.layer_dim is None:
+                self.layer_dim = 1
+            if self.feature_dim is None:
+                self.feature_dim = 1
+            self._feature_dim_over_layers = tuple(
+                [self.feature_dim] * self.layer_dim
+            )
+        else:
+            # Check the consistency of feature_dim
+            feature_dim = self.feature_dim_over_layers[0]
+            for i in range(len(self.feature_dim_over_layers)):
+                assert type(self.feature_dim_over_layers[i]) == int, (
+                    f"feature_dim_over_layers must be a tuple of integers. "
+                    f"feature_dim_over_layers given is {self.feature_dim_over_layers}."
+                )
+                if (
+                    feature_dim > 0
+                    and self.feature_dim_over_layers[i] != feature_dim
+                ):
+                    feature_dim = -1
+            self._feature_dim_over_layers = tuple(self.feature_dim_over_layers)
+
+            if self.feature_dim is not None:
+                if (feature_dim > 0) and (self.feature_dim != feature_dim):
+                    logger.warning(
+                        "Input argument `feature_dim` is ignored. "
+                        "`feature_dim` is reset to the value in `feature_dim_over_layers`."
+                    )
+                    self.feature_dim = feature_dim
+                if feature_dim < 0:
+                    logger.warning(
+                        "Input argument `feature_dim` is ignored. "
+                        "All values in `feature_dim_over_layers` are not the same. "
+                        "`feature_dim` is reset to None."
+                    )
+                    self.feature_dim = None
+
+            # Check the consistency of layer_dim
+            layer_dim = len(self.feature_dim_over_layers)
+            if self.layer_dim is not None and self.layer_dim != layer_dim:
+                logger.warning(
+                    f"Input argument `layer_dim` is ignored. "
+                    f"`layer_dim` is set to the length of feature_dim_over_layers, which is {layer_dim}."
+                )
+            self.layer_dim = int(layer_dim)
+        self._layer_dim = self.layer_dim
+
+    def get_feature_dim(self, layer_id: int) -> int:
+        return self._feature_dim_over_layers[layer_id]
+
+    def get_layer_dim(self) -> int:
+        return self._layer_dim
 
 
 class LearningHiddenMarkovModelFilterLayer(
@@ -64,12 +143,10 @@ class LearningHiddenMarkovModelFilterLayer(
     ) -> None:
         super().__init__(config)
         self._layer_id = layer_id
-        self._feature_dim = self._config.feature_dim_over_layers[
-            self._layer_id
-        ]
+        self._feature_dim = self._config.get_feature_dim(self._layer_id)
         self._weight = nn.Parameter(
             torch.randn(
-                self._config.feature_dim_over_layers[self._layer_id],
+                self._feature_dim,
                 dtype=torch.float64,
             )
         )
@@ -114,7 +191,7 @@ class LearningTransitionProcess(
     ) -> None:
         super().__init__(config)
         self.layers = nn.ModuleList()
-        for layer_id in range(len(self._config.feature_dim_over_layers)):
+        for layer_id in range(self._config.get_layer_dim()):
             self.layers.append(
                 LearningHiddenMarkovModelFilterLayer(layer_id, self._config)
             )
