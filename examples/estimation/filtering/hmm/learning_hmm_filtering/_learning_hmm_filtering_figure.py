@@ -13,14 +13,15 @@ from ss.utility.figure import SequenceTrajectoryFigure
 from ._learning_hmm_filtering_utility import FilterResultTrajectory
 
 
-def add_optimal_loss_line(
+def add_loss_line(
     ax: Axes,
-    optimal_loss: float,
+    loss: float,
+    text: str = "loss: {:.2f}",
     arrowhead_x_offset_ratio: float = 0.05,
     text_offset: tuple[float, float] = (64, 32),
     text_coordinates: str = "offset pixels",
 ) -> None:
-    ax.axhline(y=optimal_loss, color="black", linestyle="--")
+    ax.axhline(y=loss, color="black", linestyle="--")
     bbox = dict(boxstyle="round", fc="0.8")
     arrowprops = dict(
         arrowstyle="->",
@@ -28,13 +29,26 @@ def add_optimal_loss_line(
     )
     xlim_min, xlim_max = ax.get_xlim()
     xlim_range = xlim_max - xlim_min
+    text = text.replace("{:.2f}", "{:.2f} ({:.1f}% accurate)")
     ax.annotate(
-        f"optimal loss: {optimal_loss:.2f}\n(based on HMM-filter)",
-        (xlim_min + arrowhead_x_offset_ratio * xlim_range, optimal_loss),
+        text.format(loss, np.exp(-loss) * 100),
+        (xlim_min + arrowhead_x_offset_ratio * xlim_range, loss),
         xytext=text_offset,
         textcoords=text_coordinates,
         bbox=bbox,
         arrowprops=arrowprops,
+    )
+
+
+def update_loss_ylim(
+    ax: Axes, min_max_value: Tuple[float, float], margin: float = 0.1
+) -> None:
+    min_value = min(min_max_value)
+    max_value = max(min_max_value)
+    range_value = max_value - min_value
+    ax.set_ylim(
+        bottom=min_value - margin * range_value,
+        top=max_value + margin * range_value,
     )
 
 

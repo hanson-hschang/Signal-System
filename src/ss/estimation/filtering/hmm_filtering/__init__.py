@@ -14,3 +14,6 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning import (
     LearningHiddenMarkovModelFilterConfig,
     LearningHiddenMarkovModelFilterProcess,
 )
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_block import (
+    LearningHiddenMarkovModelFilterBlockOption,
+)

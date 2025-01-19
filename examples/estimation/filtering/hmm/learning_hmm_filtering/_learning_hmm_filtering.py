@@ -8,6 +8,7 @@ from numpy.typing import NDArray
 from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilter,
+    LearningHiddenMarkovModelFilterBlockOption,
     LearningHiddenMarkovModelFilterConfig,
     LearningHiddenMarkovModelFilterProcess,
     hmm_observation_data_split_to_loaders,
@@ -19,7 +20,8 @@ from ss.utility.logging import Logging
 
 from ._learning_hmm_filtering_figure import (
     FilterResultFigure,
-    add_optimal_loss_line,
+    add_loss_line,
+    update_loss_ylim,
 )
 from ._learning_hmm_filtering_utility import (
     compute_loss,
@@ -57,19 +59,21 @@ def train(
     config = LearningHiddenMarkovModelFilterConfig(
         state_dim=discrete_state_dim,  # similar to embedding dimension in the transformer
         discrete_observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
-        feature_dim=1,  # similar to number of heads in the transformer
-        layer_dim=1,  # similar to number of layers in the transformer
+        feature_dim_over_layers=(
+            1,
+        ),  # similar to number of heads over each layer in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
+        block_option=LearningHiddenMarkovModelFilterBlockOption.SPATIAL_INVARIANT,
     )
     learning_filter = LearningHiddenMarkovModelFilter(config)
 
     # Initialize the emission matrix
-    learning_filter.set_emission_matrix(
-        emission_matrix=np.array(
-            data.meta_data["emission_probability_matrix"]
-        ),
-        trainable=False,
-    )
+    # learning_filter.set_emission_matrix(
+    #     emission_matrix=np.array(
+    #         data.meta_data["emission_probability_matrix"]
+    #     ),
+    #     trainable=False,
+    # )
 
     # Prepare loss function
     loss_function = torch.nn.functional.cross_entropy
@@ -105,6 +109,7 @@ def visualization(
     observation_trajectory: NDArray = np.array(
         data["observation"], dtype=np.int64
     )  # (number_of_systems, 1, time_horizon)
+    discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
 
     # Prepare filter
     transition_probability_matrix: NDArray = np.array(
@@ -143,16 +148,19 @@ def visualization(
         observation_trajectory=observation_trajectory_test,
     )
 
+    # Compute the random guess loss
+    random_guess_loss = -np.log(1 / discrete_observation_dim)
+
     # Compute the empirical optimal loss
     logger.info(
         "Computing the empirical optimal loss (the cross-entropy loss of the hmm-filter)"
     )
     number_of_systems = int(data.meta_info["number_of_systems"])
-    average_loss = compute_optimal_loss(
+    empirical_optimal_loss = compute_optimal_loss(
         filter.duplicate(number_of_systems),
         observation_trajectory,
     )
-    logger.info(f"{average_loss = }")
+    logger.info(f"{empirical_optimal_loss = }")
 
     with torch.no_grad():
         logger.info(f"{emission_probability_matrix = }")
@@ -164,7 +172,19 @@ def visualization(
         training_loss_trajectory=checkpoint_info["training_loss_history"],
         validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
     ).plot()
-    add_optimal_loss_line(loss_figure.loss_plot_ax, average_loss)
+    add_loss_line(
+        loss_figure.loss_plot_ax,
+        random_guess_loss,
+        "random guess loss: {:.2f}",
+    )
+    add_loss_line(
+        loss_figure.loss_plot_ax,
+        empirical_optimal_loss,
+        "optimal loss: {:.2f}\n(based on HMM-filter)",
+    )
+    update_loss_ylim(
+        loss_figure.loss_plot_ax, (empirical_optimal_loss, random_guess_loss)
+    )
 
     # Plot the filter result comparison
     result_figure = FilterResultFigure(

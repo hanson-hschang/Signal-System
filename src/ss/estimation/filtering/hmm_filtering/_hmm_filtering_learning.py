@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 from dataclasses import dataclass
 
@@ -9,11 +9,18 @@ from torch import nn
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
     HiddenMarkovModelObservationDataset,
 )
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_block import (
+    LearningHiddenMarkovModelFilterBlockOption,
+)
 from ss.learning import (
     BaseLearningConfig,
     BaseLearningModule,
     BaseLearningProcess,
     reset_module,
+)
+from ss.utility.assertion.validator import (
+    NonnegativeNumberValidator,
+    PositiveIntegerValidator,
 )
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
@@ -26,110 +33,104 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
     """
     Configuration of the `LearningHiddenMarkovModelFilter` class.
 
-    Properties:
-    -----------
-        state_dim : int
-            The dimension of the state
-        discrete_observation_dim : int
-            The dimension of the discrete observation
-        feature_dim : int
-            The dimension of the feature
-        layer_dim : int
-            The dimension of the layer
-        dropout_rate : float
-            The dropout rate
+    Properties
+    ----------
+    state_dim : int
+        The dimension of the state.
+    discrete_observation_dim : int
+        The dimension of the discrete observation.
+    feature_dim_over_layers : Optional[Tuple[int, ...]], default = None
+        The dimension of the feature over layers.
+        The length of the tuple is the number of layers.
+        The values of the tuple (positive integers) are the dimension of features for each layer.
+    feature_dim : Optional[int], default = None
+        The dimension of the feature for all layers.
+        If `feature_dim_over_layers` is not None, this value is ignored.
+    layer_dim : Optional[int], default = None
+        The dimension of the layer.
+        If `feature_dim_over_layers` is not None, this value is ignored.
+    dropout_rate : float, default = 0.1
+        The dropout rate for the model. (0.0 <= dropout_rate < 1.0)
+    block_option : LearningHiddenMarkovModelFilterBlockOption, default = LearningHiddenMarkovModelFilterBlockOptions.FULL_MATRIX
+        The block option for the model.
     """
 
     state_dim: int
     discrete_observation_dim: int
-    feature_dim: int = 1
-    layer_dim: int = 1
+    feature_dim_over_layers: Optional[Tuple[int, ...]] = None
+    feature_dim: Optional[int] = None
+    layer_dim: Optional[int] = None
     dropout_rate: float = 0.1
+    block_option: LearningHiddenMarkovModelFilterBlockOption = (
+        LearningHiddenMarkovModelFilterBlockOption.FULL_MATRIX
+    )
 
-
-class LearningHiddenMarkovModelFilterBlock(
-    BaseLearningModule[LearningHiddenMarkovModelFilterConfig]
-):
-    def __init__(
-        self,
-        feature_id: int,
-        config: LearningHiddenMarkovModelFilterConfig,
-    ) -> None:
-        super().__init__(config)
-        self._feature_id = feature_id
-
-        self._weight = nn.Parameter(
-            torch.randn(
-                (self._config.state_dim, self._config.state_dim),
-                dtype=torch.float64,
-            )
-        )
-        self._initial_state = nn.Parameter(
-            torch.randn(self._config.state_dim, dtype=torch.float64)
+    def __post_init__(self) -> None:
+        self.state_dim = PositiveIntegerValidator(
+            self.state_dim, "state_dim"
+        ).get_value()
+        self.discrete_observation_dim = PositiveIntegerValidator(
+            self.discrete_observation_dim, "discrete_observation_dim"
+        ).get_value()
+        assert 0.0 <= self.dropout_rate < 1.0, (
+            f"dropout_rate must be in the range of [0.0, 1.0). "
+            f"dropout_rate given is {self.dropout_rate}."
         )
 
-        self._is_initialized = False
-        self._estimated_next_state_probability = (
-            torch.ones(self._config.state_dim, dtype=torch.float64)
-            / self._config.state_dim
-        )
-
-    @property
-    def estimated_next_state_probability(self) -> torch.Tensor:
-        if self.training:
-            self._is_initialized = False
-            _estimated_next_state_probability = nn.functional.softmax(
-                self._initial_state, dim=0
+        # Check the consistency of feature_dim_over_layers, feature_dim, and layer_dim
+        if self.feature_dim_over_layers is None:
+            if self.layer_dim is None:
+                self.layer_dim = 1
+            if self.feature_dim is None:
+                self.feature_dim = 1
+            self._feature_dim_over_layers = tuple(
+                [self.feature_dim] * self.layer_dim
             )
-            return _estimated_next_state_probability
-        if not self._is_initialized:
-            self._is_initialized = True
-            self._estimated_next_state_probability = nn.functional.softmax(
-                self._initial_state, dim=0
-            )
-        return self._estimated_next_state_probability
+        else:
+            # Check the consistency of feature_dim
+            feature_dim = self.feature_dim_over_layers[0]
+            for i in range(len(self.feature_dim_over_layers)):
+                assert type(self.feature_dim_over_layers[i]) == int, (
+                    f"feature_dim_over_layers must be a tuple of integers. "
+                    f"feature_dim_over_layers given is {self.feature_dim_over_layers}."
+                )
+                if (
+                    feature_dim > 0
+                    and self.feature_dim_over_layers[i] != feature_dim
+                ):
+                    feature_dim = -1
+            self._feature_dim_over_layers = tuple(self.feature_dim_over_layers)
 
-    def reset(self) -> None:
-        self._is_initialized = False
+            if self.feature_dim is not None:
+                if (feature_dim > 0) and (self.feature_dim != feature_dim):
+                    logger.warning(
+                        "Input argument `feature_dim` is ignored. "
+                        "`feature_dim` is reset to the value in `feature_dim_over_layers`."
+                    )
+                    self.feature_dim = feature_dim
+                if feature_dim < 0:
+                    logger.warning(
+                        "Input argument `feature_dim` is ignored. "
+                        "All values in `feature_dim_over_layers` are not the same. "
+                        "`feature_dim` is reset to None."
+                    )
+                    self.feature_dim = None
 
-    def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
-        batch_size, horizon, _ = emission_trajectory.shape
-        # (batch_size, horizon, state_dim)
-        estimated_next_state_probability_trajectory = torch.zeros(
-            (batch_size, horizon, self._config.state_dim),
-            dtype=torch.float64,
-        )
+            # Check the consistency of layer_dim
+            layer_dim = len(self.feature_dim_over_layers)
+            if self.layer_dim is not None and self.layer_dim != layer_dim:
+                logger.warning(
+                    f"Input argument `layer_dim` is ignored. "
+                    f"`layer_dim` is set to the length of feature_dim_over_layers, which is {layer_dim}."
+                )
+            self.layer_dim = int(layer_dim)
+        self._layer_dim = self.layer_dim
 
-        transition_matrix = nn.functional.softmax(self._weight, dim=1)
-        estimated_next_state_probability = (
-            self.estimated_next_state_probability.repeat(batch_size, 1)
-        )  # (batch_size, state_dim)
+    def get_feature_dim(self, layer_id: int) -> int:
+        return self._feature_dim_over_layers[layer_id]
 
-        for k in range(horizon):
-            unnormalized_conditional_probability = (
-                estimated_next_state_probability * emission_trajectory[:, k, :]
-            )
-            estimated_state_probability = nn.functional.normalize(
-                unnormalized_conditional_probability,
-                p=1,
-                dim=1,
-            )  # (batch_size, state_dim)
-
-            estimated_next_state_probability = torch.matmul(
-                estimated_state_probability,
-                transition_matrix,
-            )  # (batch_size, state_dim)
-
-            estimated_next_state_probability_trajectory[:, k, :] = (
-                estimated_next_state_probability
-            )
-
-        if self.inference:
-            self._estimated_next_state_probability = (
-                estimated_next_state_probability.squeeze(0)
-            )
-
-        return estimated_next_state_probability_trajectory
+    def get_layer_dim(self) -> int:
+        return self._layer_dim
 
 
 class LearningHiddenMarkovModelFilterLayer(
@@ -142,18 +143,26 @@ class LearningHiddenMarkovModelFilterLayer(
     ) -> None:
         super().__init__(config)
         self._layer_id = layer_id
+        self._feature_dim = self._config.get_feature_dim(self._layer_id)
         self._weight = nn.Parameter(
-            torch.randn(self._config.feature_dim, dtype=torch.float64)
+            torch.randn(
+                self._feature_dim,
+                dtype=torch.float64,
+            )
         )
         dropout_rate = (
-            self._config.dropout_rate if self._config.feature_dim > 1 else 0.0
+            self._config.dropout_rate if self._feature_dim > 1 else 0.0
         )
         self._dropout = nn.Dropout(p=dropout_rate)
         self._mask = torch.ones_like(self._weight)
         self.blocks = nn.ModuleList()
-        for feature_id in range(self._config.feature_dim):
+        for feature_id in range(self._feature_dim):
             self.blocks.append(
-                LearningHiddenMarkovModelFilterBlock(feature_id, self._config)
+                LearningHiddenMarkovModelFilterBlockOption.get_block(
+                    feature_id,
+                    self._config.state_dim,
+                    self._config.block_option,
+                )
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -182,9 +191,9 @@ class LearningTransitionProcess(
     ) -> None:
         super().__init__(config)
         self.layers = nn.ModuleList()
-        for layer_id in range(config.layer_dim):
+        for layer_id in range(self._config.get_layer_dim()):
             self.layers.append(
-                LearningHiddenMarkovModelFilterLayer(layer_id, config)
+                LearningHiddenMarkovModelFilterLayer(layer_id, self._config)
             )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -229,7 +238,7 @@ class LearningHiddenMarkovModelFilter(
             bias=False,
             dtype=torch.float64,
         )
-        self._transition_layer = LearningTransitionProcess(config)
+        self._transition_layer = LearningTransitionProcess(self._config)
 
         # Initialize the estimated next state, and next observation for the inference mode
         self._init_batch_size(batch_size=1)

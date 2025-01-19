@@ -11,6 +11,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from collections import defaultdict
@@ -58,12 +59,15 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 class BaseLearningModule(nn.Module, Generic[BLC]):
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
-    def __init__(self, config: BLC) -> None:
+    def __init__(self, config: Optional[BLC] = None) -> None:
         super().__init__()
-        assert issubclass(
-            type(config), BaseLearningConfig
-        ), f"{type(config) = } must be a subclass of {BaseLearningConfig}"
-        self._config: BLC = config
+        if config is None:
+            self._config: BLC = cast(BLC, BaseLearningConfig())
+        else:
+            assert issubclass(
+                type(config), BaseLearningConfig
+            ), f"{type(config) = } must be a subclass of {BaseLearningConfig}"
+            self._config = config
         self.inference = False
 
     def reset(self) -> None: ...
@@ -103,7 +107,8 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         register_subclasses(BaseLearningConfig, "ss")
         # register_numpy() # Uncomment this line to register numpy types
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
-        model = cls(model_info.pop("config"))
+        config = model_info.pop("config")
+        model = cls(config.__class__(**config.__dict__))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model
 
