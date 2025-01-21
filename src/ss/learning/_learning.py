@@ -15,7 +15,7 @@ from typing import (
 )
 
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields
 from enum import StrEnum
 from pathlib import Path
 
@@ -41,6 +41,9 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
+BLC = TypeVar("BLC", bound="BaseLearningConfig")
+
+
 @dataclass
 class BaseLearningConfig:
     def to_dict(self) -> Dict[str, Any]:
@@ -50,8 +53,6 @@ class BaseLearningConfig:
         """
         return asdict(self)
 
-
-BLC = TypeVar("BLC", bound="BaseLearningConfig")
 
 BLM = TypeVar("BLM", bound="BaseLearningModule")
 
@@ -108,7 +109,11 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         # register_numpy() # Uncomment this line to register numpy types
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
         config = model_info.pop("config")
-        model = cls(config.__class__(**config.__dict__))
+        config_dict: Dict[str, Any] = config.__dict__
+        filtered_dict = {
+            k: v for k, v in config_dict.items() if not k.startswith("_")
+        }
+        model = cls(config.__class__(**filtered_dict))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model
 
