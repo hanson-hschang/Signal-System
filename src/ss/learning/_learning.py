@@ -110,10 +110,12 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
         config = model_info.pop("config")
         config_dict: Dict[str, Any] = config.__dict__
-        filtered_dict = {
-            k: v for k, v in config_dict.items() if not k.startswith("_")
+        config_field = {
+            key: value
+            for key, value in config_dict.items()
+            if not key.startswith("_")
         }
-        model = cls(config.__class__(**filtered_dict))
+        model = cls(config.__class__(**config_field))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model
 
