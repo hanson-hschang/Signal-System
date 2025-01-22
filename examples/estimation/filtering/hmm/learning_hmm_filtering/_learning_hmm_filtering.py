@@ -25,6 +25,7 @@ from ._learning_hmm_filtering_figure import (
 )
 from ._learning_hmm_filtering_utility import (
     compute_loss,
+    compute_naive_guess_loss,
     compute_optimal_loss,
     get_observation_model,
 )
@@ -60,6 +61,7 @@ def train(
         state_dim=discrete_state_dim,  # similar to embedding dimension in the transformer
         discrete_observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
         feature_dim_over_layers=(
+            1,
             1,
         ),  # similar to number of heads over each layer in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
@@ -166,6 +168,18 @@ def visualization(
         logger.info(f"{emission_probability_matrix = }")
         logger.info(f"\n{learning_filter.emission_matrix = }")
 
+        naive_guess_loss = compute_naive_guess_loss(
+            emission_probability_matrix=emission_probability_matrix,
+            observation_trajectory=observation_trajectory_test,
+        )
+        logger.info(f"{naive_guess_loss = }")
+
+        learning_naive_guess_loss = compute_naive_guess_loss(
+            emission_probability_matrix=learning_filter.emission_matrix.detach().numpy(),
+            observation_trajectory=observation_trajectory_test,
+        )
+        logger.info(f"{learning_naive_guess_loss = }")
+
     # Plot the training and validation loss together with the optimal loss
     checkpoint_info = CheckpointInfo.load(model_filepath.with_suffix(".hdf5"))
     loss_figure = IterationFigure(
@@ -176,6 +190,17 @@ def visualization(
         loss_figure.loss_plot_ax,
         random_guess_loss,
         "random guess loss: {:.2f}",
+    )
+    add_loss_line(
+        loss_figure.loss_plot_ax,
+        naive_guess_loss,
+        "naive guess loss: {:.2f}",
+        text_offset=(64, -64),
+    )
+    add_loss_line(
+        loss_figure.loss_plot_ax,
+        learning_naive_guess_loss,
+        "learning naive guess loss: {:.2f}",
     )
     add_loss_line(
         loss_figure.loss_plot_ax,

@@ -15,7 +15,7 @@ from typing import (
 )
 
 from collections import defaultdict
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
 
@@ -178,11 +178,11 @@ class CheckpointInfo(dict):
 class BaseLearningProcess:
     class _NumberOfEpochsValidator(PositiveIntegerValidator):
         def __init__(self, number_of_epochs: int) -> None:
-            super().__init__(number_of_epochs, "number_of_epochs")
+            super().__init__(number_of_epochs)
 
     class _SaveModelEpochSkipValidator(NonnegativeIntegerValidator):
         def __init__(self, save_model_epoch_skip: int) -> None:
-            super().__init__(save_model_epoch_skip, "save_model_epoch_skip")
+            super().__init__(save_model_epoch_skip)
 
     def __init__(
         self,

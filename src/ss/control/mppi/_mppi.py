@@ -114,21 +114,21 @@ class ModelPredictivePathIntegralController(Controller):
             self,
             time_horizon: int,
         ) -> None:
-            super().__init__(time_horizon, "time_horizon")
+            super().__init__(time_horizon)
 
     class _NumberOfSamplesValidator(PositiveIntegerValidator):
         def __init__(
             self,
             number_of_samples: int,
         ) -> None:
-            super().__init__(number_of_samples, "number_of_samples")
+            super().__init__(number_of_samples)
 
     class _TemperatureValidator(PositiveNumberValidator):
         def __init__(
             self,
             temperature: float,
         ) -> None:
-            super().__init__(temperature, "temperature")
+            super().__init__(temperature)
 
     class _BaseControlConfidenceValidator(Validator):
         def __init__(
@@ -183,7 +183,7 @@ class ModelPredictivePathIntegralController(Controller):
         ) -> None:
             if smoothing_window_size is None:
                 smoothing_window_size = int(time_horizon * 0.1) + 1
-            super().__init__(smoothing_window_size, "smoothing_window_size")
+            super().__init__(smoothing_window_size)
 
     def __init__(
         self,

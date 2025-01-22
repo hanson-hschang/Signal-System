@@ -1,3 +1,4 @@
+from types import FrameType
 from typing import (
     Any,
     Callable,
@@ -5,6 +6,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Optional,
     Type,
     TypeVar,
     Union,
@@ -12,6 +14,7 @@ from typing import (
     overload,
 )
 
+import inspect
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +33,7 @@ from ss.utility.assertion import (
     is_positive_integer,
     is_positive_number,
 )
+from ss.utility.assertion.inspect import get_call_line
 
 # Create a TypeVar for the Validator class
 T = TypeVar("T", bound="Validator")
@@ -47,6 +51,7 @@ class ValidatorMeta(type):  # pragma: no cover
 
 class Validator(metaclass=ValidatorMeta):
     def __init__(self) -> None:
+        self._name = self._get_validator_argument_name(inspect.currentframe())
         self._errors: List[str] = []
         self._validate_functions: List[Callable[[], bool]] = []
 
@@ -60,21 +65,43 @@ class Validator(metaclass=ValidatorMeta):
     def add_error(self, *errors: str) -> None:
         self._errors.extend(errors)
 
+    @staticmethod
+    def _get_validator_argument_name(frame: Optional[FrameType]) -> str:
+
+        # Get the frame of the caller
+        call_line = get_call_line(frame)
+
+        # Get the argument name from the call line
+        key_phrase = "Validator("
+        start_index = call_line.find(key_phrase) + len(key_phrase)
+        end_index = (
+            call_line.find(",", start_index)
+            if "," in call_line[start_index:]
+            else call_line.find(")", start_index)
+        )
+        argument_name = call_line[start_index:end_index].strip()
+        if "self." == argument_name[:5]:
+            argument_name = argument_name[5:]
+
+        return argument_name
+
 
 class BasicScalarValidator(Validator):
     def __init__(
         self,
         value: Union[int, float],
-        name: str,
-        range_validation: Callable[..., bool],
+        basic_range_validation: Callable[..., bool],
     ) -> None:
         super().__init__()
         self._value = value
-        self._name = name
-        self._range_validation = range_validation
+        self._range_validation = basic_range_validation
         self._condition = " ".join(
             self._range_validation.__name__.split("_")[1:]
         )
+        if self._condition[0] in ["a", "e", "i", "o", "u"]:
+            self._condition = "an " + self._condition
+        else:
+            self._condition = "a " + self._condition
         self._return_type: Literal["integer", "number"] = (
             "integer"
             if self._condition.split(" ")[-1] == "integer"
@@ -86,7 +113,8 @@ class BasicScalarValidator(Validator):
         if self._range_validation(self._value):
             return True
         self.add_error(
-            f"{self._name} = {self._value} must be a {self._condition}"
+            f"{self._name} must be {self._condition}. "
+            f"{self._name} given is {self._value}."
         )
         return False
 
@@ -107,33 +135,33 @@ class BasicScalarValidator(Validator):
 
 
 class IntegerValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float], name: str) -> None:
-        super().__init__(value, name, is_integer)
+    def __init__(self, value: Union[int, float]) -> None:
+        super().__init__(value, is_integer)
 
 
 class PositiveIntegerValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float], name: str) -> None:
-        super().__init__(value, name, is_positive_integer)
+    def __init__(self, value: Union[int, float]) -> None:
+        super().__init__(value, is_positive_integer)
 
 
 class NonnegativeIntegerValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float], name: str) -> None:
-        super().__init__(value, name, is_nonnegative_integer)
+    def __init__(self, value: Union[int, float]) -> None:
+        super().__init__(value, is_nonnegative_integer)
 
 
 class NumberValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float], name: str) -> None:
-        super().__init__(value, name, is_number)
+    def __init__(self, value: Union[int, float]) -> None:
+        super().__init__(value, is_number)
 
 
 class PositiveNumberValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float], name: str) -> None:
-        super().__init__(value, name, is_positive_number)
+    def __init__(self, value: Union[int, float]) -> None:
+        super().__init__(value, is_positive_number)
 
 
 class NonnegativeNumberValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float], name: str) -> None:
-        super().__init__(value, name, is_nonnegative_number)
+    def __init__(self, value: Union[int, float]) -> None:
+        super().__init__(value, is_nonnegative_number)
 
 
 class SignalTrajectoryValidator(Validator):

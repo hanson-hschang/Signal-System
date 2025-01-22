@@ -18,10 +18,7 @@ from ss.learning import (
     BaseLearningProcess,
     reset_module,
 )
-from ss.utility.assertion.validator import (
-    NonnegativeNumberValidator,
-    PositiveIntegerValidator,
-)
+from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
@@ -66,11 +63,9 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
     )
 
     def __post_init__(self) -> None:
-        self.state_dim = PositiveIntegerValidator(
-            self.state_dim, "state_dim"
-        ).get_value()
+        self.state_dim = PositiveIntegerValidator(self.state_dim).get_value()
         self.discrete_observation_dim = PositiveIntegerValidator(
-            self.discrete_observation_dim, "discrete_observation_dim"
+            self.discrete_observation_dim
         ).get_value()
         assert 0.0 <= self.dropout_rate < 1.0, (
             f"dropout_rate must be in the range of [0.0, 1.0). "

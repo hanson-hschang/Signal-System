@@ -1,8 +1,18 @@
-from types import NoneType
-from typing import Any, Callable, Dict, List, Set, Tuple, Union, get_type_hints
+from types import FrameType, NoneType
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    get_type_hints,
+)
 
 import inspect
-from dataclasses import dataclass, is_dataclass
+from dataclasses import is_dataclass
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -111,3 +121,97 @@ def get_nondefault_type_fields(
             nondefault_type_parameters[field_name] = field_type
 
     return nondefault_type_parameters
+
+
+def is_valid_parentheses(string: str) -> bool:
+    """
+    Check if the parentheses in a string are valid.
+
+    Parameters
+    ----------
+    string : str
+        The string to check.
+
+    Returns
+    -------
+    is_valid : bool
+        True if the parentheses in the string are valid, False otherwise.
+    """
+
+    stack = []
+
+    for char in string:
+        if char == "(":
+            stack.append(char)
+        elif char == ")":
+            if not stack:  # Stack is empty but we found closing bracket
+                return False
+            stack.pop()
+
+    return len(stack) == 0  # True if stack is empty (all brackets matched)
+
+
+def resolve_call_line(caller_frame: FrameType) -> str:
+    """
+    Resolve the source line of the function call.
+
+    Parameters
+    ----------
+    caller_frame : FrameType
+        The frame of the caller.
+
+    Returns
+    -------
+    call_line : str
+        The source line of the function call.
+    """
+
+    context = 1
+    context_complete = False
+
+    while not context_complete:
+
+        # Get the code context of the caller
+        code_context: List[str] = getattr(
+            inspect.getframeinfo(caller_frame, context=context),
+            "code_context",
+        )
+
+        code_context_string = ""
+        for i in range(context // 2, len(code_context)):
+            code_context_string = code_context_string + code_context[i].strip()
+
+        context_complete = is_valid_parentheses(code_context_string)
+
+        context += 2
+
+    # Get the source line of the function call
+    call_line = code_context_string.strip()
+
+    return call_line
+
+
+def get_call_line(frame: Optional[FrameType]) -> str:
+    """
+    Get the source line of the function call.
+
+    Parameters
+    ----------
+    frame : Optional[FrameType]
+        The frame of the caller.
+
+    Returns
+    -------
+    call_line : str
+        The source line of the function call.
+    """
+
+    # Get the frame of the caller
+    caller_frame: FrameType = getattr(frame, "f_back")
+
+    # Get the source line of the function call
+    call_line = resolve_call_line(caller_frame)
+
+    if "super()" in call_line:
+        return get_call_line(caller_frame)
+    return call_line

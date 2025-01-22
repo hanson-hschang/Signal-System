@@ -16,22 +16,19 @@ from ss.utility.descriptor import (
 class Estimator:
     class _StateDimValidator(PositiveIntegerValidator):
         def __init__(self, state_dim: int) -> None:
-            super().__init__(state_dim, "state_dim")
+            super().__init__(state_dim)
 
     class _ObservationDimValidator(PositiveIntegerValidator):
         def __init__(self, observation_dim: int) -> None:
-            super().__init__(observation_dim, "observation_dim")
+            super().__init__(observation_dim)
 
     class _HorizonOfObservationHistoryValidator(PositiveIntegerValidator):
         def __init__(self, horizon_of_observation_history: int) -> None:
-            super().__init__(
-                horizon_of_observation_history,
-                "horizon_of_observation_history",
-            )
+            super().__init__(horizon_of_observation_history)
 
     class _NumberOfSystemsValidator(PositiveIntegerValidator):
         def __init__(self, number_of_systems: int) -> None:
-            super().__init__(number_of_systems, "number_of_systems")
+            super().__init__(number_of_systems)
 
     def __init__(
         self,
