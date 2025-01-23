@@ -24,8 +24,7 @@ from ._learning_hmm_filtering_figure import (
     update_loss_ylim,
 )
 from ._learning_hmm_filtering_utility import (
-    compute_loss,
-    compute_naive_guess_loss,
+    compute_loss_trajectory,
     compute_optimal_loss,
     get_estimation_model,
 )
@@ -61,7 +60,7 @@ def train(
         state_dim=discrete_state_dim,  # similar to embedding dimension in the transformer
         discrete_observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
         feature_dim=1,  # similar to number of heads in the transformer
-        layer_dim=8,  # similar to number of layers in the transformer
+        layer_dim=4,  # similar to number of layers in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
         block_option=LearningHiddenMarkovModelFilterBlockOption.SPATIAL_INVARIANT,
     )
@@ -137,10 +136,12 @@ def visualization(
     time_slice = slice(min(time_horizon, max_time_horizon))
     time_trajectory_test = time_trajectory[time_slice]
     observation_trajectory_test = observation_trajectory[0, :, time_slice]
-    filter_result_trajectory, learning_filter_result_trajectory = compute_loss(
-        filter=filter,
-        learning_filter=learning_filter,
-        observation_trajectory=observation_trajectory_test,
+    filter_result_trajectory, learning_filter_result_trajectory = (
+        compute_loss_trajectory(
+            filter=filter,
+            learning_filter=learning_filter,
+            observation_trajectory=observation_trajectory_test,
+        )
     )
 
     # Compute the random guess loss
