@@ -18,23 +18,21 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-def get_observation_model(
-    transition_probability_matrix: NDArray,
-    emission_probability_matrix: NDArray,
+def get_estimation_model(
+    transition_matrix: NDArray,
+    emission_matrix: NDArray,
     future_time_steps: int = 0,
 ) -> Any:
     @njit(cache=True)  # type: ignore
     def observation_model(
         estimated_state: NDArray,
-        transition_probability_matrix: NDArray = transition_probability_matrix,
-        emission_probability_matrix: NDArray = emission_probability_matrix,
+        transition_matrix: NDArray = transition_matrix,
+        emission_matrix: NDArray = emission_matrix,
         future_time_steps: int = future_time_steps,
     ) -> NDArray:
         for _ in range(future_time_steps):
-            estimated_state = estimated_state @ transition_probability_matrix
-        estimated_next_observation: NDArray = (
-            estimated_state @ emission_probability_matrix
-        )
+            estimated_state = estimated_state @ transition_matrix
+        estimated_next_observation: NDArray = estimated_state @ emission_matrix
         return estimated_next_observation
 
     return observation_model
@@ -162,13 +160,12 @@ def compute_optimal_loss(
 
 
 def compute_naive_guess_loss(
-    emission_probability_matrix: NDArray,
+    emission_matrix: NDArray,
     observation_trajectory: NDArray,
 ) -> float:
-    discrete_observation_dim = emission_probability_matrix.shape[1]
+    discrete_observation_dim = emission_matrix.shape[1]
     time_horizon = observation_trajectory.shape[-1]
     loss_trajectory = np.empty(time_horizon - 1)
-    print(observation_trajectory.shape)
     for k, (observation, next_observation_one_hot) in logger.progress_bar(
         enumerate(
             observation_generator(
@@ -178,10 +175,9 @@ def compute_naive_guess_loss(
         ),
         total=time_horizon - 1,
     ):
-        hidden_state = emission_probability_matrix[:, observation].T
-        estimation = np.array(
-            hidden_state @ emission_probability_matrix, dtype=np.float64
-        )
+        hidden_state = emission_matrix[:, observation[:, 0]].T
+        hidden_state /= np.sum(hidden_state, axis=1, keepdims=True)
+        estimation = np.array(hidden_state @ emission_matrix, dtype=np.float64)
         loss_trajectory[k] = cross_entropy(
             input_probability=estimation,
             target_probability=next_observation_one_hot,
@@ -258,12 +254,23 @@ def compute_loss(
                 input_probability=learning_filter.estimated_next_observation_probability.detach().numpy(),
                 target_probability=next_observation,
             )
+
+    filter_mean_loss_trajectory = np.empty(time_horizon - 1)
+    learning_filter_mean_loss_trajectory = np.empty(time_horizon - 1)
+    for k in range(time_horizon - 1):
+        filter_mean_loss_trajectory[k] = np.sum(filter_loss_trajectory[:k]) / (
+            k + 1
+        )
+        learning_filter_mean_loss_trajectory[k] = np.sum(
+            learning_filter_loss_trajectory[:k]
+        ) / (k + 1)
+
     filter_result_trajectory = FilterResultTrajectory(
-        loss=filter_loss_trajectory,
+        loss=filter_mean_loss_trajectory,
         estimated_next_observation_probability=filter_estimated_next_observation_probability,
     )
     learning_filter_result_trajectory = FilterResultTrajectory(
-        loss=learning_filter_loss_trajectory,
+        loss=learning_filter_mean_loss_trajectory,
         estimated_next_observation_probability=learning_filter_estimated_next_observation_probability,
     )
     return filter_result_trajectory, learning_filter_result_trajectory

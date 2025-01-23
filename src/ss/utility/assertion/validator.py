@@ -217,7 +217,7 @@ class FolderPathExistenceValidator(PathValidator):
         # If not, ask the user if they want to create the folder
         response = (
             input(
-                f"folder: '{self._foldername}' does not exist. "
+                f"\nfolder: '{self._foldername}' does not exist. "
                 "Would you like to create the folder? (y/n): "
             )
             .lower()
@@ -227,7 +227,7 @@ class FolderPathExistenceValidator(PathValidator):
         # If the user responds with 'y' or 'yes', create the folder and return True
         if response in ["y", "yes"]:
             Path(self._foldername).mkdir(parents=True, exist_ok=True)
-            print(f"folder: '{self._foldername}' is successfully created.")
+            print(f"folder: '{self._foldername}' is successfully created.\n")
             return True
 
         # If the user does not want to create the folder, show an error message and return False
@@ -309,7 +309,7 @@ class FilePathValidator(PathValidator):
         folder_name = Path(self._filename).parent
         response = (
             input(
-                f"folder: '{folder_name}' does not exist. "
+                f"\nfolder: '{folder_name}' does not exist. "
                 "Would you like to create the folder? (y/n): "
             )
             .lower()
@@ -319,7 +319,7 @@ class FilePathValidator(PathValidator):
         # If the user responds with 'y' or 'yes', create the folder and return True
         if response in ["y", "yes"]:
             folder_name.mkdir(parents=True, exist_ok=True)
-            print(f"folder: '{folder_name}' is successfully created.")
+            print(f"folder: '{folder_name}' is successfully created.\n")
             return True
 
         # If the user does not want to create the folder, show an error message and return False

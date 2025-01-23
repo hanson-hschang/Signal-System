@@ -8,16 +8,14 @@ from ss.utility.assertion import is_positive_integer
 
 
 def get_estimation_model(
-    emission_probability_matrix: NDArray,
+    emission_matrix: NDArray,
 ) -> Any:
     @njit(cache=True)  # type: ignore
     def estimation_model(
         estimated_state: NDArray,
-        emission_probability_matrix: NDArray[
-            np.float64
-        ] = emission_probability_matrix,
+        emission_matrix: NDArray[np.float64] = emission_matrix,
     ) -> NDArray:
-        estimation = estimated_state @ emission_probability_matrix
+        estimation = estimated_state @ emission_matrix
         return estimation
 
     return estimation_model

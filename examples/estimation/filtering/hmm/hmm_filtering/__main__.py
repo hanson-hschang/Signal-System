@@ -22,13 +22,13 @@ from . import hmm_filtering
 @click.option(
     "--state-dim",
     type=click.IntRange(min=1),
-    default=3,
+    default=10,
     help="Set the state dimension (positive integers).",
 )
 @click.option(
     "--observation-dim",
     type=click.IntRange(min=1),
-    default=10,
+    default=7,
     help="Set the observation dimension (positive integers).",
 )
 @click.option(

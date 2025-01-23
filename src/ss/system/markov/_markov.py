@@ -31,26 +31,26 @@ def one_hot_decoding(
 
 
 class HiddenMarkovModel(DiscreteTimeSystem):
-    class _TransitionProbabilityMatrixValidator(Validator):
+    class _TransitionMatrixValidator(Validator):
         def __init__(
             self,
-            transition_probability_matrix: ArrayLike,
+            transition_matrix: ArrayLike,
             discrete_state_dim: Optional[int] = None,
         ) -> None:
             super().__init__()
-            self._transition_probability_matrix = np.array(
-                transition_probability_matrix, dtype=np.float64
+            self._transition_matrix = np.array(
+                transition_matrix, dtype=np.float64
             )
             self._discrete_state_dim = discrete_state_dim
             self._validate_functions.append(self._validate_shape)
             self._validate_functions.append(self._validate_row_sum)
 
         def _validate_shape(self) -> bool:
-            shape = self._transition_probability_matrix.shape
+            shape = self._transition_matrix.shape
             is_valid = True
             if not (len(shape) == 2 and (shape[0] == shape[1])):
                 self._errors.append(
-                    "transition_probability_matrix should be a square matrix"
+                    "transition_matrix should be a square matrix"
                 )
                 is_valid = False
             if (
@@ -58,97 +58,89 @@ class HiddenMarkovModel(DiscreteTimeSystem):
                 and shape[0] != self._discrete_state_dim
             ):
                 self._errors.append(
-                    f"transition_probability_matrix should have the shape as (discrete_state_dim, discrete_state_dim) "
+                    f"transition_matrix should have the shape as (discrete_state_dim, discrete_state_dim) "
                     f"with discrete_state_dim={self._discrete_state_dim}. "
-                    f"The transition_probability_matrix given has the shape {shape}."
+                    f"The transition_matrix given has the shape {shape}."
                 )
                 is_valid = False
             return is_valid
 
         def _validate_row_sum(self) -> bool:
-            row_sum = np.sum(self._transition_probability_matrix, axis=1)
+            row_sum = np.sum(self._transition_matrix, axis=1)
             if np.allclose(row_sum, np.ones_like(row_sum)):
                 return True
             self._errors.append(
-                "transition_probability_matrix should have row sum equal to 1"
+                "transition_matrix should have row sum equal to 1"
             )
             return False
 
         def get_matrices(self) -> Tuple[NDArray, NDArray]:
-            transition_probability_cumsum = np.cumsum(
-                self._transition_probability_matrix, axis=1
+            transition_cumsum_matrix = np.cumsum(
+                self._transition_matrix, axis=1
             )
             return (
-                self._transition_probability_matrix,
-                transition_probability_cumsum,
+                self._transition_matrix,
+                transition_cumsum_matrix,
             )
 
-    class _EmissionProbabilityMatrixValidator(Validator):
+    class _EmissionMatrixValidator(Validator):
         def __init__(
             self,
             discrete_state_dim: int,
-            emission_probability_matrix: ArrayLike,
+            emission_matrix: ArrayLike,
         ) -> None:
             super().__init__()
-            self._emission_probability_matrix = np.array(
-                emission_probability_matrix, dtype=np.float64
-            )
+            self._emission_matrix = np.array(emission_matrix, dtype=np.float64)
             self._discrete_state_dim = discrete_state_dim
             self._validate_functions.append(self._validate_shape)
             self._validate_functions.append(self._validate_row_sum)
 
         def _validate_shape(self) -> bool:
-            shape = self._emission_probability_matrix.shape
+            shape = self._emission_matrix.shape
             if len(shape) == 2 and (shape[0] == self._discrete_state_dim):
                 return True
             self._errors.append(
-                "transition_probability_matrix and emission_probability_matrix should have the same number of rows (discrete_state_dim)"
+                "transition_matrix and emission_matrix should have the same number of rows (discrete_state_dim)"
             )
             return False
 
         def _validate_row_sum(self) -> bool:
-            row_sum = np.sum(self._emission_probability_matrix, axis=1)
+            row_sum = np.sum(self._emission_matrix, axis=1)
             if np.allclose(row_sum, np.ones_like(row_sum)):
                 return True
             self._errors.append(
-                "emission_probability_matrix should have row sum equal to 1"
+                "emission_matrix should have row sum equal to 1"
             )
             return False
 
         def get_matrices(self) -> Tuple[NDArray, NDArray]:
-            emission_probability_cumsum = np.cumsum(
-                self._emission_probability_matrix, axis=1
-            )
+            emission_cumsum_matrix = np.cumsum(self._emission_matrix, axis=1)
             return (
-                self._emission_probability_matrix,
-                emission_probability_cumsum,
+                self._emission_matrix,
+                emission_cumsum_matrix,
             )
 
     def __init__(
         self,
-        transition_probability_matrix: ArrayLike,
-        emission_probability_matrix: ArrayLike,
+        transition_matrix: ArrayLike,
+        emission_matrix: ArrayLike,
         initial_distribution: Optional[ArrayLike] = None,
         number_of_systems: int = 1,
     ) -> None:
         (
-            self._transition_probability_matrix,
-            self._transition_probability_cumsum,
-        ) = self._TransitionProbabilityMatrixValidator(
-            transition_probability_matrix
-        ).get_matrices()
-        self._discrete_state_dim = self._transition_probability_matrix.shape[0]
+            self._transition_matrix,
+            self._transition_cumsum_matrix,
+        ) = self._TransitionMatrixValidator(transition_matrix).get_matrices()
+        self._discrete_state_dim = self._transition_matrix.shape[0]
 
         (
-            self._emission_probability_matrix,
-            self._emission_probability_cumsum,
-        ) = self._EmissionProbabilityMatrixValidator(
+            self._emission_matrix,
+            self._emission_cumsum_matrix,
+        ) = self._EmissionMatrixValidator(
             discrete_state_dim=self._discrete_state_dim,
-            emission_probability_matrix=emission_probability_matrix,
+            emission_matrix=emission_matrix,
         ).get_matrices()
-        self._discrete_observation_dim = (
-            self._emission_probability_matrix.shape[1]
-        )
+        self._discrete_observation_dim = self._emission_matrix.shape[1]
 
         super().__init__(
             state_dim=1,
@@ -209,51 +201,51 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         return observation_one_hot
 
     @property
-    def transition_probability_matrix(self) -> NDArray:
-        return self._transition_probability_matrix
+    def transition_matrix(self) -> NDArray:
+        return self._transition_matrix
 
-    @transition_probability_matrix.setter
-    def transition_probability_matrix(self, matrix: ArrayLike) -> None:
+    @transition_matrix.setter
+    def transition_matrix(self, matrix: ArrayLike) -> None:
         (
-            self._transition_probability_matrix,
-            self._transition_probability_cumsum,
-        ) = self._TransitionProbabilityMatrixValidator(
+            self._transition_matrix,
+            self._transition_cumsum_matrix,
+        ) = self._TransitionMatrixValidator(
             matrix,
             discrete_state_dim=self._discrete_state_dim,
         ).get_matrices()
 
     @property
-    def emission_probability_matrix(self) -> NDArray:
-        return self._emission_probability_matrix
+    def emission_matrix(self) -> NDArray:
+        return self._emission_matrix
 
-    @emission_probability_matrix.setter
-    def emission_probability_matrix(self, matrix: ArrayLike) -> None:
+    @emission_matrix.setter
+    def emission_matrix(self, matrix: ArrayLike) -> None:
         (
-            self._emission_probability_matrix,
-            self._emission_probability_cumsum,
-        ) = self._EmissionProbabilityMatrixValidator(
+            self._emission_matrix,
+            self._emission_cumsum_matrix,
+        ) = self._EmissionMatrixValidator(
             discrete_state_dim=self._discrete_state_dim,
-            emission_probability_matrix=matrix,
+            emission_matrix=matrix,
         ).get_matrices()
 
     def duplicate(self, number_of_systems: int) -> "HiddenMarkovModel":
         return HiddenMarkovModel(
-            transition_probability_matrix=self._transition_probability_matrix,
-            emission_probability_matrix=self._emission_probability_matrix,
+            transition_matrix=self._transition_matrix,
+            emission_matrix=self._emission_matrix,
             number_of_systems=number_of_systems,
         )
 
     def _compute_state_process(self) -> NDArray:
         state: NDArray = self._process(
             self._state.astype(np.int64),
-            self._transition_probability_cumsum,
+            self._transition_cumsum_matrix,
         )  # (number_of_systems, 1)
         return state.astype(np.float64)
 
     def _compute_observation_process(self) -> NDArray:
         observation: NDArray = self._process(
             self._state.astype(np.int64),
-            self._emission_probability_cumsum,
+            self._emission_cumsum_matrix,
         )  # (number_of_systems, 1)
         return observation.astype(np.float64)
 
@@ -289,8 +281,8 @@ class MarkovChainCallback(SystemCallback):
 
     def save(self, filename: Union[str, Path]) -> None:
         self.add_meta_data(
-            transition_probability_matrix=self._system.transition_probability_matrix,
-            emission_probability_matrix=self._system.emission_probability_matrix,
+            transition_matrix=self._system.transition_matrix,
+            emission_matrix=self._system.emission_matrix,
         )
         self.add_meta_info(
             discrete_state_dim=self._system.discrete_state_dim,

@@ -30,19 +30,19 @@ def hmm_filtering(
     result_directory: Path,
 ) -> None:
 
-    transition_probability_matrix = get_probability_matrix(
+    transition_matrix = get_probability_matrix(
         state_dim, state_dim, temperature=3
     )
-    emission_probability_matrix = get_probability_matrix(
-        state_dim, observation_dim, temperature=5
+    emission_matrix = get_probability_matrix(
+        state_dim, observation_dim, temperature=8
     )
 
-    logger.info(f"\n{transition_probability_matrix = }")
-    logger.info(f"\n{emission_probability_matrix = }")
+    logger.info(f"\n{transition_matrix = }")
+    logger.info(f"\n{emission_matrix = }")
 
     system = HiddenMarkovModel(
-        transition_probability_matrix=transition_probability_matrix,
-        emission_probability_matrix=emission_probability_matrix,
+        transition_matrix=transition_matrix,
+        emission_matrix=emission_matrix,
         number_of_systems=number_of_systems,
     )
     system_callback = MarkovChainCallback(step_skip=step_skip, system=system)
@@ -50,7 +50,7 @@ def hmm_filtering(
     estimator = HiddenMarkovModelFilter(
         system=system,
         estimation_model=get_estimation_model(
-            emission_probability_matrix=emission_probability_matrix,
+            emission_matrix=emission_matrix,
         ),
     )
     estimator_callback = HiddenMarkovModelFilterCallback(

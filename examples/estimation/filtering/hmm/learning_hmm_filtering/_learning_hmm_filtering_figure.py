@@ -56,7 +56,7 @@ class FilterResultFigure(SequenceTrajectoryFigure):
     def __init__(
         self,
         time_trajectory: NDArray,
-        target_trajectory: NDArray,
+        observation_trajectory: NDArray,
         filter_result_trajectory_dict: Dict[str, FilterResultTrajectory],
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
@@ -69,10 +69,10 @@ class FilterResultFigure(SequenceTrajectoryFigure):
         self._filter_result_trajectory_dict = filter_result_trajectory_dict
         basis = np.identity(discrete_observation_dim)
         self._observation_trajectory = one_hot_encoding(
-            target_trajectory[0, :-1], basis
+            observation_trajectory[0, :-1], basis
         ).T
         self._target_trajectory = one_hot_encoding(
-            target_trajectory[0, 1:], basis
+            observation_trajectory[0, 1:], basis
         ).T
         super().__init__(
             sequence_trajectory=time_trajectory[:-1],
@@ -103,16 +103,19 @@ class FilterResultFigure(SequenceTrajectoryFigure):
             probability_trajectory=self._target_trajectory,
             ylabel="next observation",
         )
+        last_horizon_for_loss_mean = int(np.sqrt(self._sequence_length))
         for (
             filter_name,
             filter_result,
         ) in self._filter_result_trajectory_dict.items():
             label_name = filter_name.replace("_", " ")
+
             self._plot_signal_trajectory(
                 ax=self._loss_subplot,
                 signal_trajectory=filter_result.loss,
                 ylabel="loss",
-                label=label_name,
+                label=label_name
+                + f" (loss: {np.mean(filter_result.loss[-last_horizon_for_loss_mean:]):.2f})",
             )
             self._plot_probability_flow(
                 ax=self._result_subplots[filter_name],
@@ -133,7 +136,7 @@ class FilterResultFigure(SequenceTrajectoryFigure):
         ax.set_yticks([])
         ax.patch.set_alpha(0.0)
 
-        color_bar = self._fig.colorbar(
+        color_bar: Colorbar = self._fig.colorbar(
             mappable=plt.cm.ScalarMappable(
                 cmap=self._color_map,
                 norm=Normalize(vmin=0, vmax=1),

@@ -44,20 +44,20 @@ def main(
     result_directory = basic_config(__file__, verbose, debug)
 
     epsilon = 0.01
-    transition_probability_matrix = [
+    transition_matrix = [
         [0, 0.5, 0.5],
         [epsilon, 1 - epsilon, 0],
         [1 - epsilon, 0, epsilon],
     ]
-    emission_probability_matrix = [
+    emission_matrix = [
         [1, 0],
         [0, 1],
         [0, 1],
     ]
 
     markov_chain = HiddenMarkovModel(
-        transition_probability_matrix=transition_probability_matrix,
-        emission_probability_matrix=emission_probability_matrix,
+        transition_matrix=transition_matrix,
+        emission_matrix=emission_matrix,
         number_of_systems=number_of_systems,
     )
     system_callback = MarkovChainCallback(

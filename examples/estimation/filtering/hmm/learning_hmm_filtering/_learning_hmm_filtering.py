@@ -27,7 +27,7 @@ from ._learning_hmm_filtering_utility import (
     compute_loss,
     compute_naive_guess_loss,
     compute_optimal_loss,
-    get_observation_model,
+    get_estimation_model,
 )
 
 logger = Logging.get_logger(__name__)
@@ -56,14 +56,12 @@ def train(
 
     # Prepare model
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
-    discrete_state_dim = int(data.meta_info["discrete_state_dim"])
+    discrete_state_dim = int(np.sqrt(data.meta_info["discrete_state_dim"]))
     config = LearningHiddenMarkovModelFilterConfig(
         state_dim=discrete_state_dim,  # similar to embedding dimension in the transformer
         discrete_observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
-        feature_dim_over_layers=(
-            1,
-            1,
-        ),  # similar to number of heads over each layer in the transformer
+        feature_dim=1,  # similar to number of heads in the transformer
+        layer_dim=8,  # similar to number of layers in the transformer
         dropout_rate=0.2,  # similar to dropout rate in the transformer
         block_option=LearningHiddenMarkovModelFilterBlockOption.SPATIAL_INVARIANT,
     )
@@ -72,7 +70,7 @@ def train(
     # Initialize the emission matrix
     # learning_filter.set_emission_matrix(
     #     emission_matrix=np.array(
-    #         data.meta_data["emission_probability_matrix"]
+    #         data.meta_data["emission_matrix"]
     #     ),
     #     trainable=False,
     # )
@@ -112,25 +110,20 @@ def visualization(
         data["observation"], dtype=np.int64
     )  # (number_of_systems, 1, time_horizon)
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
+    transition_matrix: NDArray = np.array(data.meta_data["transition_matrix"])
+    emission_matrix: NDArray = np.array(data.meta_data["emission_matrix"])
 
-    # Prepare filter
-    transition_probability_matrix: NDArray = np.array(
-        data.meta_data["transition_probability_matrix"]
-    )
-    emission_probability_matrix: NDArray = np.array(
-        data.meta_data["emission_probability_matrix"]
-    )
-    system = HiddenMarkovModel(
-        transition_probability_matrix=transition_probability_matrix,
-        emission_probability_matrix=emission_probability_matrix,
-    )
-    emission_model = get_observation_model(
-        transition_probability_matrix=transition_probability_matrix,
-        emission_probability_matrix=emission_probability_matrix,
-        future_time_steps=1,
-    )
+    # Prepare HMM filter
     filter = HiddenMarkovModelFilter(
-        system=system, estimation_model=emission_model
+        system=HiddenMarkovModel(
+            transition_matrix=transition_matrix,
+            emission_matrix=emission_matrix,
+        ),
+        estimation_model=get_estimation_model(
+            transition_matrix=transition_matrix,
+            emission_matrix=emission_matrix,
+            future_time_steps=1,
+        ),
     )
 
     # Load the model
@@ -140,7 +133,7 @@ def visualization(
     logger.info(
         "Computing the loss trajectory of the filter and learning_filter"
     )
-    max_time_horizon = 100
+    max_time_horizon = 200
     time_slice = slice(min(time_horizon, max_time_horizon))
     time_trajectory_test = time_trajectory[time_slice]
     observation_trajectory_test = observation_trajectory[0, :, time_slice]
@@ -164,22 +157,6 @@ def visualization(
     )
     logger.info(f"{empirical_optimal_loss = }")
 
-    with torch.no_grad():
-        logger.info(f"{emission_probability_matrix = }")
-        logger.info(f"\n{learning_filter.emission_matrix = }")
-
-        naive_guess_loss = compute_naive_guess_loss(
-            emission_probability_matrix=emission_probability_matrix,
-            observation_trajectory=observation_trajectory_test,
-        )
-        logger.info(f"{naive_guess_loss = }")
-
-        learning_naive_guess_loss = compute_naive_guess_loss(
-            emission_probability_matrix=learning_filter.emission_matrix.detach().numpy(),
-            observation_trajectory=observation_trajectory_test,
-        )
-        logger.info(f"{learning_naive_guess_loss = }")
-
     # Plot the training and validation loss together with the optimal loss
     checkpoint_info = CheckpointInfo.load(model_filepath.with_suffix(".hdf5"))
     loss_figure = IterationFigure(
@@ -193,17 +170,6 @@ def visualization(
     )
     add_loss_line(
         loss_figure.loss_plot_ax,
-        naive_guess_loss,
-        "naive guess loss: {:.2f}",
-        text_offset=(64, -64),
-    )
-    add_loss_line(
-        loss_figure.loss_plot_ax,
-        learning_naive_guess_loss,
-        "learning naive guess loss: {:.2f}",
-    )
-    add_loss_line(
-        loss_figure.loss_plot_ax,
         empirical_optimal_loss,
         "optimal loss: {:.2f}\n(based on HMM-filter)",
     )
@@ -214,7 +180,7 @@ def visualization(
     # Plot the filter result comparison
     result_figure = FilterResultFigure(
         time_trajectory=time_trajectory_test,
-        target_trajectory=observation_trajectory_test,
+        observation_trajectory=observation_trajectory_test,
         filter_result_trajectory_dict=dict(
             filter=filter_result_trajectory,
             learning_filter=learning_filter_result_trajectory,
