@@ -11,9 +11,11 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_figure import (
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning import (
     LearningHiddenMarkovModelFilter,
-    LearningHiddenMarkovModelFilterConfig,
     LearningHiddenMarkovModelFilterProcess,
 )
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_block import (
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
+    LearningHiddenMarkovModelFilterConfig,
+)
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
     LearningHiddenMarkovModelFilterBlockOption,
 )

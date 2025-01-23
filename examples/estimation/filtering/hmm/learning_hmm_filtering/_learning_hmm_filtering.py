@@ -66,14 +66,6 @@ def train(
     )
     learning_filter = LearningHiddenMarkovModelFilter(config)
 
-    # Initialize the emission matrix
-    # learning_filter.set_emission_matrix(
-    #     emission_matrix=np.array(
-    #         data.meta_data["emission_matrix"]
-    #     ),
-    #     trainable=False,
-    # )
-
     # Prepare loss function
     loss_function = torch.nn.functional.cross_entropy
 
