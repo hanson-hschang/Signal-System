@@ -1,4 +1,4 @@
-from typing import Any, Tuple, cast
+from typing import Any, Optional, Tuple
 
 import torch
 from numpy.typing import ArrayLike
@@ -83,17 +83,21 @@ class LearningHiddenMarkovModelFilter(
         "_batch_size", "_discrete_observation_dim"
     )
 
-    @property
-    def transition_process(
-        self,
-    ) -> LearningHiddenMarkovModelFilterTransitionProcess:
-        return self._transition_process
+    # @property
+    # def transition_process(
+    #     self,
+    # ) -> LearningHiddenMarkovModelFilterTransitionProcess:
+    #     return self._transition_process
 
-    @property
-    def emission_process(
-        self,
-    ) -> LearningHiddenMarkovModelFilterEmissionProcess:
-        return self._emission_process
+    # def emission_process(
+    #     self,
+    #     state_probability_trajectory: torch.Tensor,
+    #     emission_matrix: Optional[torch.Tensor] = None,
+    # ) -> torch.Tensor:
+    #     observation_probability_trajectory: torch.Tensor = (
+    #         self._emission_process(state_probability_trajectory, emission_matrix)
+    #     )  # (batch_size, horizon, observation_dim)
+    #     return observation_probability_trajectory.detach()
 
     @property
     def emission_matrix(self) -> torch.Tensor:
