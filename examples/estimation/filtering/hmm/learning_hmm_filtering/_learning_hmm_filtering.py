@@ -42,39 +42,39 @@ def train(
     observation = data["observation"]
     number_of_systems = int(data.meta_info["number_of_systems"])
 
-    # (
-    #     training_loader,
-    #     evaluation_loader,
-    #     testing_loader,
-    # ) = (
-    #     HiddenMarkovModelObservationDataset(
-    #         observation=observation,
-    #         number_of_systems=number_of_systems,
-    #         max_length=256,
-    #         stride=64,
-    #     )
-    #     .split(
-    #         split_ratio=[0.7, 0.2, 0.1],
-    #         random_seed=2025,
-    #     )
-    #     .to_loaders(
-    #         batch_size=128,
-    #         shuffle=True,
-    #     )
-    # )
-
     (
         training_loader,
         evaluation_loader,
         testing_loader,
-    ) = hmm_observation_data_split_to_loaders(
-        observation=observation,
-        number_of_systems=number_of_systems,
-        max_length=256,
-        stride=64,
-        split_ratio=[0.7, 0.2, 0.1],
-        random_seed=2025,
+    ) = (
+        HiddenMarkovModelObservationDataset(
+            observation=observation,
+            number_of_systems=number_of_systems,
+            max_length=256,
+            stride=64,
+        )
+        .split(
+            split_ratio=[0.7, 0.2, 0.1],
+            random_seed=2025,
+        )
+        .to_loaders(
+            batch_size=128,
+            shuffle=True,
+        )
     )
+
+    # (
+    #     training_loader,
+    #     evaluation_loader,
+    #     testing_loader,
+    # ) = hmm_observation_data_split_to_loaders(
+    #     observation=observation,
+    #     number_of_systems=number_of_systems,
+    #     max_length=256,
+    #     stride=64,
+    #     split_ratio=[0.7, 0.2, 0.1],
+    #     random_seed=2025,
+    # )
 
     # Prepare model
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])

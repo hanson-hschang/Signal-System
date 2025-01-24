@@ -48,16 +48,10 @@ class LearningHiddenMarkovModelFilter(
         self._state_dim = self._config.state_dim
         self._discrete_observation_dim = self._config.discrete_observation_dim
 
-        # Define learnable parameters including the emission layer and transition layer
+        # Define the learnable emission process and transition process
         self._emission_process = (
             LearningHiddenMarkovModelFilterEmissionProcess(self._config)
         )
-        # self._emission_process = nn.Linear(
-        #     self._discrete_observation_dim,
-        #     self._state_dim,
-        #     bias=False,
-        #     dtype=torch.float64,
-        # )
         self._transition_process = (
             LearningHiddenMarkovModelFilterTransitionProcess(self._config)
         )
@@ -80,13 +74,13 @@ class LearningHiddenMarkovModelFilter(
             self._estimated_next_observation_probability = torch.matmul(
                 self._estimated_next_state_probability,
                 self.emission_matrix,
-            )  # (batch_size, observation_dim)
+            )  # (batch_size, discrete_observation_dim)
 
     estimated_next_state_probability = BatchTensorReadOnlyDescriptor(
         "_batch_size", "_state_dim"
     )
     estimated_next_observation_probability = BatchTensorReadOnlyDescriptor(
-        "_batch_size", "_observation_dim"
+        "_batch_size", "_discrete_observation_dim"
     )
 
     @property
@@ -103,13 +97,7 @@ class LearningHiddenMarkovModelFilter(
 
     @property
     def emission_matrix(self) -> torch.Tensor:
-        _emission_process_layer = cast(
-            nn.Linear, self._emission_process.layers[0]
-        )
-        _emission_matrix = nn.functional.softmax(
-            _emission_process_layer.weight, dim=1
-        )
-        return _emission_matrix
+        return self._emission_process.emission_matrix.detach()
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
@@ -155,19 +143,19 @@ class LearningHiddenMarkovModelFilter(
 
         # Get emission_matrix
         emission_matrix = (
-            self.emission_matrix
+            self._emission_process.emission_matrix
         )  # (state_dim, discrete_observation_dim)
 
         # Get emission probabilities for each observation in the trajectory
-        embedding_state_trajectory = torch.moveaxis(
+        conditional_state_trajectory = torch.moveaxis(
             emission_matrix[:, observation_trajectory], 0, 2
         )  # (batch_size, horizon, state_dim)
 
         estimated_next_state_probability_trajectory = self._transition_process(
-            embedding_state_trajectory
+            conditional_state_trajectory
         )  # (batch_size, horizon, state_dim)
 
-        estimated_next_observation_probability_trajectory = torch.matmul(
+        estimated_next_observation_probability_trajectory = self._emission_process(
             estimated_next_state_probability_trajectory,  # (batch_size, horizon, state_dim)
             emission_matrix,  # (state_dim, observation_dim)
         )  # (batch_size, horizon, observation_dim)

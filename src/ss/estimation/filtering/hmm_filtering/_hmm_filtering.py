@@ -78,11 +78,11 @@ class HiddenMarkovModelFilter(Filter):
         number_of_systems: int = estimated_state.shape[0]
 
         # prediction step based on model process (predicted probability)
-        estimated_state[...] = estimated_state @ transition_matrix
+        estimated_state[:, :] = estimated_state @ transition_matrix
 
         # update step based on observation (unnormalized conditional probability)
         # the transpose operation is for the purpose of the multi-system case
-        estimated_state[...] = (
+        estimated_state[:, :] = (
             estimated_state * emission_matrix[:, observation].T
         )
 
