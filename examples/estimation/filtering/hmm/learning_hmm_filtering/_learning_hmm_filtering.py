@@ -7,6 +7,7 @@ from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm_filtering import (
     HiddenMarkovModelFilter,
+    HiddenMarkovModelObservationDataset,
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterBlockOption,
     LearningHiddenMarkovModelFilterConfig,
@@ -40,6 +41,28 @@ def train(
     data = Data.load(data_filepath)
     observation = data["observation"]
     number_of_systems = int(data.meta_info["number_of_systems"])
+
+    # (
+    #     training_loader,
+    #     evaluation_loader,
+    #     testing_loader,
+    # ) = (
+    #     HiddenMarkovModelObservationDataset(
+    #         observation=observation,
+    #         number_of_systems=number_of_systems,
+    #         max_length=256,
+    #         stride=64,
+    #     )
+    #     .split(
+    #         split_ratio=[0.7, 0.2, 0.1],
+    #         random_seed=2025,
+    #     )
+    #     .to_loaders(
+    #         batch_size=128,
+    #         shuffle=True,
+    #     )
+    # )
+
     (
         training_loader,
         evaluation_loader,
