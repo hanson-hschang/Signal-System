@@ -1,6 +1,7 @@
 from typing import Any, Optional, Tuple
 
 from dataclasses import dataclass
+from enum import StrEnum
 
 import torch
 from numpy.typing import ArrayLike
@@ -23,6 +24,18 @@ from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
+
+
+class LearningHiddenMarkovModelFilterEstimationOption(StrEnum):
+    """
+    Enumeration class for the estimation option of the `LearningHiddenMarkovModelFilter` class.
+    """
+
+    ESTIMATED_STATE = "ESTIMATED_STATE"
+    PREDICTED_NEXT_STATE = "PREDICTED_NEXT_STATE"
+    PREDICTED_NEXT_OBSERVATION_PROBABILITY = (
+        "PREDICTED_NEXT_OBSERVATION_PROBABILITY"
+    )
 
 
 @dataclass
@@ -60,6 +73,9 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
     dropout_rate: float = 0.1
     block_option: LearningHiddenMarkovModelFilterBlockOption = (
         LearningHiddenMarkovModelFilterBlockOption.FULL_MATRIX
+    )
+    estimation_option: LearningHiddenMarkovModelFilterEstimationOption = (
+        LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
     )
 
     def __post_init__(self) -> None:

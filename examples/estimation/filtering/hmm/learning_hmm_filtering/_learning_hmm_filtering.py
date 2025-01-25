@@ -221,23 +221,32 @@ def inference(
         dtype=np.int64,
     )  # (time_horizon,)
 
+    np.set_printoptions(precision=3)
+
     # Load the model
     learning_filter = LearningHiddenMarkovModelFilter.load(model_filepath)
     with torch.no_grad():
-        logger.info(f"\n{learning_filter.emission_matrix=}")
+        emission_matrix = learning_filter.emission_matrix.numpy()
+        logger.info("emission_matrix = ")
+        for k in range(emission_matrix.shape[0]):
+            logger.info(f"    {emission_matrix[k]}")
 
     # Inference
     given_time_horizon = 20  # This is like prompt length
     future_time_steps = 5  # This is like how many next token to predict
     number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
+
     with Mode.inference(learning_filter):
-        learning_filter.update(
-            torch.tensor(
-                observation_trajectory[given_time_horizon], dtype=torch.int64
-            )
+        _observation_trajectory = torch.tensor(
+            observation_trajectory[:given_time_horizon], dtype=torch.int64
         )
         logger.info(
-            f"The sequence of the next {future_time_steps} observations from the data is:\n"
+            f"The sequence of the first {given_time_horizon} observations from the data is: "
+            f"{observation_trajectory[:given_time_horizon]}"
+        )
+        learning_filter.update(_observation_trajectory)
+        logger.info(
+            f"The sequence of the next {future_time_steps} observations from the data is: "
             f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
         )
         for k in range(future_time_steps):
@@ -245,23 +254,20 @@ def inference(
                 observation_trajectory[given_time_horizon + k + 1],
                 dtype=torch.int64,
             )
+            logger.info("")
             logger.info(
-                "          next observation = "
-                f"{next_observation.detach().numpy()}"
+                "          next observation = " f"{next_observation.detach()}"
             )
-            learning_filter.estimate()
-            estimated_next_observation_probability = (
-                learning_filter.estimated_next_observation_probability
+            predicted_next_observation_probability = (
+                learning_filter.predicted_next_observation_probability.numpy()
             )
-            predicted_next_observation = torch.multinomial(
-                estimated_next_observation_probability, 1
-            )
+            predicted_next_observation = learning_filter.predict()
             logger.info(
                 "predicted next observation = "
-                f"{predicted_next_observation[0].detach().numpy()}"
+                f"{predicted_next_observation[0]}"
             )
             logger.info(
-                "with probability distribution = \n"
-                f"{estimated_next_observation_probability.detach().numpy()}"
+                "with probability distribution(%) = "
+                f"{predicted_next_observation_probability*100}"
             )
             learning_filter.update(next_observation)

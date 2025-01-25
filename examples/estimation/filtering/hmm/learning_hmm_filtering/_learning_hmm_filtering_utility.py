@@ -221,10 +221,10 @@ def compute_loss_trajectory(
                 target_probability=next_observation,
             )
             learning_filter_estimated_next_observation_probability[:, k] = (
-                learning_filter.estimated_next_observation_probability.detach().numpy()
+                learning_filter.predicted_next_observation_probability.detach().numpy()
             )
             learning_filter_loss_trajectory[k] = cross_entropy(
-                input_probability=learning_filter.estimated_next_observation_probability.detach().numpy(),
+                input_probability=learning_filter.predicted_next_observation_probability.detach().numpy(),
                 target_probability=next_observation,
             )
 

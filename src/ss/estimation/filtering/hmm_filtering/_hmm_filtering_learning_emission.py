@@ -41,8 +41,8 @@ class LearningHiddenMarkovModelFilterEmissionProcess(
             emission_matrix = self.emission_matrix
 
         observation_probability_trajectory = torch.matmul(
-            state_probability_trajectory,  # (batch_size, horizon, state_dim)
-            emission_matrix,  # (state_dim, observation_dim)
-        )  # (batch_size, horizon, observation_dim)
+            state_probability_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
+            emission_matrix,  # (state_dim, discrete_observation_dim)
+        )  # (batch_size, horizon, discrete_observation_dim) or (batch_size, discrete_observation_dim)
 
         return observation_probability_trajectory
