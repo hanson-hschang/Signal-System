@@ -159,6 +159,63 @@ def compute_optimal_loss(
     return average_loss
 
 
+def compute_layer_loss_trajectory(
+    learning_filter: LearningHiddenMarkovModelFilter,
+    observation_trajectory: NDArray,
+) -> Tuple[NDArray, NDArray]:
+    """
+    Compute the loss of the learning_filter over the observation_trajectory.
+
+    Parameters
+    ----------
+    learning_filter : LearningHiddenMarkovModelFilter
+        The learning filter to be used for the estimation.
+    observation_trajectory : NDArray
+        shape = (number_of_systems, 1, time_horizon)
+
+    Returns
+    -------
+    loss_trajectory : NDArray
+        The loss trajectory of the learning_filter for each layer.
+        shape = (number_of_systems, layer_dim, time_horizon - 1)
+    average_loss : NDArray
+        The average loss of the learning_filter for each layer.
+        shape = (layer_dim,)
+    """
+    if observation_trajectory.ndim == 2:
+        observation_trajectory = observation_trajectory[np.newaxis, ...]
+    number_of_systems, _, time_horizon = observation_trajectory.shape
+    layer_dim = learning_filter.layer_dim + 1
+    loss_trajectory = np.empty(
+        (number_of_systems, layer_dim, time_horizon - 1)
+    )
+    with Mode.inference(learning_filter):
+        for k, (observation, next_observation) in logger.progress_bar(
+            enumerate(
+                observation_generator(
+                    observation_trajectory=observation_trajectory,
+                    discrete_observation_dim=learning_filter.estimation_dim,
+                )
+            ),
+            total=time_horizon - 1,
+        ):
+            learning_filter.update(torch.tensor(observation))
+            learning_filter.estimate()
+            layer_output = learning_filter.estimation.numpy()
+            for l in range(layer_dim):
+                loss_trajectory[:, l, k] = cross_entropy(
+                    input_probability=(
+                        layer_output[:, l, :]
+                        if number_of_systems > 1
+                        else layer_output[l]
+                    ),
+                    target_probability=next_observation,
+                )
+    average_loss = np.mean(loss_trajectory, axis=(0, 2))
+
+    return loss_trajectory, average_loss
+
+
 @dataclass
 class FilterResultTrajectory:
     loss: NDArray

@@ -18,7 +18,10 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition im
     LearningHiddenMarkovModelFilterTransitionProcess,
 )
 from ss.learning import BaseLearningModule, BaseLearningProcess
-from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
+from ss.utility.descriptor import (
+    BatchTensorReadOnlyDescriptor,
+    ReadOnlyDescriptor,
+)
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -45,9 +48,10 @@ class LearningHiddenMarkovModelFilter(
         """
         super().__init__(config)
 
-        # Define the dimensions of the state and estimation
+        # Define the dimensions of the state, observation, and the number of layers
         self._state_dim = self._config.state_dim
         self._discrete_observation_dim = self._config.discrete_observation_dim
+        self._layer_dim = self._config.layer_dim
 
         # Define the learnable emission process and transition process
         self._emission_process = (
@@ -96,8 +100,14 @@ class LearningHiddenMarkovModelFilter(
         "_batch_size", "_discrete_observation_dim"
     )
     estimation = BatchTensorReadOnlyDescriptor(
-        "_batch_size", "_estimation_dim"
+        "_batch_size", "...", "_estimation_dim"
     )
+
+    state_dim = ReadOnlyDescriptor[int]()
+    discrete_observation_dim = ReadOnlyDescriptor[int]()
+    layer_dim = ReadOnlyDescriptor[int]()
+    estimation_dim = ReadOnlyDescriptor[int]()
+    batch_size = ReadOnlyDescriptor[int]()
 
     @property
     def emission_matrix(self) -> torch.Tensor:
@@ -190,6 +200,21 @@ class LearningHiddenMarkovModelFilter(
             return
         self._init_batch_size(batch_size, is_initialized=True)
 
+    def set_estimation_option(
+        self,
+        estimation_option: LearningHiddenMarkovModelFilterEstimationOption,
+    ) -> None:
+        """
+        Set the estimation option for the `LearningHiddenMarkovModelFilter` class.
+
+        Arguments
+        ---------
+        estimation_option : LearningHiddenMarkovModelFilterEstimationOption
+            The option for the estimation.
+        """
+        self._config.estimation_option = estimation_option
+        self._init_batch_size(batch_size=self._batch_size)
+
     @torch.inference_mode()
     def update(self, observation_trajectory: torch.Tensor) -> None:
         """
@@ -246,6 +271,22 @@ class LearningHiddenMarkovModelFilter(
     def _estimate(self) -> torch.Tensor:
         match self._config.estimation_option:
             case (
+                LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+            ):
+                estimation: torch.Tensor = self._emission_process(
+                    self._transition_process.predicted_next_state_over_layers
+                )
+                if self._batch_size == 1:
+                    estimation = estimation.unsqueeze(0)
+            case (
+                LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_STATE_OVER_LAYERS
+            ):
+                estimation = (
+                    self._transition_process.predicted_next_state_over_layers
+                )
+                if self._batch_size == 1:
+                    estimation = estimation.unsqueeze(0)
+            case (
                 LearningHiddenMarkovModelFilterEstimationOption.ESTIMATED_STATE
             ):
                 estimation = self._estimated_state
@@ -287,11 +328,11 @@ class LearningHiddenMarkovModelFilterProcess(BaseLearningProcess):
         ) = HiddenMarkovModelObservationDataset.from_batch(
             data_batch
         )  # (batch_size, max_length), (batch_size, max_length)
-        estimated_next_observation_probability_trajectory = self._model(
+        predicted_next_observation_log_probability_trajectory = self._model(
             observation_trajectory=observation_trajectory
         )  # (batch_size, discrete_observation_dim, max_length)
         _loss: torch.Tensor = self._loss_function(
-            estimated_next_observation_probability_trajectory,
+            predicted_next_observation_log_probability_trajectory,
             next_observation_trajectory,  # (batch_size, max_length)
         )
         return _loss

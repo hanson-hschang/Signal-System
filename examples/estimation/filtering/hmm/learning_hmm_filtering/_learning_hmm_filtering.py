@@ -11,8 +11,8 @@ from ss.estimation.filtering.hmm_filtering import (
     LearningHiddenMarkovModelFilter,
     LearningHiddenMarkovModelFilterBlockOption,
     LearningHiddenMarkovModelFilterConfig,
+    LearningHiddenMarkovModelFilterEstimationOption,
     LearningHiddenMarkovModelFilterProcess,
-    hmm_observation_data_split_to_loaders,
 )
 from ss.learning import CheckpointInfo, IterationFigure, Mode
 from ss.system.markov import HiddenMarkovModel
@@ -25,6 +25,7 @@ from ._learning_hmm_filtering_figure import (
     update_loss_ylim,
 )
 from ._learning_hmm_filtering_utility import (
+    compute_layer_loss_trajectory,
     compute_loss_trajectory,
     compute_optimal_loss,
     get_estimation_model,
@@ -142,6 +143,9 @@ def visualization(
 
     # Load the model
     learning_filter = LearningHiddenMarkovModelFilter.load(model_filepath)
+    learning_filter.set_estimation_option(
+        LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+    )
 
     # Compute the loss trajectory of the filter and learning_filter
     logger.info(
@@ -157,6 +161,14 @@ def visualization(
             learning_filter=learning_filter,
             observation_trajectory=observation_trajectory_test,
         )
+    )
+    logger.info(
+        "Computing the average loss of the learning_filter over layers"
+    )
+    learning_filter.reset()
+    _, average_loss = compute_layer_loss_trajectory(
+        learning_filter=learning_filter,
+        observation_trajectory=observation_trajectory_test,
     )
 
     # Compute the random guess loss
@@ -189,6 +201,12 @@ def visualization(
         empirical_optimal_loss,
         "optimal loss: {:.2f}\n(based on HMM-filter)",
     )
+    for l, loss in enumerate(average_loss):
+        add_loss_line(
+            loss_figure.loss_plot_ax,
+            loss,
+            f"loss on layer {l}" + ": {:.2f}",
+        )
     update_loss_ylim(
         loss_figure.loss_plot_ax, (empirical_optimal_loss, random_guess_loss)
     )

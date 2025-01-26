@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import torch
 from torch import nn
@@ -10,6 +10,7 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_bl
     LearningHiddenMarkovModelFilterBlockOption,
 )
 from ss.learning import BaseLearningModule, reset_module
+from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -25,7 +26,7 @@ class LearningHiddenMarkovModelFilterTransitionLayer(
     ) -> None:
         super().__init__(config)
         self._layer_id = layer_id
-        self._feature_dim = self._config.get_feature_dim(self._layer_id)
+        self._feature_dim = self._config.get_feature_dim(self._layer_id - 1)
         self._weight = nn.Parameter(
             torch.randn(
                 self._feature_dim,
@@ -90,26 +91,67 @@ class LearningHiddenMarkovModelFilterTransitionProcess(
         config: LearningHiddenMarkovModelFilterConfig,
     ) -> None:
         super().__init__(config)
-        self._layer_dim = self._config.get_layer_dim()
+        self._layer_dim = self._config.get_layer_dim() + 1
+        self._state_dim = self._config.state_dim
         self.layers = nn.ModuleList()
-        for layer_id in range(self._layer_dim):
+        for layer_id in range(1, self._layer_dim):
             self.layers.append(
                 LearningHiddenMarkovModelFilterTransitionLayer(
                     layer_id, self._config
                 )
             )
+        self._init_batch_size(batch_size=1)
+
+    def _init_batch_size(
+        self, batch_size: int, is_initialized: bool = False
+    ) -> None:
+        self._is_initialized = is_initialized
+        self._batch_size = batch_size
+        with torch.no_grad():
+            self._predicted_next_state_over_layers: torch.Tensor = torch.zeros(
+                (self._batch_size, self._layer_dim, self._state_dim),
+                dtype=torch.float64,
+            )
+
+    def _check_batch_size(self, batch_size: int) -> None:
+        if self._is_initialized:
+            assert batch_size == self._batch_size, (
+                f"batch_size must be the same as the initialized batch_size. "
+                f"batch_size given is {batch_size} while the initialized batch_size is {self._batch_size}."
+            )
+            return
+        self._init_batch_size(batch_size, is_initialized=True)
+
+    predicted_next_state_over_layers = BatchTensorReadOnlyDescriptor(
+        "_batch_size", "_layer_dim", "_state_dim"
+    )
 
     def forward(
-        self, input_state_trajectory: torch.Tensor
+        self, likelihood_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        if self.inference:
+            self._check_batch_size(likelihood_state_trajectory.shape[0])
+            self._predicted_next_state_over_layers[:, 0, :] = (
+                nn.functional.normalize(
+                    likelihood_state_trajectory[:, -1, :],
+                    p=1,
+                    dim=1,
+                )
+            )  # (batch_size, state_dim)
+
         for i, layer in enumerate(self.layers):
             estimated_state_trajectory, predicted_next_state_trajectory = (
-                layer(input_state_trajectory)
+                layer(likelihood_state_trajectory)
             )
-            input_state_trajectory = estimated_state_trajectory
+            if self.inference:
+                self._predicted_next_state_over_layers[:, i + 1, :] = (
+                    predicted_next_state_trajectory[:, -1, :]
+                )
+            likelihood_state_trajectory = estimated_state_trajectory
 
         return estimated_state_trajectory, predicted_next_state_trajectory
 
     def reset(self) -> None:
+        self._is_initialized = False
         for layer in self.layers:
             reset_module(layer)

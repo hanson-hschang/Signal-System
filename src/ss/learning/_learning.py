@@ -82,9 +82,11 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
 
     def _inference_mode(self, inference: bool) -> None:
         self.inference = inference
-        for member in vars(self).values():
-            if isinstance(member, BaseLearningModule):
-                member._inference_mode(inference)
+        for submodule_name in self._modules:
+            if isinstance(
+                submodule := getattr(self, submodule_name), BaseLearningModule
+            ):
+                submodule._inference_mode(inference)
 
     def save(
         self,
