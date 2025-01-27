@@ -3,9 +3,9 @@ from typing import Optional, Tuple
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
-    LearningHmmFilterBlockOption,
-)
+# from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
+#     LearningHmmFilterTransitionBlockOption,
+# )
 from ss.learning import BaseLearningConfig
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.logging import Logging
@@ -27,6 +27,28 @@ class LearningHmmFilterEstimationOption(StrEnum):
     PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS = (
         "PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS"
     )
+
+
+class LearningHmmFilterTransitionBlockOption(StrEnum):
+    FULL_MATRIX = "FULL_MATRIX"
+    SPATIAL_INVARIANT = "SPATIAL_INVARIANT"
+
+    # @classmethod
+    # def get_block(
+    #     cls,
+    #     feature_id: int,
+    #     state_dim: int,
+    #     block_option: "LearningHmmFilterTransitionBlockOption",
+    # ) -> BaseLearningHmmFilterTransitionBlock:
+    #     match block_option:
+    #         case cls.FULL_MATRIX:
+    #             return LearningHmmFilterTransitionFullMatrixBlock(feature_id, state_dim)
+    #         case cls.SPATIAL_INVARIANT:
+    #             return LearningHmmFilterTransitionSpatialInvariantBlock(
+    #                 feature_id, state_dim
+    #             )
+    #         case _ as _invalid_block_option:
+    #             assert_never(_invalid_block_option)
 
 
 @dataclass
@@ -62,8 +84,8 @@ class LearningHmmFilterConfig(BaseLearningConfig):
     feature_dim: Optional[int] = None
     layer_dim: Optional[int] = None
     dropout_rate: float = 0.1
-    block_option: LearningHmmFilterBlockOption = (
-        LearningHmmFilterBlockOption.FULL_MATRIX
+    block_option: LearningHmmFilterTransitionBlockOption = (
+        LearningHmmFilterTransitionBlockOption.FULL_MATRIX
     )
     estimation_option: LearningHmmFilterEstimationOption = (
         LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
