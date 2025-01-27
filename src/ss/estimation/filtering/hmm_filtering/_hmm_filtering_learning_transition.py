@@ -4,10 +4,10 @@ import torch
 from torch import nn
 
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
-    LearningHiddenMarkovModelFilterConfig,
+    LearningHmmFilterConfig,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
-    LearningHiddenMarkovModelFilterBlockOption,
+    LearningHmmFilterBlockOption,
 )
 from ss.learning import BaseLearningModule, reset_module
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
@@ -16,32 +16,35 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-class LearningHiddenMarkovModelFilterTransitionLayer(
-    BaseLearningModule[LearningHiddenMarkovModelFilterConfig]
+class LearningHmmFilterTransitionLayer(
+    BaseLearningModule[LearningHmmFilterConfig]
 ):
     def __init__(
         self,
         layer_id: int,
-        config: LearningHiddenMarkovModelFilterConfig,
+        config: LearningHmmFilterConfig,
     ) -> None:
         super().__init__(config)
         self._layer_id = layer_id
         self._feature_dim = self._config.get_feature_dim(self._layer_id - 1)
+
         self._weight = nn.Parameter(
             torch.randn(
                 self._feature_dim,
                 dtype=torch.float64,
             )
         )
+
         dropout_rate = (
             self._config.dropout_rate if self._feature_dim > 1 else 0.0
         )
         self._dropout = nn.Dropout(p=dropout_rate)
         self._mask = torch.ones_like(self._weight)
+
         self.blocks = nn.ModuleList()
         for feature_id in range(self._feature_dim):
             self.blocks.append(
-                LearningHiddenMarkovModelFilterBlockOption.get_block(
+                LearningHmmFilterBlockOption.get_block(
                     feature_id,
                     self._config.state_dim,
                     self._config.block_option,
@@ -83,12 +86,12 @@ class LearningHiddenMarkovModelFilterTransitionLayer(
             reset_module(block)
 
 
-class LearningHiddenMarkovModelFilterTransitionProcess(
-    BaseLearningModule[LearningHiddenMarkovModelFilterConfig]
+class LearningHmmFilterTransitionProcess(
+    BaseLearningModule[LearningHmmFilterConfig]
 ):
     def __init__(
         self,
-        config: LearningHiddenMarkovModelFilterConfig,
+        config: LearningHmmFilterConfig,
     ) -> None:
         super().__init__(config)
         self._layer_dim = self._config.get_layer_dim() + 1
@@ -96,9 +99,7 @@ class LearningHiddenMarkovModelFilterTransitionProcess(
         self.layers = nn.ModuleList()
         for layer_id in range(1, self._layer_dim):
             self.layers.append(
-                LearningHiddenMarkovModelFilterTransitionLayer(
-                    layer_id, self._config
-                )
+                LearningHmmFilterTransitionLayer(layer_id, self._config)
             )
         self._init_batch_size(batch_size=1)
 

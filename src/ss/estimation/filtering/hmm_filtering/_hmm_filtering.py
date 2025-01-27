@@ -7,10 +7,10 @@ from numpy.typing import ArrayLike, NDArray
 from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel
-from ss.utility.descriptor import MultiSystemNDArrayReadOnlyDescriptor
+from ss.utility.descriptor import MultiSystemNdArrayReadOnlyDescriptor
 
 
-class HiddenMarkovModelFilter(Filter):
+class HmmFilter(Filter):
     def __init__(
         self,
         system: HiddenMarkovModel,
@@ -37,7 +37,7 @@ class HiddenMarkovModelFilter(Filter):
         )
         self.reset()
 
-    def duplicate(self, number_of_systems: int) -> "HiddenMarkovModelFilter":
+    def duplicate(self, number_of_systems: int) -> "HmmFilter":
         """
         Create multiple filters based on the current filter.
 
@@ -48,7 +48,7 @@ class HiddenMarkovModelFilter(Filter):
 
         Returns
         -------
-        filter: HiddenMarkovModelFilter
+        filter: HmmFilter
             The created multi-filter.
         """
         return self.__class__(
@@ -93,15 +93,15 @@ class HiddenMarkovModelFilter(Filter):
         return estimated_state
 
 
-class HiddenMarkovModelFilterCallback(EstimatorCallback):
+class HmmFilterCallback(EstimatorCallback):
     def __init__(
         self,
         step_skip: int,
-        estimator: HiddenMarkovModelFilter,
+        estimator: HmmFilter,
     ) -> None:
-        assert issubclass(type(estimator), HiddenMarkovModelFilter), (
-            f"estimator must be an instance of HiddenMarkovModelFilter or its subclasses. "
+        assert issubclass(type(estimator), HmmFilter), (
+            f"estimator must be an instance of HmmFilter or its subclasses. "
             f"estimator given is an instance of {type(estimator)}."
         )
         super().__init__(step_skip, estimator)
-        self._estimator: HiddenMarkovModelFilter = estimator
+        self._estimator: HmmFilter = estimator

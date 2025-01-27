@@ -22,14 +22,14 @@ from . import hmm_filtering
 @click.option(
     "--state-dim",
     type=click.IntRange(min=1),
-    default=10,
+    default=12,
     help="Set the state dimension (positive integers).",
 )
 @click.option(
-    "--observation-dim",
+    "--discrete-observation-dim",
     type=click.IntRange(min=1),
-    default=7,
-    help="Set the observation dimension (positive integers).",
+    default=6,
+    help="Set the discrete observation dimension (positive integers).",
 )
 @click.option(
     "--number-of-systems",
@@ -57,7 +57,7 @@ def main(
     simulation_time_steps: int,
     step_skip: int,
     state_dim: int,
-    observation_dim: int,
+    discrete_observation_dim: int,
     number_of_systems: int,
     random_seed: int,
     verbose: bool,
@@ -68,7 +68,7 @@ def main(
 
     hmm_filtering(
         state_dim=state_dim,
-        observation_dim=observation_dim,
+        discrete_observation_dim=discrete_observation_dim,
         simulation_time_steps=simulation_time_steps,
         step_skip=step_skip,
         number_of_systems=number_of_systems,

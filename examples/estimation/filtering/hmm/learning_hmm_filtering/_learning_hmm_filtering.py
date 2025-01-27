@@ -6,13 +6,13 @@ from matplotlib import pyplot as plt
 from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm_filtering import (
-    HiddenMarkovModelFilter,
-    HiddenMarkovModelObservationDataset,
-    LearningHiddenMarkovModelFilter,
-    LearningHiddenMarkovModelFilterBlockOption,
-    LearningHiddenMarkovModelFilterConfig,
-    LearningHiddenMarkovModelFilterEstimationOption,
-    LearningHiddenMarkovModelFilterProcess,
+    HmmFilter,
+    HmmObservationDataset,
+    LearningHmmFilter,
+    LearningHmmFilterBlockOption,
+    LearningHmmFilterConfig,
+    LearningHmmFilterEstimationOption,
+    LearningHmmFilterProcess,
 )
 from ss.learning import CheckpointInfo, IterationFigure, Mode
 from ss.system.markov import HiddenMarkovModel
@@ -48,7 +48,7 @@ def train(
         evaluation_loader,
         testing_loader,
     ) = (
-        HiddenMarkovModelObservationDataset(
+        HmmObservationDataset(
             observation=observation,
             number_of_systems=number_of_systems,
             max_length=256,
@@ -64,31 +64,18 @@ def train(
         )
     )
 
-    # (
-    #     training_loader,
-    #     evaluation_loader,
-    #     testing_loader,
-    # ) = hmm_observation_data_split_to_loaders(
-    #     observation=observation,
-    #     number_of_systems=number_of_systems,
-    #     max_length=256,
-    #     stride=64,
-    #     split_ratio=[0.7, 0.2, 0.1],
-    #     random_seed=2025,
-    # )
-
     # Prepare model
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
     discrete_state_dim = int(np.sqrt(data.meta_info["discrete_state_dim"]))
-    config = LearningHiddenMarkovModelFilterConfig(
+    config = LearningHmmFilterConfig(
         state_dim=discrete_state_dim,  # similar to embedding dimension in the transformer
         discrete_observation_dim=discrete_observation_dim,  # similar to number of tokens in the transformer
         feature_dim=1,  # similar to number of heads in the transformer
-        layer_dim=4,  # similar to number of layers in the transformer
-        dropout_rate=0.2,  # similar to dropout rate in the transformer
-        block_option=LearningHiddenMarkovModelFilterBlockOption.SPATIAL_INVARIANT,
+        layer_dim=1,  # similar to number of layers in the transformer
+        dropout_rate=0.05,  # similar to dropout rate in the transformer
+        block_option=LearningHmmFilterBlockOption.SPATIAL_INVARIANT,
     )
-    learning_filter = LearningHiddenMarkovModelFilter(config)
+    learning_filter = LearningHmmFilter(config)
 
     # Prepare loss function
     loss_function = torch.nn.functional.cross_entropy
@@ -99,7 +86,7 @@ def train(
     )
 
     # Train model
-    learning_process = LearningHiddenMarkovModelFilterProcess(
+    learning_process = LearningHmmFilterProcess(
         model=learning_filter,
         loss_function=loss_function,
         optimizer=optimizer,
@@ -120,7 +107,6 @@ def visualization(
     # Prepare data
     data = Data.load(data_filepath)
     time_trajectory: NDArray = np.array(data["time"])
-    time_horizon = time_trajectory.shape[-1]
     observation_trajectory: NDArray = np.array(
         data["observation"], dtype=np.int64
     )  # (number_of_systems, 1, time_horizon)
@@ -129,7 +115,7 @@ def visualization(
     emission_matrix: NDArray = np.array(data.meta_data["emission_matrix"])
 
     # Prepare HMM filter
-    filter = HiddenMarkovModelFilter(
+    filter = HmmFilter(
         system=HiddenMarkovModel(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
@@ -142,24 +128,28 @@ def visualization(
     )
 
     # Load the model
-    learning_filter = LearningHiddenMarkovModelFilter.load(model_filepath)
+    learning_filter = LearningHmmFilter.load(model_filepath)
+    np.set_printoptions(precision=3)
+    with torch.no_grad():
+        emission_matrix = learning_filter.emission_matrix.numpy()
+        logger.info("learned emission_matrix = ")
+        for k in range(emission_matrix.shape[0]):
+            logger.info(f"    {emission_matrix[k]}")
     learning_filter.set_estimation_option(
-        LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+        LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
     )
 
     # Compute the loss trajectory of the filter and learning_filter
     logger.info(
-        "Computing the loss trajectory of the filter and learning_filter"
+        "Computing an example loss trajectory of the filter and learning_filter"
     )
-    max_time_horizon = 200
-    time_slice = slice(min(time_horizon, max_time_horizon))
-    time_trajectory_test = time_trajectory[time_slice]
-    observation_trajectory_test = observation_trajectory[0, :, time_slice]
+    example_time_trajectory = time_trajectory
+    example_observation_trajectory = observation_trajectory[0]
     filter_result_trajectory, learning_filter_result_trajectory = (
         compute_loss_trajectory(
             filter=filter,
             learning_filter=learning_filter,
-            observation_trajectory=observation_trajectory_test,
+            observation_trajectory=example_observation_trajectory,
         )
     )
     logger.info(
@@ -168,7 +158,7 @@ def visualization(
     learning_filter.reset()
     _, average_loss = compute_layer_loss_trajectory(
         learning_filter=learning_filter,
-        observation_trajectory=observation_trajectory_test,
+        observation_trajectory=observation_trajectory,
     )
 
     # Compute the random guess loss
@@ -212,9 +202,9 @@ def visualization(
     )
 
     # Plot the filter result comparison
-    result_figure = FilterResultFigure(
-        time_trajectory=time_trajectory_test,
-        observation_trajectory=observation_trajectory_test,
+    FilterResultFigure(
+        time_trajectory=example_time_trajectory,
+        observation_trajectory=example_observation_trajectory,
         filter_result_trajectory_dict=dict(
             filter=filter_result_trajectory,
             learning_filter=learning_filter_result_trajectory,
@@ -239,19 +229,12 @@ def inference(
         dtype=np.int64,
     )  # (time_horizon,)
 
-    np.set_printoptions(precision=3)
-
     # Load the model
-    learning_filter = LearningHiddenMarkovModelFilter.load(model_filepath)
-    with torch.no_grad():
-        emission_matrix = learning_filter.emission_matrix.numpy()
-        logger.info("emission_matrix = ")
-        for k in range(emission_matrix.shape[0]):
-            logger.info(f"    {emission_matrix[k]}")
+    learning_filter = LearningHmmFilter.load(model_filepath)
 
     # Inference
     given_time_horizon = 20  # This is like prompt length
-    future_time_steps = 5  # This is like how many next token to predict
+    future_time_steps = 10  # This is like how many next token to predict
     number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
 
     with Mode.inference(learning_filter):
@@ -260,32 +243,32 @@ def inference(
         )
         logger.info(
             f"The sequence of the first {given_time_horizon} observations from the data is: "
-            f"{observation_trajectory[:given_time_horizon]}"
+            f"{observation_trajectory[:given_time_horizon]} (given observation)"
         )
-        learning_filter.update(_observation_trajectory)
         logger.info(
             f"The sequence of the next {future_time_steps} observations from the data is: "
             f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
         )
-        for k in range(future_time_steps):
-            next_observation = torch.tensor(
-                observation_trajectory[given_time_horizon + k + 1],
-                dtype=torch.int64,
-            )
-            logger.info("")
-            logger.info(
-                "          next observation = " f"{next_observation.detach()}"
-            )
-            predicted_next_observation_probability = (
-                learning_filter.predicted_next_observation_probability.numpy()
-            )
+        _observation_trajectory = _observation_trajectory.repeat(
+            number_of_samples, 1
+        )
+        learning_filter.update(_observation_trajectory)
+
+        predicted_next_observation_trajectory = torch.empty(
+            (number_of_samples, 1, future_time_steps), dtype=torch.int64
+        )
+        logger.info("")
+        logger.info(
+            f"Inferring {number_of_samples} samples of sequence of the next {future_time_steps} predictions based on the given observation: "
+        )
+        for k in logger.progress_bar(range(future_time_steps)):
             predicted_next_observation = learning_filter.predict()
-            logger.info(
-                "predicted next observation = "
-                f"{predicted_next_observation[0]}"
+            predicted_next_observation_trajectory[:, :, k] = (
+                predicted_next_observation
             )
+            learning_filter.update(predicted_next_observation)
+
+        for i in range(number_of_samples):
             logger.info(
-                "with probability distribution(%) = "
-                f"{predicted_next_observation_probability*100}"
+                f"    {predicted_next_observation_trajectory[i, 0, :].numpy()}"
             )
-            learning_filter.update(next_observation)

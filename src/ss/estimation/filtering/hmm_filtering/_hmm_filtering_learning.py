@@ -5,17 +5,17 @@ from numpy.typing import ArrayLike
 from torch import nn
 
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
-    HiddenMarkovModelObservationDataset,
+    HmmObservationDataset,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
-    LearningHiddenMarkovModelFilterConfig,
-    LearningHiddenMarkovModelFilterEstimationOption,
+    LearningHmmFilterConfig,
+    LearningHmmFilterEstimationOption,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_emission import (
-    LearningHiddenMarkovModelFilterEmissionProcess,
+    LearningHmmFilterEmissionProcess,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition import (
-    LearningHiddenMarkovModelFilterTransitionProcess,
+    LearningHmmFilterTransitionProcess,
 )
 from ss.learning import BaseLearningModule, BaseLearningProcess
 from ss.utility.descriptor import (
@@ -27,24 +27,22 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-class LearningHiddenMarkovModelFilter(
-    BaseLearningModule[LearningHiddenMarkovModelFilterConfig]
-):
+class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
     """
-    `LearningHiddenMarkovModelFilter` class for learning the hidden Markov model and estimating the next observation.
+    `LearningHmmFilter` class for learning the hidden Markov model and estimating the next observation.
     """
 
     def __init__(
         self,
-        config: LearningHiddenMarkovModelFilterConfig,
+        config: LearningHmmFilterConfig,
     ) -> None:
         """
-        Initialize the `LearningHiddenMarkovModelFilter` class
+        Initialize the `LearningHmmFilter` class
 
         Arguments:
         ----------
-            config : LearningHiddenMarkovModelFilterParameters
-                dataclass containing the configuration for the `LearningHiddenMarkovModelFilter` class
+            config : LearningHmmFilterParameters
+                dataclass containing the configuration for the `LearningHmmFilter` class
         """
         super().__init__(config)
 
@@ -54,11 +52,9 @@ class LearningHiddenMarkovModelFilter(
         self._layer_dim = self._config.layer_dim
 
         # Define the learnable emission process and transition process
-        self._emission_process = (
-            LearningHiddenMarkovModelFilterEmissionProcess(self._config)
-        )
-        self._transition_process = (
-            LearningHiddenMarkovModelFilterTransitionProcess(self._config)
+        self._emission_process = LearningHmmFilterEmissionProcess(self._config)
+        self._transition_process = LearningHmmFilterTransitionProcess(
+            self._config
         )
 
         # Initialize the estimated next state, and next observation for the inference mode
@@ -88,7 +84,7 @@ class LearningHiddenMarkovModelFilter(
                 )
             )  # (batch_size, discrete_observation_dim)
             self._estimation = self._estimate()
-            self._estimation_dim = self._estimation.shape[-1]
+            self._estimation_shape = tuple(self._estimation.shape[1:])
 
     estimated_state = BatchTensorReadOnlyDescriptor(
         "_batch_size", "_state_dim"
@@ -100,13 +96,13 @@ class LearningHiddenMarkovModelFilter(
         "_batch_size", "_discrete_observation_dim"
     )
     estimation = BatchTensorReadOnlyDescriptor(
-        "_batch_size", "...", "_estimation_dim"
+        "_batch_size", "*_estimation_shape"
     )
 
     state_dim = ReadOnlyDescriptor[int]()
     discrete_observation_dim = ReadOnlyDescriptor[int]()
     layer_dim = ReadOnlyDescriptor[int]()
-    estimation_dim = ReadOnlyDescriptor[int]()
+    estimation_shape = ReadOnlyDescriptor[tuple]()
     batch_size = ReadOnlyDescriptor[int]()
 
     @property
@@ -115,7 +111,7 @@ class LearningHiddenMarkovModelFilter(
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
-        forward method for the `LearningHiddenMarkovModelFilter` class
+        forward method for the `LearningHmmFilter` class
 
         Arguments:
         ----------
@@ -148,7 +144,7 @@ class LearningHiddenMarkovModelFilter(
         observation_trajectory: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        _forward method for the `LearningHiddenMarkovModelFilter` class
+        _forward method for the `LearningHmmFilter` class
 
         Arguments
         ---------
@@ -202,7 +198,7 @@ class LearningHiddenMarkovModelFilter(
 
     def set_estimation_option(
         self,
-        estimation_option: LearningHiddenMarkovModelFilterEstimationOption,
+        estimation_option: LearningHmmFilterEstimationOption,
     ) -> None:
         """
         Set the estimation option for the `LearningHiddenMarkovModelFilter` class.
@@ -271,7 +267,7 @@ class LearningHiddenMarkovModelFilter(
     def _estimate(self) -> torch.Tensor:
         match self._config.estimation_option:
             case (
-                LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+                LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
             ):
                 estimation: torch.Tensor = self._emission_process(
                     self._transition_process.predicted_next_state_over_layers
@@ -279,23 +275,19 @@ class LearningHiddenMarkovModelFilter(
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
             case (
-                LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_STATE_OVER_LAYERS
+                LearningHmmFilterEstimationOption.PREDICTED_NEXT_STATE_OVER_LAYERS
             ):
                 estimation = (
                     self._transition_process.predicted_next_state_over_layers
                 )
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
-            case (
-                LearningHiddenMarkovModelFilterEstimationOption.ESTIMATED_STATE
-            ):
+            case LearningHmmFilterEstimationOption.ESTIMATED_STATE:
                 estimation = self._estimated_state
-            case (
-                LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_STATE
-            ):
+            case LearningHmmFilterEstimationOption.PREDICTED_NEXT_STATE:
                 estimation = self._predicted_next_state
             case (
-                LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
+                LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
             ):
                 estimation = self._predicted_next_observation_probability
             case _ as _invalid_estimation_option:
@@ -320,12 +312,12 @@ class LearningHiddenMarkovModelFilter(
         return predicted_next_observation.detach()
 
 
-class LearningHiddenMarkovModelFilterProcess(BaseLearningProcess):
+class LearningHmmFilterProcess(BaseLearningProcess):
     def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
         (
             observation_trajectory,
             next_observation_trajectory,
-        ) = HiddenMarkovModelObservationDataset.from_batch(
+        ) = HmmObservationDataset.from_batch(
             data_batch
         )  # (batch_size, max_length), (batch_size, max_length)
         predicted_next_observation_log_probability_trajectory = self._model(

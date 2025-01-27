@@ -1,7 +1,7 @@
 import click
 from tqdm import tqdm
 
-from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.system.markov import HiddenMarkovModel, HmmCallback
 from ss.utility import basic_config
 
 
@@ -60,7 +60,7 @@ def main(
         emission_matrix=emission_matrix,
         number_of_systems=number_of_systems,
     )
-    system_callback = MarkovChainCallback(
+    system_callback = HmmCallback(
         step_skip=step_skip,
         system=markov_chain,
     )

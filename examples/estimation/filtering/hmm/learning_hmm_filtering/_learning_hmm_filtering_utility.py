@@ -7,10 +7,7 @@ import torch
 from numba import njit
 from numpy.typing import NDArray
 
-from ss.estimation.filtering.hmm_filtering import (
-    HiddenMarkovModelFilter,
-    LearningHiddenMarkovModelFilter,
-)
+from ss.estimation.filtering.hmm_filtering import HmmFilter, LearningHmmFilter
 from ss.learning import Mode
 from ss.system.markov import one_hot_encoding
 from ss.utility.logging import Logging
@@ -120,7 +117,7 @@ def cross_entropy(
 
 
 def compute_optimal_loss(
-    filter: HiddenMarkovModelFilter,
+    filter: HmmFilter,
     observation_trajectory: NDArray,
 ) -> float:
     """
@@ -160,7 +157,7 @@ def compute_optimal_loss(
 
 
 def compute_layer_loss_trajectory(
-    learning_filter: LearningHiddenMarkovModelFilter,
+    learning_filter: LearningHmmFilter,
     observation_trajectory: NDArray,
 ) -> Tuple[NDArray, NDArray]:
     """
@@ -194,7 +191,7 @@ def compute_layer_loss_trajectory(
             enumerate(
                 observation_generator(
                     observation_trajectory=observation_trajectory,
-                    discrete_observation_dim=learning_filter.estimation_dim,
+                    discrete_observation_dim=learning_filter.discrete_observation_dim,
                 )
             ),
             total=time_horizon - 1,
@@ -223,8 +220,8 @@ class FilterResultTrajectory:
 
 
 def compute_loss_trajectory(
-    filter: HiddenMarkovModelFilter,
-    learning_filter: LearningHiddenMarkovModelFilter,
+    filter: HmmFilter,
+    learning_filter: LearningHmmFilter,
     observation_trajectory: NDArray,
 ) -> Tuple[FilterResultTrajectory, FilterResultTrajectory]:
     """
@@ -278,10 +275,10 @@ def compute_loss_trajectory(
                 target_probability=next_observation,
             )
             learning_filter_estimated_next_observation_probability[:, k] = (
-                learning_filter.predicted_next_observation_probability.detach().numpy()
+                learning_filter.predicted_next_observation_probability.numpy()
             )
             learning_filter_loss_trajectory[k] = cross_entropy(
-                input_probability=learning_filter.predicted_next_observation_probability.detach().numpy(),
+                input_probability=learning_filter.predicted_next_observation_probability.numpy(),
                 target_probability=next_observation,
             )
 

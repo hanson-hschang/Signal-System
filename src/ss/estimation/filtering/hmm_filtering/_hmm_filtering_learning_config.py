@@ -1,34 +1,21 @@
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 from dataclasses import dataclass
 from enum import StrEnum
 
-import torch
-from numpy.typing import ArrayLike
-from torch import nn
-
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
-    HiddenMarkovModelObservationDataset,
-)
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
-    LearningHiddenMarkovModelFilterBlockOption,
+    LearningHmmFilterBlockOption,
 )
-from ss.learning import (
-    BaseLearningConfig,
-    BaseLearningModule,
-    BaseLearningProcess,
-    reset_module,
-)
+from ss.learning import BaseLearningConfig
 from ss.utility.assertion.validator import PositiveIntegerValidator
-from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
 
-class LearningHiddenMarkovModelFilterEstimationOption(StrEnum):
+class LearningHmmFilterEstimationOption(StrEnum):
     """
-    Enumeration class for the estimation option of the `LearningHiddenMarkovModelFilter` class.
+    Enumeration class for the estimation option of the `LearningHmmFilterConfig` class.
     """
 
     ESTIMATED_STATE = "ESTIMATED_STATE"
@@ -43,9 +30,9 @@ class LearningHiddenMarkovModelFilterEstimationOption(StrEnum):
 
 
 @dataclass
-class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
+class LearningHmmFilterConfig(BaseLearningConfig):
     """
-    Configuration of the `LearningHiddenMarkovModelFilter` class.
+    Configuration of the `LearningHmmFilter` class.
 
     Properties
     ----------
@@ -75,11 +62,11 @@ class LearningHiddenMarkovModelFilterConfig(BaseLearningConfig):
     feature_dim: Optional[int] = None
     layer_dim: Optional[int] = None
     dropout_rate: float = 0.1
-    block_option: LearningHiddenMarkovModelFilterBlockOption = (
-        LearningHiddenMarkovModelFilterBlockOption.FULL_MATRIX
+    block_option: LearningHmmFilterBlockOption = (
+        LearningHmmFilterBlockOption.FULL_MATRIX
     )
-    estimation_option: LearningHiddenMarkovModelFilterEstimationOption = (
-        LearningHiddenMarkovModelFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
+    estimation_option: LearningHmmFilterEstimationOption = (
+        LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
     )
 
     def __post_init__(self) -> None:

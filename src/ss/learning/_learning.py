@@ -67,7 +67,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         else:
             assert issubclass(
                 type(config), BaseLearningConfig
-            ), f"{type(config) = } must be a subclass of {BaseLearningConfig}"
+            ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
             self._config = config
         self.inference = False
 
@@ -256,7 +256,9 @@ class BaseLearningProcess:
         self._model.eval()
         loss = 0.0
         with torch.no_grad():
-            for i, data_batch in enumerate(data_loader):
+            for i, data_batch in logger.progress_bar(
+                enumerate(data_loader), total=len(data_loader)
+            ):
                 loss += self._evaluate_one_batch(data_batch).item()
         loss /= i + 1
         return loss

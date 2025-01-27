@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Generic, TypeVar, Union
 
 from pathlib import Path
 
@@ -139,16 +139,19 @@ class System:
         return np.zeros_like(self._observation)
 
 
-class SystemCallback(Callback):
+S = TypeVar("S", bound="System")
+
+
+class SystemCallback(Callback, Generic[S]):
     def __init__(
         self,
         step_skip: int,
-        system: System,
+        system: S,
     ) -> None:
         assert issubclass(
             type(system), System
-        ), f"system must be an instance of System"
-        self._system = system
+        ), f"system must be a subclass of {System.__name__}"
+        self._system: S = system
         super().__init__(step_skip)
 
     def _record(self, time: float) -> None:

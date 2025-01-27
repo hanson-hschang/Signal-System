@@ -9,7 +9,7 @@ from ss.learning import BaseDataset, dataset_split_to_loaders
 from ss.utility.deprecation import deprecated
 
 
-class HiddenMarkovModelObservationDataset(BaseDataset):
+class HmmObservationDataset(BaseDataset):
     def __init__(
         self,
         observation: ArrayLike,
@@ -65,7 +65,7 @@ class HiddenMarkovModelObservationDataset(BaseDataset):
 
 
 @deprecated(
-    alternative_usage="HiddenMarkovModelObservationDataset(...).split(...).to_loaders(...)",
+    alternative_usage="HmmObservationDataset(...).split(...).to_loaders(...)",
 )
 def hmm_observation_data_split_to_loaders(
     observation: ArrayLike,
@@ -78,7 +78,7 @@ def hmm_observation_data_split_to_loaders(
     random_seed: Optional[int] = None,
 ) -> List[DataLoader]:
     data_loaders = dataset_split_to_loaders(
-        dataset=HiddenMarkovModelObservationDataset(
+        dataset=HmmObservationDataset(
             observation=observation,
             number_of_systems=number_of_systems,
             max_length=max_length,

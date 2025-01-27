@@ -2,15 +2,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import NDArray
 from tqdm import tqdm
 
 from ss.estimation.filtering.hmm_filtering import (
-    HiddenMarkovModelFilter,
-    HiddenMarkovModelFilterCallback,
-    HiddenMarkovModelFilterFigure,
+    HmmFilter,
+    HmmFilterCallback,
+    HmmFilterFigure,
 )
-from ss.system.markov import HiddenMarkovModel, MarkovChainCallback
+from ss.system.markov import HiddenMarkovModel, HmmCallback
 from ss.utility.logging import Logging
 
 from ._hmm_filtering_utility import (
@@ -23,7 +22,7 @@ logger = Logging.get_logger(__name__)
 
 def hmm_filtering(
     state_dim: int,
-    observation_dim: int,
+    discrete_observation_dim: int,
     simulation_time_steps: int,
     step_skip: int,
     number_of_systems: int,
@@ -34,26 +33,31 @@ def hmm_filtering(
         state_dim, state_dim, temperature=3
     )
     emission_matrix = get_probability_matrix(
-        state_dim, observation_dim, temperature=8
+        state_dim, discrete_observation_dim, temperature=6
     )
 
-    logger.info(f"\n{transition_matrix = }")
-    logger.info(f"\n{emission_matrix = }")
+    np.set_printoptions(precision=3)
+    logger.info("transition_matrix:")
+    for row in transition_matrix:
+        logger.info(f"    {row}")
+    logger.info("emission_matrix:")
+    for row in emission_matrix:
+        logger.info(f"    {row}")
 
     system = HiddenMarkovModel(
         transition_matrix=transition_matrix,
         emission_matrix=emission_matrix,
         number_of_systems=number_of_systems,
     )
-    system_callback = MarkovChainCallback(step_skip=step_skip, system=system)
+    system_callback = HmmCallback(step_skip=step_skip, system=system)
 
-    estimator = HiddenMarkovModelFilter(
+    estimator = HmmFilter(
         system=system,
         estimation_model=get_estimation_model(
             emission_matrix=emission_matrix,
         ),
     )
-    estimator_callback = HiddenMarkovModelFilterCallback(
+    estimator_callback = HmmFilterCallback(
         step_skip=step_skip,
         estimator=estimator,
     )
@@ -104,7 +108,7 @@ def hmm_filtering(
         if number_of_systems == 1
         else estimator_callback["estimation"][0]
     )
-    HiddenMarkovModelFilterFigure(
+    HmmFilterFigure(
         time_trajectory=estimator_callback["time"],
         state_trajectory=state_trajectory,
         observation_trajectory=observation_trajectory,

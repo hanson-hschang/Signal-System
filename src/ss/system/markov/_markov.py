@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Generic, Optional, Tuple, TypeVar, Union
 
 from pathlib import Path
 
@@ -267,7 +267,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         return output_index
 
 
-class MarkovChainCallback(SystemCallback):
+class HmmCallback(SystemCallback[HiddenMarkovModel]):
     def __init__(
         self,
         step_skip: int,
@@ -275,9 +275,8 @@ class MarkovChainCallback(SystemCallback):
     ) -> None:
         assert issubclass(
             type(system), HiddenMarkovModel
-        ), f"system must be an instance of MarkovChain"
+        ), f"system must be a subclass of {HiddenMarkovModel.__name__}"
         super().__init__(step_skip, system)
-        self._system: HiddenMarkovModel = system
 
     def save(self, filename: Union[str, Path]) -> None:
         self.add_meta_data(

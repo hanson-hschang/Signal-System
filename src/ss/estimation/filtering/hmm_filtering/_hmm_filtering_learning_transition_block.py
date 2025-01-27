@@ -8,7 +8,7 @@ from torch import nn
 from ss.learning import BaseLearningModule
 
 
-class BaseLearningMarkovModelFilterBlock(BaseLearningModule):
+class BaseLearningHmmFilterBlock(BaseLearningModule):
     def __init__(
         self,
         feature_id: int,
@@ -30,7 +30,7 @@ class BaseLearningMarkovModelFilterBlock(BaseLearningModule):
     def get_estimated_previous_state(
         self, batch_size: int = 1
     ) -> torch.Tensor:
-        if self.training:
+        if not self.inference:
             self._is_initialized = False
             _estimated_previous_state = nn.functional.softmax(
                 self._initial_state, dim=0
@@ -64,8 +64,8 @@ class BaseLearningMarkovModelFilterBlock(BaseLearningModule):
 
     def _update_step(
         self,
-        likelihood_state: torch.Tensor,
         prior_state: torch.Tensor,
+        likelihood_state: torch.Tensor,
     ) -> torch.Tensor:
         # update step based on likelihood_state (conditional probability)
         posterior_state = nn.functional.normalize(
@@ -107,10 +107,8 @@ class BaseLearningMarkovModelFilterBlock(BaseLearningModule):
 
             # update step based on input_state (conditional probability)
             estimated_state = self._update_step(
-                likelihood_state_trajectory[
-                    :, k, :
-                ],  # (batch_size, state_dim)
                 predicted_state,
+                likelihood_state_trajectory[:, k, :],
             )  # (batch_size, state_dim)
 
             # prediction step based on model process (predicted probability)
@@ -130,9 +128,7 @@ class BaseLearningMarkovModelFilterBlock(BaseLearningModule):
         return estimated_state_trajectory, predicted_next_state_trajectory
 
 
-class LearningHiddenMarkovModelFilterFullMatrixBlock(
-    BaseLearningMarkovModelFilterBlock
-):
+class LearningHmmFilterFullMatrixBlock(BaseLearningHmmFilterBlock):
     def __init__(
         self,
         feature_id: int,
@@ -151,9 +147,7 @@ class LearningHiddenMarkovModelFilterFullMatrixBlock(
         return nn.functional.softmax(self._weight, dim=1)
 
 
-class LearningHiddenMarkovModelFilterSpatialInvariantBlock(
-    BaseLearningMarkovModelFilterBlock
-):
+class LearningHmmFilterSpatialInvariantBlock(BaseLearningHmmFilterBlock):
     def __init__(
         self,
         feature_id: int,
@@ -172,13 +166,14 @@ class LearningHiddenMarkovModelFilterSpatialInvariantBlock(
         matrix = torch.empty(
             (self._state_dim, self._state_dim), dtype=torch.float64
         )
+
         matrix[0, :] = nn.functional.softmax(self._weight, dim=0)
         for i in range(1, self._state_dim):
             matrix[i, :] = torch.roll(matrix[i - 1, :], shifts=1)
         return matrix
 
 
-class LearningHiddenMarkovModelFilterBlockOption(StrEnum):
+class LearningHmmFilterBlockOption(StrEnum):
     FULL_MATRIX = "FULL_MATRIX"
     SPATIAL_INVARIANT = "SPATIAL_INVARIANT"
 
@@ -187,15 +182,13 @@ class LearningHiddenMarkovModelFilterBlockOption(StrEnum):
         cls,
         feature_id: int,
         state_dim: int,
-        block_option: "LearningHiddenMarkovModelFilterBlockOption",
-    ) -> BaseLearningMarkovModelFilterBlock:
+        block_option: "LearningHmmFilterBlockOption",
+    ) -> BaseLearningHmmFilterBlock:
         match block_option:
             case cls.FULL_MATRIX:
-                return LearningHiddenMarkovModelFilterFullMatrixBlock(
-                    feature_id, state_dim
-                )
+                return LearningHmmFilterFullMatrixBlock(feature_id, state_dim)
             case cls.SPATIAL_INVARIANT:
-                return LearningHiddenMarkovModelFilterSpatialInvariantBlock(
+                return LearningHmmFilterSpatialInvariantBlock(
                     feature_id, state_dim
                 )
             case _ as _invalid_block_option:

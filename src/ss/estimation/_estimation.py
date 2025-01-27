@@ -8,7 +8,7 @@ from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
     MultiSystemNDArrayDescriptor,
-    MultiSystemNDArrayReadOnlyDescriptor,
+    MultiSystemNdArrayReadOnlyDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -91,12 +91,12 @@ class Estimator:
         "_number_of_systems",
         "_state_dim",
     )
-    observation_history = MultiSystemNDArrayReadOnlyDescriptor(
+    observation_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_observation_dim",
         "_horizon_of_observation_history",
     )
-    estimation = MultiSystemNDArrayReadOnlyDescriptor(
+    estimation = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_estimation_dim",
     )
