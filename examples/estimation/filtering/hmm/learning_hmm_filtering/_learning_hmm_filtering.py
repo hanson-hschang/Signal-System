@@ -9,10 +9,10 @@ from ss.estimation.filtering.hmm_filtering import (
     HmmFilter,
     HmmObservationDataset,
     LearningHmmFilter,
-    LearningHmmFilterBlockOption,
     LearningHmmFilterConfig,
     LearningHmmFilterEstimationOption,
     LearningHmmFilterProcess,
+    LearningHmmFilterTransitionBlockOption,
 )
 from ss.learning import CheckpointInfo, IterationFigure, Mode
 from ss.system.markov import HiddenMarkovModel
@@ -73,7 +73,7 @@ def train(
         feature_dim=1,  # similar to number of heads in the transformer
         layer_dim=1,  # similar to number of layers in the transformer
         dropout_rate=0.05,  # similar to dropout rate in the transformer
-        block_option=LearningHmmFilterBlockOption.SPATIAL_INVARIANT,
+        block_option=LearningHmmFilterTransitionBlockOption.SPATIAL_INVARIANT,
     )
     learning_filter = LearningHmmFilter(config)
 

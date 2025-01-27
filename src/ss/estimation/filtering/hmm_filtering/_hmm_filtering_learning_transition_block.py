@@ -1,22 +1,32 @@
 from typing import Optional, Tuple, assert_never
 
-from enum import StrEnum
-
 import torch
 from torch import nn
 
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
+    LearningHmmFilterConfig,
+    LearningHmmFilterTransitionBlockOption,
+)
 from ss.learning import BaseLearningModule
 
 
-class BaseLearningHmmFilterBlock(BaseLearningModule):
+class BaseLearningHmmFilterTransitionBlock(
+    BaseLearningModule[LearningHmmFilterConfig]
+):
     def __init__(
         self,
+        config: LearningHmmFilterConfig,
         feature_id: int,
-        state_dim: int,
     ) -> None:
-        super().__init__()
+        super().__init__(config)
         self._feature_id = feature_id
-        self._state_dim = state_dim
+        self._state_dim = self._config.state_dim
+
+        dropout_rate = (
+            self._config.dropout_rate if self._state_dim > 1 else 0.0
+        )
+        self._dropout = nn.Dropout(p=dropout_rate)
+
         self._initial_state = nn.Parameter(
             torch.randn(self._state_dim, dtype=torch.float64)
         )  # (state_dim,)
@@ -127,14 +137,30 @@ class BaseLearningHmmFilterBlock(BaseLearningModule):
 
         return estimated_state_trajectory, predicted_next_state_trajectory
 
+    @classmethod
+    def create(
+        cls, config: LearningHmmFilterConfig, feature_id: int
+    ) -> "BaseLearningHmmFilterTransitionBlock":
+        match config.block_option:
+            case LearningHmmFilterTransitionBlockOption.FULL_MATRIX:
+                return LearningHmmFilterTransitionFullMatrixBlock(
+                    config, feature_id
+                )
+            case LearningHmmFilterTransitionBlockOption.SPATIAL_INVARIANT:
+                return LearningHmmFilterTransitionSpatialInvariantBlock(
+                    config, feature_id
+                )
+            case _ as _invalid_block_option:
+                assert_never(_invalid_block_option)
 
-class LearningHmmFilterFullMatrixBlock(BaseLearningHmmFilterBlock):
+
+class LearningHmmFilterTransitionFullMatrixBlock(
+    BaseLearningHmmFilterTransitionBlock
+):
     def __init__(
-        self,
-        feature_id: int,
-        state_dim: int,
+        self, config: LearningHmmFilterConfig, feature_id: int
     ) -> None:
-        super().__init__(feature_id, state_dim)
+        super().__init__(config, feature_id)
         self._weight = nn.Parameter(
             torch.randn(
                 (self._state_dim, self._state_dim),
@@ -144,16 +170,19 @@ class LearningHmmFilterFullMatrixBlock(BaseLearningHmmFilterBlock):
 
     @property
     def transition_matrix(self) -> torch.Tensor:
-        return nn.functional.softmax(self._weight, dim=1)
+        weight = self._dropout(self._weight)
+        return nn.functional.softmax(weight, dim=1)
 
 
-class LearningHmmFilterSpatialInvariantBlock(BaseLearningHmmFilterBlock):
+class LearningHmmFilterTransitionSpatialInvariantBlock(
+    BaseLearningHmmFilterTransitionBlock
+):
     def __init__(
         self,
+        config: LearningHmmFilterConfig,
         feature_id: int,
-        state_dim: int,
     ) -> None:
-        super().__init__(feature_id, state_dim)
+        super().__init__(config, feature_id)
         self._weight = nn.Parameter(
             torch.randn(
                 self._state_dim,
@@ -166,30 +195,8 @@ class LearningHmmFilterSpatialInvariantBlock(BaseLearningHmmFilterBlock):
         matrix = torch.empty(
             (self._state_dim, self._state_dim), dtype=torch.float64
         )
-
-        matrix[0, :] = nn.functional.softmax(self._weight, dim=0)
+        weight = self._dropout(self._weight)
+        matrix[0, :] = nn.functional.softmax(weight, dim=0)
         for i in range(1, self._state_dim):
             matrix[i, :] = torch.roll(matrix[i - 1, :], shifts=1)
         return matrix
-
-
-class LearningHmmFilterBlockOption(StrEnum):
-    FULL_MATRIX = "FULL_MATRIX"
-    SPATIAL_INVARIANT = "SPATIAL_INVARIANT"
-
-    @classmethod
-    def get_block(
-        cls,
-        feature_id: int,
-        state_dim: int,
-        block_option: "LearningHmmFilterBlockOption",
-    ) -> BaseLearningHmmFilterBlock:
-        match block_option:
-            case cls.FULL_MATRIX:
-                return LearningHmmFilterFullMatrixBlock(feature_id, state_dim)
-            case cls.SPATIAL_INVARIANT:
-                return LearningHmmFilterSpatialInvariantBlock(
-                    feature_id, state_dim
-                )
-            case _ as _invalid_block_option:
-                assert_never(_invalid_block_option)

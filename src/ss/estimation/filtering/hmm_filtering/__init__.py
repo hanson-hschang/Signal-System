@@ -16,7 +16,5 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning import (
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
     LearningHmmFilterConfig,
     LearningHmmFilterEstimationOption,
-)
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
-    LearningHmmFilterBlockOption,
+    LearningHmmFilterTransitionBlockOption,
 )

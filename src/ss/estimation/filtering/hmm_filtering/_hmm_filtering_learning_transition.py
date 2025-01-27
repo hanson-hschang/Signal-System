@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import Tuple
 
 import torch
 from torch import nn
@@ -7,7 +7,7 @@ from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import
     LearningHmmFilterConfig,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
-    LearningHmmFilterBlockOption,
+    BaseLearningHmmFilterTransitionBlock,
 )
 from ss.learning import BaseLearningModule, reset_module
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
@@ -44,10 +44,8 @@ class LearningHmmFilterTransitionLayer(
         self.blocks = nn.ModuleList()
         for feature_id in range(self._feature_dim):
             self.blocks.append(
-                LearningHmmFilterBlockOption.get_block(
-                    feature_id,
-                    self._config.state_dim,
-                    self._config.block_option,
+                BaseLearningHmmFilterTransitionBlock.create(
+                    self._config, feature_id
                 )
             )
 
