@@ -26,7 +26,7 @@ class NDArrayDescriptor(NDArrayReadOnlyDescriptor):
         setattr(obj, self.private_name, value)
 
 
-class MultiSystemNDArrayReadOnlyDescriptor:
+class MultiSystemNdArrayReadOnlyDescriptor:
     def __init__(self, *name_of_dimensions: str) -> None:
         self._name_of_dimensions = list(name_of_dimensions)
         assert len(self._name_of_dimensions) > 1, (
@@ -50,7 +50,7 @@ class MultiSystemNDArrayReadOnlyDescriptor:
         return value
 
 
-class MultiSystemNDArrayDescriptor(MultiSystemNDArrayReadOnlyDescriptor):
+class MultiSystemNDArrayDescriptor(MultiSystemNdArrayReadOnlyDescriptor):
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)

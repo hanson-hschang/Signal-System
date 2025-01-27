@@ -7,10 +7,10 @@ from numpy.typing import ArrayLike, NDArray
 from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel
-from ss.utility.descriptor import MultiSystemNDArrayReadOnlyDescriptor
+from ss.utility.descriptor import MultiSystemNdArrayReadOnlyDescriptor
 
 
-class HiddenMarkovModelFilter(Filter):
+class HmmFilter(Filter):
     def __init__(
         self,
         system: HiddenMarkovModel,
@@ -36,16 +36,8 @@ class HiddenMarkovModelFilter(Filter):
             number_of_systems=number_of_systems,
         )
         self.reset()
-        # if initial_distribution is None:
-        #     initial_distribution = np.ones(self._state_dim) / self._state_dim
-        # initial_distribution = np.array(initial_distribution, dtype=np.float64)
-        # assert initial_distribution.shape[0] == self._state_dim, (
-        #     f"initial_distribution must be in the shape of {(self._state_dim,) = }. "
-        #     f"initial_distribution given has the shape of {initial_distribution.shape}."
-        # )
-        # self._estimated_state[...] = initial_distribution[np.newaxis, :]
 
-    def duplicate(self, number_of_systems: int) -> "HiddenMarkovModelFilter":
+    def duplicate(self, number_of_systems: int) -> "HmmFilter":
         """
         Create multiple filters based on the current filter.
 
@@ -56,7 +48,7 @@ class HiddenMarkovModelFilter(Filter):
 
         Returns
         -------
-        filter: HiddenMarkovModelFilter
+        filter: HmmFilter
             The created multi-filter.
         """
         return self.__class__(
@@ -70,8 +62,8 @@ class HiddenMarkovModelFilter(Filter):
         estimated_state: NDArray[np.float64] = self._estimated_state_process(
             estimated_state=self._estimated_state,
             observation=self._observation_history[:, 0, 0].astype(np.int64),
-            transition_probability_matrix=self._system.transition_probability_matrix,
-            emission_probability_matrix=self._system.emission_probability_matrix,
+            transition_matrix=self._system.transition_matrix,
+            emission_matrix=self._system.emission_matrix,
         )
         return estimated_state
 
@@ -80,18 +72,18 @@ class HiddenMarkovModelFilter(Filter):
     def _estimated_state_process(
         estimated_state: NDArray[np.float64],
         observation: NDArray[np.int64],
-        transition_probability_matrix: NDArray[np.float64],
-        emission_probability_matrix: NDArray[np.float64],
+        transition_matrix: NDArray[np.float64],
+        emission_matrix: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         number_of_systems: int = estimated_state.shape[0]
 
         # prediction step based on model process (predicted probability)
-        estimated_state[...] = estimated_state @ transition_probability_matrix
+        estimated_state[:, :] = estimated_state @ transition_matrix
 
         # update step based on observation (unnormalized conditional probability)
         # the transpose operation is for the purpose of the multi-system case
-        estimated_state[...] = (
-            estimated_state * emission_probability_matrix[:, observation].T
+        estimated_state[:, :] = (
+            estimated_state * emission_matrix[:, observation].T
         )
 
         # normalization step (conditional probability)
@@ -101,15 +93,15 @@ class HiddenMarkovModelFilter(Filter):
         return estimated_state
 
 
-class HiddenMarkovModelFilterCallback(EstimatorCallback):
+class HmmFilterCallback(EstimatorCallback):
     def __init__(
         self,
         step_skip: int,
-        estimator: HiddenMarkovModelFilter,
+        estimator: HmmFilter,
     ) -> None:
-        assert issubclass(type(estimator), HiddenMarkovModelFilter), (
-            f"estimator must be an instance of HiddenMarkovModelFilter or its subclasses. "
+        assert issubclass(type(estimator), HmmFilter), (
+            f"estimator must be an instance of HmmFilter or its subclasses. "
             f"estimator given is an instance of {type(estimator)}."
         )
         super().__init__(step_skip, estimator)
-        self._estimator: HiddenMarkovModelFilter = estimator
+        self._estimator: HmmFilter = estimator

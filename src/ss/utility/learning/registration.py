@@ -86,14 +86,14 @@ def resolve_module_name(module_name: str) -> str:
     full_module_name: str
         The full module path
     """
-    names = module_name.split(".")
-    if len(names) == 1:
-        return module_name
-    module_name = names[0]
-    for name in names[1:]:
-        if name[0] == "_":
-            break
-        module_name = f"{module_name}.{name}"
+    # names = module_name.split(".")
+    # if len(names) == 1:
+    #     return module_name
+    # module_name = names[0]
+    # for name in names[1:]:
+    #     if name[0] == "_":
+    #         break
+    #     module_name = f"{module_name}.{name}"
 
     return module_name
 

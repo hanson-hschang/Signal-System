@@ -1,19 +1,22 @@
 from ss.estimation.filtering.hmm_filtering._hmm_filtering import (
-    HiddenMarkovModelFilter,
-    HiddenMarkovModelFilterCallback,
+    HmmFilter,
+    HmmFilterCallback,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
-    HiddenMarkovModelObservationDataset,
+    HmmObservationDataset,
     hmm_observation_data_split_to_loaders,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_figure import (
-    HiddenMarkovModelFilterFigure,
+    HmmFilterFigure,
 )
 from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning import (
-    LearningHiddenMarkovModelFilter,
-    LearningHiddenMarkovModelFilterConfig,
-    LearningHiddenMarkovModelFilterProcess,
+    LearningHmmFilter,
+    LearningHmmFilterProcess,
 )
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_block import (
-    LearningHiddenMarkovModelFilterBlockOption,
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
+    LearningHmmFilterConfig,
+    LearningHmmFilterEstimationOption,
+)
+from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition_block import (
+    LearningHmmFilterBlockOption,
 )

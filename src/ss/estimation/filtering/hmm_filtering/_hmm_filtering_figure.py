@@ -12,7 +12,7 @@ from ss.utility.assertion.validator import Validator
 from ss.utility.figure import SequenceTrajectoryFigure
 
 
-class HiddenMarkovModelFilterFigure(SequenceTrajectoryFigure):
+class HmmFilterFigure(SequenceTrajectoryFigure):
     class _SignalTrajectoryValidator(Validator):
         def __init__(
             self,

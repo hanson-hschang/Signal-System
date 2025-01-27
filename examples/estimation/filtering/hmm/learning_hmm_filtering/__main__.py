@@ -66,9 +66,8 @@ def main(
         debug=debug,
     )
     data_filepath = path_manager.get_directory(data_foldername) / data_filename
-    result_directory = path_manager.result_directory
     model_folderpath = (
-        result_directory
+        path_manager.result_directory
         if model_foldername is None
         else path_manager.get_directory(model_foldername)
     )

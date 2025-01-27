@@ -15,7 +15,7 @@ from typing import (
 )
 
 from collections import defaultdict
-from dataclasses import asdict, dataclass, fields
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
 
@@ -67,7 +67,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         else:
             assert issubclass(
                 type(config), BaseLearningConfig
-            ), f"{type(config) = } must be a subclass of {BaseLearningConfig}"
+            ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
             self._config = config
         self.inference = False
 
@@ -82,9 +82,11 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
 
     def _inference_mode(self, inference: bool) -> None:
         self.inference = inference
-        for member in vars(self).values():
-            if isinstance(member, BaseLearningModule):
-                member._inference_mode(inference)
+        for submodule_name in self._modules:
+            if isinstance(
+                submodule := getattr(self, submodule_name), BaseLearningModule
+            ):
+                submodule._inference_mode(inference)
 
     def save(
         self,
@@ -110,10 +112,12 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
         config = model_info.pop("config")
         config_dict: Dict[str, Any] = config.__dict__
-        filtered_dict = {
-            k: v for k, v in config_dict.items() if not k.startswith("_")
+        config_field = {
+            key: value
+            for key, value in config_dict.items()
+            if not key.startswith("_")
         }
-        model = cls(config.__class__(**filtered_dict))
+        model = cls(config.__class__(**config_field))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model
 
@@ -176,11 +180,11 @@ class CheckpointInfo(dict):
 class BaseLearningProcess:
     class _NumberOfEpochsValidator(PositiveIntegerValidator):
         def __init__(self, number_of_epochs: int) -> None:
-            super().__init__(number_of_epochs, "number_of_epochs")
+            super().__init__(number_of_epochs)
 
     class _SaveModelEpochSkipValidator(NonnegativeIntegerValidator):
         def __init__(self, save_model_epoch_skip: int) -> None:
-            super().__init__(save_model_epoch_skip, "save_model_epoch_skip")
+            super().__init__(save_model_epoch_skip)
 
     def __init__(
         self,
@@ -252,7 +256,9 @@ class BaseLearningProcess:
         self._model.eval()
         loss = 0.0
         with torch.no_grad():
-            for i, data_batch in enumerate(data_loader):
+            for i, data_batch in logger.progress_bar(
+                enumerate(data_loader), total=len(data_loader)
+            ):
                 loss += self._evaluate_one_batch(data_batch).item()
         loss /= i + 1
         return loss

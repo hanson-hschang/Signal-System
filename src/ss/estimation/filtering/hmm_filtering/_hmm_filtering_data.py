@@ -3,12 +3,13 @@ from typing import Any, List, Optional, Sequence, Tuple
 import numpy as np
 import torch
 from numpy.typing import ArrayLike
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 
-from ss.learning import dataset_split_to_loaders
+from ss.learning import BaseDataset, dataset_split_to_loaders
+from ss.utility.deprecation import deprecated
 
 
-class HiddenMarkovModelObservationDataset(Dataset):
+class HmmObservationDataset(BaseDataset):
     def __init__(
         self,
         observation: ArrayLike,
@@ -59,11 +60,13 @@ class HiddenMarkovModelObservationDataset(Dataset):
 
     @classmethod
     def from_batch(cls, batch: Any) -> Tuple[torch.Tensor, torch.Tensor]:
-        # The indexing of batch is defined by the __getitem__ method.
         input_trajectory, output_trajectory = batch[0], batch[1]
         return input_trajectory, output_trajectory
 
 
+@deprecated(
+    alternative_usage="HmmObservationDataset(...).split(...).to_loaders(...)",
+)
 def hmm_observation_data_split_to_loaders(
     observation: ArrayLike,
     number_of_systems: int,
@@ -74,8 +77,8 @@ def hmm_observation_data_split_to_loaders(
     shuffle: bool = True,
     random_seed: Optional[int] = None,
 ) -> List[DataLoader]:
-    return dataset_split_to_loaders(
-        dataset=HiddenMarkovModelObservationDataset(
+    data_loaders = dataset_split_to_loaders(
+        dataset=HmmObservationDataset(
             observation=observation,
             number_of_systems=number_of_systems,
             max_length=max_length,
@@ -86,3 +89,4 @@ def hmm_observation_data_split_to_loaders(
         shuffle=shuffle,
         random_seed=random_seed,
     )
+    return data_loaders  # type: ignore

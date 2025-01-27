@@ -1,6 +1,7 @@
 import click
 import matplotlib.pyplot as plt
 import numpy as np
+from tqdm import tqdm
 
 from ss.control.cost import CostCallback, CostTrajectoryFigure
 from ss.control.cost.quadratic import QuadraticCost
@@ -83,7 +84,7 @@ def main(
     )
 
     current_time = 0.0
-    for k in range(simulation_time_steps):
+    for k in tqdm(range(simulation_time_steps)):
         # Get the current state
         current_state = system.state
 
