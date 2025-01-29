@@ -39,8 +39,11 @@ class PathManager:
     def logging_filepath(self) -> Path:
         return self._result_directory_path / Path(self._logger_filename)
 
-    def get_directory(self, foldername: Union[str, Path]) -> Path:
+    def get_directory(
+        self, foldername: Union[str, Path], auto_create: bool = False
+    ) -> Path:
         directory = FolderPathExistenceValidator(
-            self._current_directory_path / Path(foldername)
+            self._current_directory_path / Path(foldername),
+            auto_create=auto_create,
         ).get_folderpath()
         return directory

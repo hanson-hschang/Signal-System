@@ -33,7 +33,7 @@ def get_type_string(allowed_types: Union[Type, Tuple[Type, ...]]) -> str:
 
 
 def from_numpy_generic(
-    value: Union[np.bool_, np.integer, np.floating, np.character]
+    value: Union[np.bool_, np.integer, np.floating, np.character],
 ) -> Union[bool, int, float, str]:
     """
     Convert numpy scalar to Python scalar with proper type hinting.

@@ -202,11 +202,40 @@ class PathValidator(Validator):
     def _resolve_path(self, path: Union[str, Path]) -> Path:
         return Path(path).resolve()
 
+    @staticmethod
+    def _create_folder(foldername: Union[str, Path]) -> None:
+        Path(foldername).mkdir(parents=True, exist_ok=True)
+        print(f"folder: '{foldername}' is successfully created.\n")
+
+    @staticmethod
+    def _is_folder_creation(
+        foldername: Union[str, Path], auto_create: bool = False
+    ) -> bool:
+        if auto_create:
+            return True
+        while True:
+            response = (
+                input(
+                    f"\nfolder: '{foldername}' does not exist. "
+                    "Would you like to create the folder? (y/n): "
+                )
+                .lower()
+                .strip()
+            )
+            if response in ["y", "yes"]:
+                return True
+            if response in ["n", "no"]:
+                return False
+            print("Invalid input. Please enter 'y' or 'n'.")
+
 
 class FolderPathExistenceValidator(PathValidator):
-    def __init__(self, foldername: Union[str, Path]) -> None:
+    def __init__(
+        self, foldername: Union[str, Path], auto_create: bool = False
+    ) -> None:
         super().__init__()
         self._foldername = self._resolve_path(foldername)
+        self._auto_create = auto_create
         self.add_validation(self._validate_folderpath_existence)
 
     def _validate_folderpath_existence(self) -> bool:
@@ -214,20 +243,9 @@ class FolderPathExistenceValidator(PathValidator):
         if check_directory_existence(self._foldername):
             return True
 
-        # If not, ask the user if they want to create the folder
-        response = (
-            input(
-                f"\nfolder: '{self._foldername}' does not exist. "
-                "Would you like to create the folder? (y/n): "
-            )
-            .lower()
-            .strip()
-        )
-
-        # If the user responds with 'y' or 'yes', create the folder and return True
-        if response in ["y", "yes"]:
-            Path(self._foldername).mkdir(parents=True, exist_ok=True)
-            print(f"folder: '{self._foldername}' is successfully created.\n")
+        # Check if folder creation is True, create the folder and return True
+        if self._is_folder_creation(self._foldername, self._auto_create):
+            self._create_folder(self._foldername)
             return True
 
         # If the user does not want to create the folder, show an error message and return False
@@ -275,11 +293,15 @@ class FilePathExistenceValidator(PathValidator):
 
 class FilePathValidator(PathValidator):
     def __init__(
-        self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
+        self,
+        filename: Union[str, Path],
+        extension: Union[str, Iterable[str]],
+        auto_create_directory: bool = True,
     ) -> None:
         super().__init__()
         self._filename = self._resolve_path(filename)
         self._extension = extension
+        self._auto_create = auto_create_directory
         self.add_validation(self._validate_filepath)
 
     def _validate_filepath(self) -> bool:
@@ -306,25 +328,14 @@ class FilePathValidator(PathValidator):
             return False
 
         # The parent directory does not exist, ask the user if they want to create it
-        folder_name = Path(self._filename).parent
-        response = (
-            input(
-                f"\nfolder: '{folder_name}' does not exist. "
-                "Would you like to create the folder? (y/n): "
-            )
-            .lower()
-            .strip()
-        )
-
-        # If the user responds with 'y' or 'yes', create the folder and return True
-        if response in ["y", "yes"]:
-            folder_name.mkdir(parents=True, exist_ok=True)
-            print(f"folder: '{folder_name}' is successfully created.\n")
+        foldername = Path(self._filename).parent
+        if self._is_folder_creation(foldername, self._auto_create):
+            self._create_folder(foldername)
             return True
 
         # If the user does not want to create the folder, show an error message and return False
         self.add_error(
-            f"folder: '{folder_name}' does not exist. ",
+            f"folder: '{foldername}' does not exist. ",
             "filename must be a valid filepath (str or Path) "
             f"with the correct extension: '{self._extension}'. ",
             f"filename provided is '{self._filename}'.",
