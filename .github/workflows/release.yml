@@ -44,45 +44,45 @@ jobs:
           ")
           echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
 
-          - name: Generate Deploy Key
-          id: generate_key
-          run: |
-            ssh-keygen -t ed25519 -C "deploy-key" -f deploy_key -N ""
-            echo "PUBLIC_KEY=$(cat deploy_key.pub)" >> $GITHUB_OUTPUT
-            echo "PRIVATE_KEY=$(cat deploy_key | base64 -w 0)" >> $GITHUB_OUTPUT
+      - name: Generate Deploy Key
+        id: generate_key
+        run: |
+          ssh-keygen -t ed25519 -C "deploy-key" -f deploy_key -N ""
+          echo "PUBLIC_KEY=$(cat deploy_key.pub)" >> $GITHUB_OUTPUT
+          echo "PRIVATE_KEY=$(cat deploy_key | base64 -w 0)" >> $GITHUB_OUTPUT
 
-          - name: Create Release
-            uses: actions/create-release@v1
-            env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-            with:
-              tag_name: ${{ steps.get_version.outputs.VERSION }}
-              release_name: Release ${{ steps.get_version.outputs.VERSION }}
-              body: |
-                Version: ${{ steps.get_version.outputs.VERSION }}
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            Version: ${{ steps.get_version.outputs.VERSION }}
 
-                To install this package:
+            To install this package:
 
-                1. Save this private key to `~/.ssh/deploy_key`:
-                ```
-                ${{ steps.generate_key.outputs.PRIVATE_KEY }}
-                ```
+            1. Save this private key to `~/.ssh/deploy_key`:
+            ```
+            ${{ steps.generate_key.outputs.PRIVATE_KEY }}
+            ```
 
-                2. Set correct permissions:
-                ```bash
-                chmod 600 ~/.ssh/deploy_key
-                ```
+            2. Set correct permissions:
+            ```bash
+            chmod 600 ~/.ssh/deploy_key
+            ```
 
-                3. Add to your SSH config (~/.ssh/config):
-                ```
-                Host github.com-deploy
-                  HostName github.com
-                  User git
-                  IdentityFile ~/.ssh/deploy_key
-                  IdentitiesOnly yes
-                ```
+            3. Add to your SSH config (~/.ssh/config):
+            ```
+            Host github.com-deploy
+              HostName github.com
+              User git
+              IdentityFile ~/.ssh/deploy_key
+              IdentitiesOnly yes
+            ```
 
-                4. Install the package:
-                ```bash
-                pip install git+ssh://git@github.com-deploy/${{ github.repository }}.git@${{ steps.get_version.outputs.VERSION }}
-                ```
+            4. Install the package:
+            ```bash
+            pip install git+ssh://git@github.com-deploy/${{ github.repository }}.git@${{ steps.get_version.outputs.VERSION }}
+            ```
