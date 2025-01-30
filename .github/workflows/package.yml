@@ -6,17 +6,25 @@ on:
 jobs:
   packaging:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
     permissions:
       contents: write
 
     steps:
       - uses: actions/checkout@v3
         
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      # Ref: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.2.0
         with:
-          python-version: '3.11'
-          
+          python-version: ${{ matrix.python-version }}
+
+      # Test the matrix by printing the current Python version
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+      
       - name: Get version from pyproject.toml
         id: get_version
         run: |
