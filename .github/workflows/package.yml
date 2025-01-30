@@ -69,11 +69,6 @@ jobs:
             ```
             
             Access Token: ${{ env.ACCESS_TOKEN }}
-          draft: false
-          prerelease: false
-          
-      - name: Store Token in Repository Secrets
-        uses: gliech/create-github-secret-action@v1
         with:
           name: PACKAGE_ACCESS_TOKEN
           value: ${{ env.ACCESS_TOKEN }}
