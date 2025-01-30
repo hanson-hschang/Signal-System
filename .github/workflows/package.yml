@@ -1,0 +1,67 @@
+name: Packaging
+
+on:
+  workflow_dispatch:
+
+jobs:
+  packaging:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Get version from pyproject.toml
+        id: get_version
+        run: |
+          VERSION=$(python -c "
+          import tomli
+          with open('pyproject.toml', 'rb') as f:
+              data = tomli.load(f)
+          print(data['project']['version'])
+          ")
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate Access Token
+        id: generate_token
+        run: |
+          TOKEN=$(openssl rand -hex 32)
+          echo "ACCESS_TOKEN=${TOKEN}" >> $GITHUB_ENV
+          
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          release_name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            Version: ${{ steps.get_version.outputs.VERSION }}
+            
+            To install this package using pip:
+            
+            ```bash
+            # Install specific version
+            pip install git+https://${{ env.ACCESS_TOKEN }}@github.com/${{ github.repository }}.git@${{ steps.get_version.outputs.VERSION }}
+            
+            # Install latest version
+            pip install git+https://${{ env.ACCESS_TOKEN }}@github.com/${{ github.repository }}.git
+            ```
+            
+            Access Token: ${{ env.ACCESS_TOKEN }}
+          draft: false
+          prerelease: false
+          
+      - name: Store Token in Repository Secrets
+        uses: gliech/create-github-secret-action@v1
+        with:
+          name: PACKAGE_ACCESS_TOKEN
+          value: ${{ env.ACCESS_TOKEN }}
+          pa_token: ${{ secrets.GITHUB_TOKEN }}
