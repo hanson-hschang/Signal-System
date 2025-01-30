@@ -24,6 +24,11 @@ jobs:
       # Test the matrix by printing the current Python version
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tomli
       
       - name: Get version from pyproject.toml
         id: get_version
@@ -64,12 +69,3 @@ jobs:
             ```
             
             Access Token: ${{ env.ACCESS_TOKEN }}
-          draft: false
-          prerelease: false
-          
-      - name: Store Token in Repository Secrets
-        uses: gliech/create-github-secret-action@v1
-        with:
-          name: PACKAGE_ACCESS_TOKEN
-          value: ${{ env.ACCESS_TOKEN }}
-          pa_token: ${{ secrets.GITHUB_TOKEN }}
