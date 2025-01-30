@@ -69,7 +69,3 @@ jobs:
             ```
             
             Access Token: ${{ env.ACCESS_TOKEN }}
-        with:
-          name: PACKAGE_ACCESS_TOKEN
-          value: ${{ env.ACCESS_TOKEN }}
-          pa_token: ${{ secrets.GITHUB_TOKEN }}
