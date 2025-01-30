@@ -1,0 +1,88 @@
+# A workflow that releases a new version of your package to GitHub.
+name: Release
+
+# This workflow is triggered manually
+on:
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    permissions:
+      contents: write
+
+    steps:
+      # Checks-out the repository under $GITHUB_WORKSPACE, so each job can access it
+      - uses: actions/checkout@v3
+
+      # Ref: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4.2.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # Test the matrix by printing the current Python version
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install tomli
+
+      - name: Get version from pyproject.toml
+        id: get_version
+        run: |
+          VERSION=$(python -c "
+          import tomli
+          with open('pyproject.toml', 'rb') as f:
+              data = tomli.load(f)
+          print(data['project']['version'])
+          ")
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+          - name: Generate Deploy Key
+          id: generate_key
+          run: |
+            ssh-keygen -t ed25519 -C "deploy-key" -f deploy_key -N ""
+            echo "PUBLIC_KEY=$(cat deploy_key.pub)" >> $GITHUB_OUTPUT
+            echo "PRIVATE_KEY=$(cat deploy_key | base64 -w 0)" >> $GITHUB_OUTPUT
+
+          - name: Create Release
+            uses: actions/create-release@v1
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+              tag_name: ${{ steps.get_version.outputs.VERSION }}
+              release_name: Release ${{ steps.get_version.outputs.VERSION }}
+              body: |
+                Version: ${{ steps.get_version.outputs.VERSION }}
+
+                To install this package:
+
+                1. Save this private key to `~/.ssh/deploy_key`:
+                ```
+                ${{ steps.generate_key.outputs.PRIVATE_KEY }}
+                ```
+
+                2. Set correct permissions:
+                ```bash
+                chmod 600 ~/.ssh/deploy_key
+                ```
+
+                3. Add to your SSH config (~/.ssh/config):
+                ```
+                Host github.com-deploy
+                  HostName github.com
+                  User git
+                  IdentityFile ~/.ssh/deploy_key
+                  IdentitiesOnly yes
+                ```
+
+                4. Install the package:
+                ```bash
+                pip install git+ssh://git@github.com-deploy/${{ github.repository }}.git@${{ steps.get_version.outputs.VERSION }}
+                ```
