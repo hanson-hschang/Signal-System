@@ -13,7 +13,8 @@
 [![imports: isort](https://img.shields.io/badge/imports-isort-blue?labelColor=orange)](https://pycqa.github.io/isort/)
 [![static type: mypy](https://img.shields.io/badge/static_type-mypy-blue)](https://mypy-lang.org/)
 
-[![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/main.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
+[![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
+[![GitHub Release](https://img.shields.io/github/v/release/hanson-hschang/Signal-System)](https://github.com/hanson-hschang/Signal-System/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
 
 </div>
