@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from pathlib import Path
 
@@ -10,7 +10,7 @@ def basic_config(
     file: str,
     verbose: bool,
     debug: bool,
-    logging_filename: Optional[str] = None,
+    logging_filename: Optional[Union[str, Path]] = None,
 ) -> Path:
     path_manager = PathManager(file)
     Logging.basic_config(
