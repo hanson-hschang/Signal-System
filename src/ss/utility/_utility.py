@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pathlib import Path
 
 from ss.utility.logging import Logging
@@ -8,10 +10,15 @@ def basic_config(
     file: str,
     verbose: bool,
     debug: bool,
+    logging_filename: Optional[str] = None,
 ) -> Path:
     path_manager = PathManager(file)
     Logging.basic_config(
-        filename=path_manager.logging_filepath,
+        filename=(
+            logging_filename
+            if logging_filename
+            else path_manager.logging_filepath
+        ),
         verbose=verbose,
         debug=debug,
     )
