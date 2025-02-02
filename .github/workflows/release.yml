@@ -31,11 +31,19 @@ jobs:
               print(tomli.load(f)['project']['version'])
           ")" >> $GITHUB_OUTPUT
 
+      # - name: Create release
+      #   uses: actions/create-release@v1
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   with:
+      #     tag_name: v${{ steps.get_version.outputs.VERSION }}
+      #     release_name: Release v${{ steps.get_version.outputs.VERSION }}
+      #     body_path: .github/RELEASE.md
       - name: Create release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}
-          release_name: Release v${{ steps.get_version.outputs.VERSION }}
-          body_path: .github/RELEASE.md
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "Release v${VERSION}" \
+            --notes-file .github/RELEASE_TEMPLATE.md

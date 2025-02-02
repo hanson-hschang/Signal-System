@@ -66,11 +66,11 @@ Highlight the most important changes, new features, or themes of the release.
 
 ## 📦 Installation
 ```bash
-pip install Signal-System==${{ steps.get_version.outputs.VERSION }}
+pip install Signal-System==${VERSION}
 ```
 
 ## 🔗 Useful Links
-- [Full Changelog](https://github.com/hanson-hschang/Signal-System/commits/v${{ steps.get_version.outputs.VERSION }})
+- [Full Changelog](https://github.com/hanson-hschang/Signal-System/commits/v${VERSION})
 - [Release Proposals](https://github.com/hanson-hschang/Signal-System/wiki)
 - [API Documentations](link-to-docs)
 - [Community Discussion](https://github.com/hanson-hschang/Signal-System/discussions)
