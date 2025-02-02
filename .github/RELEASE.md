@@ -47,7 +47,7 @@ Highlight the most important changes, new features, or themes of the release.
   - Code snippets demonstrating basic implementation
   - Related issue(s): #[issue-number-1], #[issue-number-2], and #[issue-number-3]
 
-## 🔧 Dependencies
+## 📦 Dependencies
 - **[Added]**:
   - `package_name>=1.0.0`: Brief explanation of why it's needed
 - **[Updated]**:
@@ -55,16 +55,16 @@ Highlight the most important changes, new features, or themes of the release.
 - **[Removed]**:
   - `old_package`: Why it was removed
 
-## 🐾 Known Issues
+## ❗ Known Issues
 - **[Known Problem]**: Brief description of the known problems
   - Current workarounds or status of planned fixes for future releases
   - Related issue(s): #[issue-number-1], #[issue-number-2], and #[issue-number-3]
 
-## 🙏 Acknowledgments
+## ✨ Acknowledgments
 - **[Tag New Contributor]**: Link to issue(s) or commit(s)
 - **[Tag Special Thanks]**: Support on issue(s) or commit(s)
 
-## 📦 Installation
+## ⬇️ Installation
 ```bash
 pip install Signal-System==${VERSION}
 ```
