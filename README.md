@@ -31,34 +31,34 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 
 Before installation, create a Python virtual environment to manage dependencies and ensure a clean installation of the **Signal & System** package.
 
-  1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment. This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage the environments.)
+1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment. This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage the environments.)
 
-```properties
-# Change directory to your working folder
-cd path_to_your_working_folder
+    ```properties
+    # Change directory to your working folder
+    cd path_to_your_working_folder
 
-# Create a virtual environment of name `myenv`
-# with Python version 3.11
-conda create --name myenv python=3.11
+    # Create a virtual environment of name `myenv`
+    # with Python version 3.11
+    conda create --name myenv python=3.11
 
-# Activate the virtual environment
-conda activate myenv
+    # Activate the virtual environment
+    conda activate myenv
 
-# Note: Exit the virtual environment
-conda deactivate
-```
+    # Note: Exit the virtual environment
+    conda deactivate
+    ```
 
-  2. Install Package: (two methods)
+2. Install Package: (two methods)
 
-```properties
-# Install directly from GitHub
-pip install git+https://github.com/hanson-hschang/Signal-System.git
+    ```properties
+    # Install directly from GitHub
+    pip install git+https://github.com/hanson-hschang/Signal-System.git
 
-# Or clone and install
-git clone https://github.com/hanson-hschang/Signal-System.git
-cd Signal-System
-pip install .
-```
+    # Or clone and install
+    git clone https://github.com/hanson-hschang/Signal-System.git
+    cd Signal-System
+    pip install .
+    ```
 
 <details>
 
@@ -67,21 +67,21 @@ pip install .
 ## Developer environment setup
 
 1. Clone and install development dependencies:
-```properties
-git clone https://github.com/hanson-hschang/Signal-System.git
-cd Signal-System
-pip install -e ".[dev]"
-```
+    ```properties
+    git clone https://github.com/hanson-hschang/Signal-System.git
+    cd Signal-System
+    pip install -e ".[dev]"
+    ```
 
 2. Generate development requirements file:
-```properties
-pip-compile pyproject.toml --extra=dev --output-file=requirements-dev.txt
-```
+    ```properties
+    pip-compile pyproject.toml --extra=dev --output-file=requirements-dev.txt
+    ```
 
 3. Configure pre-commit hooks:
-```properties
-pre-commit install
-```
+    ```properties
+    pre-commit install
+    ```
 
 ### Development Tools
 
@@ -94,13 +94,11 @@ This project uses several tools for quality assurance:
 - [mypy](https://mypy.readthedocs.io/en/stable/): Static type checking
 
 ### Running Tests
-Standard test execution:
 ```properties
+# Standard test execution
 pytest -c pyproject.toml
-```
 
-Run tests with coverage report:
-```properties
+# Run tests with coverage report
 pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 ```
 
