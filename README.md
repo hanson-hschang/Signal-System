@@ -7,15 +7,15 @@
 ![PyTorch](https://img.shields.io/badge/PyTorch-EE4C2C?logo=PyTorch&logoColor=white)
 
 
-[![pre-commit](https://img.shields.io/badge/CI-pre--commit-FAB040?logo=pre-commit)](https://pre-commit.com/)
+[![CI: pre-commit](https://img.shields.io/badge/CI-pre--commit-FAB040?logo=pre-commit)](https://pre-commit.com/)
 [![unit test: pytest](https://img.shields.io/badge/unit_test-pytest-0A9EDC?logo=pytest)](https://docs.pytest.org/)
 [![code style: black](https://img.shields.io/badge/code_style-black-black)](https://github.com/psf/black)
 [![imports: isort](https://img.shields.io/badge/imports-isort-blue?labelColor=orange)](https://pycqa.github.io/isort/)
 [![static type: mypy](https://img.shields.io/badge/static_type-mypy-blue)](https://mypy-lang.org/)
 
-[![CI](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
-[![GitHub Release](https://img.shields.io/github/v/release/hanson-hschang/Signal-System)](https://github.com/hanson-hschang/Signal-System/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
+[![build](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions)
+[![release](https://img.shields.io/github/v/release/hanson-hschang/Signal-System)](https://github.com/hanson-hschang/Signal-System/releases)
+[![license: MIT](https://img.shields.io/badge/license-MIT-yellow)](https://opensource.org/licenses/MIT)
 
 </div>
 
