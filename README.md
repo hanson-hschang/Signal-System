@@ -60,36 +60,32 @@ cd Signal-System
 pip install .
 ```
 
-## Example
+<details>
 
-Please refer to [`examples`](https://github.com/hanson-hschang/Signal-System/tree/main/examples) directory and learn how to use this **Signal & System** package.
-Three types of examples are provided:
-  - [`system`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/system) provides various dynamic system simulations.
-  - [`control`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/control) provides various control methods over dynamic systems.
-  - [`estimation`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/estimation) provides various filtering and smoothing examples for different type of dynamic systems.
+<summary> Click me to expand/collapse developer environment setup </summary>
 
 ## Developer environment setup
 
-1. Install development dependencies:
+1. Clone and install development dependencies:
 ```properties
 git clone https://github.com/hanson-hschang/Signal-System.git
 cd Signal-System
 pip install -e ".[dev]"
 ```
 
-2. Generate `requirements-dev.txt` including development dependencies
+2. Generate development requirements file:
 ```properties
 pip-compile pyproject.toml --extra=dev --output-file=requirements-dev.txt
 ```
 
-3. Set up pre-commit hooks:
+3. Configure pre-commit hooks:
 ```properties
 pre-commit install
 ```
 
 ### Development Tools
 
-The project uses several tools for quality assurance:
+This project uses several tools for quality assurance:
 
 - [pre-commit](https://pre-commit.com/): Git hooks for code quality checks
 - [pytest](https://docs.pytest.org/en/stable/): Unit testing
@@ -98,7 +94,7 @@ The project uses several tools for quality assurance:
 - [mypy](https://mypy.readthedocs.io/en/stable/): Static type checking
 
 ### Running Tests
-
+Standard test execution:
 ```properties
 pytest -c pyproject.toml
 ```
@@ -108,31 +104,40 @@ Run tests with coverage report:
 pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 ```
 
-### Code Style
+### Code Style Guidelines
 
-- Follow [PEP 8](https://peps.python.org/pep-0008/) guidelines
-- Type hints are required for all functions and variables
-- Documentation strings should follow [numpydoc](https://numpydoc.readthedocs.io/en/latest/format.html) style
+- Adherence to [PEP 8](https://peps.python.org/pep-0008/) style guidelines
+- Mandatory type hints for all functions and variables
+- Documentation using  [numpydoc](https://numpydoc.readthedocs.io/en/latest/format.html) format specification
 
 Format codebase:
 ```properties
 # Upgrade Python syntax
 pyupgrade --exit-zero-even-if-changed --py38-plus src/**/*.py
 
-# Format code
+# Apply code formatting
 black --config pyproject.toml ./
 
-# Check static type
+# Perform static type checking
 mypy --config-file pyproject.toml ./
 
-# Sort imports
+# Organize imports
 isort --settings-path pyproject.toml ./
 ```
 
+</details>
+
+## Example
+
+Please refer to [`examples`](https://github.com/hanson-hschang/Signal-System/tree/main/examples) directory and learn how to use this **Signal & System** package.
+Three types of examples are provided:
+  - [`system`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/system) provides various dynamic system simulations.
+  - [`control`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/control) provides various control methods over dynamic systems.
+  - [`estimation`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/estimation) provides various filtering and smoothing examples for different type of dynamic systems.
 
 ## License
 
-This project is licensed under the MIT License - see the [`LICENSE`](https://github.com/hanson-hschang/Signal-System/blob/main/LICENSE) file for details.
+This project is released under the [MIT License](https://github.com/hanson-hschang/Signal-System/blob/main/LICENSE).
 
 ## Contributing
 
