@@ -31,13 +31,6 @@ jobs:
               print(tomli.load(f)['project']['version'])
           ")" >> $GITHUB_OUTPUT
 
-      - name: Load release template
-        id: release
-        run: |
-          echo "BODY<<EOF" >> $GITHUB_OUTPUT
-          cat .github/RELEASE.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
       - name: Create release
         uses: actions/create-release@v1
         env:
@@ -45,4 +38,4 @@ jobs:
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}
           release_name: Release v${{ steps.get_version.outputs.VERSION }}
-          body: ${{ steps.release.outputs.BODY }}
+          body_path: .github/RELEASE.md

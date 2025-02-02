@@ -70,11 +70,11 @@ pip install Signal-System==${{ steps.get_version.outputs.VERSION }}
 ```
 
 ## 🔗 Useful Links
+- [Full Changelog](https://github.com/hanson-hschang/Signal-System/commits/v${{ steps.get_version.outputs.VERSION }})
 - [Release Proposals](https://github.com/hanson-hschang/Signal-System/wiki)
 - [API Documentations](link-to-docs)
 - [Community Discussion](https://github.com/hanson-hschang/Signal-System/discussions)
 - [Contributing Guidelines](https://github.com/hanson-hschang/Signal-System#contributing)
-
 
 ---
 *Note: Please report any issues or bugs on our [GitHub issue](https://github.com/hanson-hschang/Signal-System/issues).*
