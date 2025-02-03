@@ -67,6 +67,14 @@ class BaseLearningHmmFilterTransitionBlock(
     ) -> torch.Tensor:
         if transition_matrix is None:
             transition_matrix = self.transition_matrix
+        print(previous_estimated_state.device)
+        print(transition_matrix.device)
+        previous_estimated_state = previous_estimated_state.to(
+            device=self._device_manager.device
+        )
+        transition_matrix = transition_matrix.to(
+            device=self._device_manager.device
+        )
         predicted_state = torch.matmul(
             previous_estimated_state, transition_matrix
         )
