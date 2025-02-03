@@ -10,17 +10,21 @@ def basic_config(
     file: str,
     verbose: bool,
     debug: bool,
-    logging_filename: Optional[Union[str, Path]] = None,
+    result_directory: Optional[Union[str, Path]] = None,
 ) -> Path:
     path_manager = PathManager(file)
+    result_directory = (
+        Path(result_directory)
+        if result_directory
+        else path_manager.result_directory
+    )
     Logging.basic_config(
         filename=(
-            logging_filename
-            if logging_filename
+            result_directory / path_manager.current_date.with_suffix(".log")
+            if result_directory
             else path_manager.logging_filepath
         ),
         verbose=verbose,
         debug=debug,
     )
-    result_directory = path_manager.result_directory
     return result_directory
