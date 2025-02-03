@@ -63,7 +63,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    result_directory = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(__file__, verbose, debug)
     np.random.seed(random_seed)
 
     hmm_filtering(
@@ -72,7 +72,7 @@ def main(
         simulation_time_steps=simulation_time_steps,
         step_skip=step_skip,
         number_of_systems=number_of_systems,
-        result_directory=result_directory,
+        result_directory=path_manager.result_directory,
     )
 
 

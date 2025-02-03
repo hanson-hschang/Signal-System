@@ -65,7 +65,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    result_directory = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(__file__, verbose, debug)
 
     simulation_time_steps = int(simulation_time / time_step)
     system = MassSpringDamperSystem(
@@ -128,8 +128,8 @@ def main(
     system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
-    system_callback.save(result_directory / "system.hdf5")
-    cost_callback.save(result_directory / "cost.hdf5")
+    system_callback.save(path_manager.result_directory / "system.hdf5")
+    cost_callback.save(path_manager.result_directory / "cost.hdf5")
 
     # Plot the data
     MassSpringDamperStateTrajectoryFigure(

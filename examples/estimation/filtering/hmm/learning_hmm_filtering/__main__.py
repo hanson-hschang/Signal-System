@@ -5,8 +5,7 @@ from pathlib import Path
 import click
 
 from ss.learning import Mode
-from ss.utility.logging import Logging
-from ss.utility.path import PathManager
+from ss.utility import basic_config
 
 from . import inference, train, visualization
 
@@ -59,12 +58,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    path_manager = PathManager(__file__)
-    Logging.basic_config(
-        filename=path_manager.logging_filepath,
-        verbose=verbose,
-        debug=debug,
-    )
+    path_manager = basic_config(__file__, verbose, debug)
     data_filepath = path_manager.get_directory(data_foldername) / data_filename
     model_folderpath = (
         path_manager.result_directory

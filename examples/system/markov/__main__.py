@@ -41,7 +41,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    result_directory = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(__file__, verbose, debug)
 
     epsilon = 0.01
     transition_matrix = [
@@ -73,7 +73,7 @@ def main(
     system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
-    system_callback.save(result_directory / "system.hdf5")
+    system_callback.save(path_manager.result_directory / "system.hdf5")
 
 
 if __name__ == "__main__":

@@ -61,7 +61,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    result_directory = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(__file__, verbose, debug)
 
     cart_pole_system = CartPoleSystem(
         cart_mass=cart_mass,

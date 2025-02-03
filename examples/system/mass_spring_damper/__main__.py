@@ -88,7 +88,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    result_directory = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(__file__, verbose, debug)
 
     control_choice = ControlChoice(control_choice)
     observation_choice = ObservationChoice(observation_choice)

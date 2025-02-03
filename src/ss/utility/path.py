@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 import os
 from datetime import datetime
@@ -30,6 +30,10 @@ class PathManager:
     @property
     def result_directory(self) -> Path:
         return self._result_directory_path
+
+    @result_directory.setter
+    def result_directory(self, path: Path) -> None:
+        self._result_directory_path = path
 
     @property
     def current_date(self) -> Path:
