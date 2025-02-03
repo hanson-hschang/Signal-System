@@ -59,7 +59,7 @@ class LearningHmmFilterTransitionLayer(
         weight = nn.functional.softmax(
             self._weight.masked_fill(mask, float("-inf")),
             dim=0,
-        ).to(device=self._weight.device)
+        )
 
         average_estimated_state_trajectory = torch.zeros_like(
             input_state_trajectory
@@ -71,6 +71,14 @@ class LearningHmmFilterTransitionLayer(
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 block(input_state_trajectory)
             )
+            print(estimated_state_trajectory.device)
+            print(predicted_next_state_trajectory.device)
+            print(weight.device)
+            estimated_state_trajectory.to(device=self._device_manager.device)
+            predicted_next_state_trajectory.to(
+                device=self._device_manager.device
+            )
+            weight.to(device=self._device_manager.device)
             average_estimated_state_trajectory += (
                 estimated_state_trajectory * weight[i]
             )
