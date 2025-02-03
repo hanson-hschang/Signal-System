@@ -71,9 +71,6 @@ class LearningHmmFilterTransitionLayer(
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 block(input_state_trajectory)
             )
-            print(estimated_state_trajectory.device)
-            print(predicted_next_state_trajectory.device)
-            print(weight.device)
             average_estimated_state_trajectory += (
                 estimated_state_trajectory * weight[i]
             )
