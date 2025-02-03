@@ -156,10 +156,11 @@ def visualize(
         "Computing the average loss of the learning_filter over layers"
     )
     learning_filter.reset()
-    _, average_loss = compute_layer_loss_trajectory(
+    _, average_loss_over_layer = compute_layer_loss_trajectory(
         learning_filter=learning_filter,
         observation_trajectory=observation_trajectory,
     )
+    logger.info(f"{average_loss_over_layer = }")
 
     # Compute the random guess loss
     random_guess_loss = -np.log(1 / discrete_observation_dim)
@@ -191,7 +192,7 @@ def visualize(
         empirical_optimal_loss,
         "optimal loss: {:.2f}\n(based on HMM-filter)",
     )
-    for l, loss in enumerate(average_loss):
+    for l, loss in enumerate(average_loss_over_layer):
         add_loss_line(
             loss_figure.loss_plot_ax,
             loss,
