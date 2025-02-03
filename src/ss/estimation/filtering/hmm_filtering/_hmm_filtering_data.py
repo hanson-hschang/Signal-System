@@ -59,7 +59,26 @@ class HmmObservationDataset(BaseDataset):
         return self._input_trajectory[index], self._output_trajectory[index]
 
     @classmethod
-    def from_batch(cls, batch: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+    def from_batch(
+        cls, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Extracts the data from the batch.
+
+        Parameters
+        ----------
+        batch: Tuple[torch.Tensor, ...]
+            The batch of data.
+
+        Returns
+        -------
+        input_trajectory: torch.Tensor
+            shape: (batch_size, max_length)
+            The input_trajectory extracted from the batch.
+        output_trajectory: torch.Tensor
+            shape: (batch_size, max_length)
+            The input_trajectory extracted from the batch.
+        """
         input_trajectory, output_trajectory = batch[0], batch[1]
         return input_trajectory, output_trajectory
 

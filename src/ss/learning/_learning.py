@@ -8,6 +8,7 @@ from typing import (
     List,
     Optional,
     Self,
+    Tuple,
     Type,
     TypeVar,
     Union,
@@ -32,6 +33,7 @@ from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
+from ss.utility.learning.device import DeviceManager
 from ss.utility.learning.registration import (
     register_numpy,
     register_subclasses,
@@ -39,7 +41,6 @@ from ss.utility.learning.registration import (
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
-
 
 BLC = TypeVar("BLC", bound="BaseLearningConfig")
 
@@ -70,6 +71,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
             ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
             self._config = config
         self.inference = False
+        self._device_manager = DeviceManager()
 
     def reset(self) -> None: ...
 
@@ -195,7 +197,8 @@ class BaseLearningProcess:
         model_filename: Union[str, Path],
         save_model_epoch_skip: int = 0,
     ) -> None:
-        self._model = model
+        self._device_manager = DeviceManager()
+        self._model = self._device_manager.load_module(model)
         self._loss_function = loss_function
         self._optimizer = optimizer
         self._number_of_epochs = self._NumberOfEpochsValidator(
@@ -248,10 +251,14 @@ class BaseLearningProcess:
         self._training_loss_history["iteration"].append(self._iteration_idx)
         self._training_loss_history["loss"].append(loss)
 
-    def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
+    def _evaluate_one_batch(
+        self, data_batch: Tuple[torch.Tensor, ...]
+    ) -> torch.Tensor:
         raise NotImplementedError
 
-    def evaluate_model(self, data_loader: DataLoader) -> float:
+    def evaluate_model(
+        self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
+    ) -> float:
         logger.info("Evaluating model...")
         self._model.eval()
         loss = 0.0
@@ -259,18 +266,26 @@ class BaseLearningProcess:
             for i, data_batch in logger.progress_bar(
                 enumerate(data_loader), total=len(data_loader)
             ):
-                loss += self._evaluate_one_batch(data_batch).item()
+                loss += self._evaluate_one_batch(
+                    self._device_manager.load_data_batch(data_batch)
+                ).item()
         loss /= i + 1
         return loss
 
-    def _train_one_batch(self, data_batch: Any) -> torch.Tensor:
+    def _train_one_batch(
+        self, data_batch: Tuple[torch.Tensor, ...]
+    ) -> torch.Tensor:
         self._optimizer.zero_grad()
-        _loss = self._evaluate_one_batch(data_batch)
+        _loss = self._evaluate_one_batch(
+            self._device_manager.load_data_batch(data_batch)
+        )
         _loss.backward()
         self._optimizer.step()
         return _loss
 
-    def train_model(self, data_loader: DataLoader) -> float:
+    def train_model(
+        self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
+    ) -> float:
         logger.info("Training one epoch...")
         self._model.train()
         with logging_redirect_tqdm(loggers=[logger]):
@@ -283,8 +298,8 @@ class BaseLearningProcess:
 
     def train(
         self,
-        training_loader: DataLoader,
-        evaluation_loader: DataLoader,
+        training_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        evaluation_loader: DataLoader[Tuple[torch.Tensor, ...]],
     ) -> None:
 
         logger.info("Model evaluation before training...")
@@ -317,7 +332,7 @@ class BaseLearningProcess:
 
     def test_model(
         self,
-        testing_loader: DataLoader,
+        testing_loader: DataLoader[Tuple[torch.Tensor, ...]],
     ) -> None:
         logger.info("Testing...")
         loss = self.evaluate_model(testing_loader)
@@ -365,7 +380,10 @@ class BaseLearningProcess:
 
 class InferenceContext:
     def __init__(self, *modules: BaseLearningModule) -> None:
-        self._modules = modules
+        self._device_manager = DeviceManager()
+        self._modules = tuple(
+            self._device_manager.load_module(module) for module in modules
+        )
         self._previous_modes: List[bool] = [False] * len(modules)
         self._no_grad = torch.no_grad()
 

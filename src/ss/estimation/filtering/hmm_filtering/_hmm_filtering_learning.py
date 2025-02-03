@@ -1,4 +1,4 @@
-from typing import Any, Optional, Tuple, assert_never
+from typing import Any, Optional, Sequence, Tuple, assert_never
 
 import torch
 from numpy.typing import ArrayLike
@@ -237,7 +237,9 @@ class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
         self._check_batch_size(batch_size=observation_trajectory.shape[0])
 
         estimated_state_trajectory, predicted_next_state_trajectory, _ = (
-            self._forward(observation_trajectory)
+            self._forward(
+                self._device_manager.load_data(observation_trajectory)
+            )
         )
 
         self._estimated_state = estimated_state_trajectory[
@@ -313,7 +315,9 @@ class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
 
 
 class LearningHmmFilterProcess(BaseLearningProcess):
-    def _evaluate_one_batch(self, data_batch: Any) -> torch.Tensor:
+    def _evaluate_one_batch(
+        self, data_batch: Tuple[torch.Tensor, ...]
+    ) -> torch.Tensor:
         (
             observation_trajectory,
             next_observation_trajectory,

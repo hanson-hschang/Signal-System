@@ -1,4 +1,4 @@
-from typing import Any, List, Optional, Sequence, TypeVar
+from typing import Any, List, Optional, Sequence, Tuple, TypeVar
 
 from abc import abstractmethod
 
@@ -7,7 +7,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 
 from ss.utility.deprecation import deprecated
 
-D = TypeVar("D", bound=Dataset)
+D = TypeVar("D", bound=Dataset[Tuple[torch.Tensor, ...]])
 
 
 class BaseDataSubsets(list[D]):
@@ -18,8 +18,8 @@ class BaseDataSubsets(list[D]):
         self,
         batch_size: Optional[int] = None,
         shuffle: bool = True,
-    ) -> List[DataLoader]:
-        data_loaders = []
+    ) -> List[DataLoader[Tuple[torch.Tensor, ...]]]:
+        data_loaders: List[DataLoader[Tuple[torch.Tensor, ...]]] = []
         for data_subset in self:
             data_loaders.append(
                 DataLoader(data_subset, batch_size=batch_size, shuffle=shuffle)
@@ -27,21 +27,24 @@ class BaseDataSubsets(list[D]):
         return data_loaders
 
 
-class BaseDataset(Dataset):
+class BaseDataset(Dataset[Tuple[torch.Tensor, ...]]):
 
     @classmethod
     @abstractmethod
-    def from_batch(cls, batch: Any) -> Any:
+    def from_batch(
+        cls, batch: Tuple[torch.Tensor, ...]
+    ) -> Tuple[torch.Tensor, ...]:
         """
         Extracts the data from the batch.
 
         Parameters
         ----------
-        batch: Any
+        batch: Sequence[torch.Tensor]
             The batch of data.
 
         Returns
         -------
+        data: Tuple[torch.Tensor, ...]
             The data extracted from the batch.
             The data format is defined through the __getitem__ method.
         """
@@ -66,8 +69,9 @@ class BaseDataset(Dataset):
         self,
         batch_size: Optional[int] = None,
         shuffle: bool = True,
-    ) -> DataLoader:
-        return DataLoader(self, batch_size=batch_size, shuffle=shuffle)
+    ) -> DataLoader[Tuple[torch.Tensor, ...]]:
+        data_loader = DataLoader(self, batch_size=batch_size, shuffle=shuffle)
+        return data_loader
 
 
 @deprecated(alternative_usage="BaseDataset(...).split(...).to_loaders(...)")
