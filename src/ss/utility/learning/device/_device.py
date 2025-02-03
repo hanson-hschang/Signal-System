@@ -45,6 +45,10 @@ class DeviceManager(metaclass=SingletonMeta):
                 assert_never(_device)
         logger.info(f"Device: {self._device}")
 
+    @property
+    def device(self) -> torch.device:
+        return self._device
+
     def load_data(self, data: torch.Tensor) -> torch.Tensor:
         return data.to(device=self._device)
 

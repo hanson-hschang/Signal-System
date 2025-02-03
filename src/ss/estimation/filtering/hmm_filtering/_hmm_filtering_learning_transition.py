@@ -52,7 +52,10 @@ class LearningHmmFilterTransitionLayer(
     def forward(
         self, input_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        mask = ~self._dropout(self._mask).to(dtype=torch.bool)
+        mask = ~self._dropout(self._mask).to(
+            dtype=torch.bool,
+            device=self._weight.device,  # not sure why need this to make self and mask on the same device
+        )
         weight = nn.functional.softmax(
             self._weight.masked_fill(mask, float("-inf")),
             dim=0,
