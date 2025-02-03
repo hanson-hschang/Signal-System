@@ -94,11 +94,13 @@ class BaseLearningHmmFilterTransitionBlock(
         estimated_state_trajectory = torch.zeros(
             (batch_size, horizon, self._state_dim),
             dtype=torch.float64,
+            device=self._device_manager.device,
         )
 
         predicted_next_state_trajectory = torch.zeros(
             (batch_size, horizon, self._state_dim),
             dtype=torch.float64,
+            device=self._device_manager.device,
         )
 
         transition_matrix = self.transition_matrix  # (state_dim, state_dim)
