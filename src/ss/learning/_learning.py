@@ -390,7 +390,7 @@ class InferenceContext:
 
 class Mode(StrEnum):
     TRAIN = "TRAIN"
-    VISUALIZATION = "VISUALIZATION"
+    VISUALIZE = "VISUALIZE"
     INFERENCE = "INFERENCE"
 
     @classmethod

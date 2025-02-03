@@ -100,7 +100,7 @@ def train(
     learning_process.test_model(testing_loader)
 
 
-def visualization(
+def visualize(
     data_filepath: Path,
     model_filepath: Path,
 ) -> None:

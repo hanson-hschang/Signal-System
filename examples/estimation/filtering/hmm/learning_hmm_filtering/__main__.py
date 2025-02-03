@@ -7,7 +7,7 @@ import click
 from ss.learning import Mode
 from ss.utility import basic_config
 
-from . import inference, train, visualization
+from . import inference, train, visualize
 
 
 @click.command()
@@ -67,15 +67,11 @@ def main(
     )
     match mode:
         case Mode.TRAIN:
-            model_filepath = (
-                model_folderpath / path_manager.current_date / model_filename
-                if model_foldername is None
-                else model_folderpath / model_filename
-            )
+            model_filepath = model_folderpath / "checkpoint" / model_filename
             train(data_filepath, model_filepath)
-        case Mode.VISUALIZATION:
+        case Mode.VISUALIZE:
             model_filepath = model_folderpath / model_filename
-            visualization(data_filepath, model_filepath)
+            visualize(data_filepath, model_filepath)
         case Mode.INFERENCE:
             model_filepath = model_folderpath / model_filename
             inference(data_filepath, model_filepath)
