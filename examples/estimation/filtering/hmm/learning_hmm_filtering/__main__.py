@@ -68,7 +68,7 @@ def main(
     match mode:
         case Mode.TRAIN:
             model_filepath = model_folderpath / "checkpoint" / model_filename
-            train(data_filepath, model_filepath)
+            train(data_filepath, model_filepath, path_manager.result_directory)
         case Mode.VISUALIZE:
             model_filepath = model_folderpath / model_filename
             visualize(data_filepath, model_filepath)

@@ -17,6 +17,7 @@ from ss.estimation.filtering.hmm_filtering import (
 from ss.learning import CheckpointInfo, IterationFigure, Mode
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
+from ss.utility.learning.device import DeviceManager
 from ss.utility.logging import Logging
 
 from ._learning_hmm_filtering_figure import (
@@ -37,7 +38,10 @@ logger = Logging.get_logger(__name__)
 def train(
     data_filepath: Path,
     model_filepath: Path,
+    result_directory: Path,
 ) -> None:
+    device_manager = DeviceManager()
+
     # Prepare data
     data = Data.load(data_filepath)
     observation = data["observation"]
@@ -90,11 +94,15 @@ def train(
         model=learning_filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=5,
+        number_of_epochs=1,
         model_filename=model_filepath,
         save_model_epoch_skip=1,
     )
-    learning_process.train(training_loader, evaluation_loader)
+    with device_manager.monitor_performance(
+        sampling_rate=10.0,
+        result_directory=result_directory,
+    ):
+        learning_process.train(training_loader, evaluation_loader)
 
     # Test model
     learning_process.test_model(testing_loader)

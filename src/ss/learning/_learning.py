@@ -2,6 +2,7 @@ from types import TracebackType
 from typing import (
     Any,
     Callable,
+    ContextManager,
     DefaultDict,
     Dict,
     Generic,
@@ -378,7 +379,7 @@ class BaseLearningProcess:
         return checkpoint_info
 
 
-class InferenceContext:
+class InferenceContext(ContextManager[None]):
     def __init__(self, *modules: BaseLearningModule) -> None:
         self._device_manager = DeviceManager()
         self._modules = tuple(
