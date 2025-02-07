@@ -52,7 +52,7 @@ dev = [
     "codecov>=2.1.13",
     "black>=24.4.2",
     "isort[colors]>=5.13.2",
-    "mypy>=1.10.0",
+    "mypy>=1.10.0,<1.15",
     "mypy-extensions>=1.0.0",
     "pip-tools>=7.4.0",
 ]
