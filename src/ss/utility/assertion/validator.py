@@ -3,6 +3,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
     Iterable,
     List,
     Literal,
@@ -11,6 +12,7 @@ from typing import (
     TypeVar,
     Union,
     assert_never,
+    cast,
     overload,
 )
 
@@ -50,7 +52,8 @@ class ValidatorMeta(type):  # pragma: no cover
 
 
 class Validator(metaclass=ValidatorMeta):
-    def __init__(self) -> None:
+    def __init__(self, argument: Any) -> None:
+        self._argument = argument
         self._name = self._get_validator_argument_name(inspect.currentframe())
         self._errors: List[str] = []
         self._validate_functions: List[Callable[[], bool]] = []
@@ -58,6 +61,10 @@ class Validator(metaclass=ValidatorMeta):
     def __post_init__(self) -> None:
         for validate in self._validate_functions:
             assert validate(), "\n".join(self._errors)
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def add_validation(self, *validations: Callable[[], bool]) -> None:
         self._validate_functions.extend(validations)
@@ -80,9 +87,16 @@ class Validator(metaclass=ValidatorMeta):
             else call_line.find(")", start_index)
         )
         argument_name = call_line[start_index:end_index].strip()
+        if (end_index := argument_name.find(":=")) != -1:
+            argument_name = argument_name[:end_index]
+        if (end_index := argument_name.find("=")) != -1:
+            argument_name = argument_name[:end_index]
         if "self." == argument_name[:5]:
             argument_name = argument_name[5:]
-
+        if argument_name[0].isdigit():
+            argument_name = "argument"
+        if argument_name[0] in ["'", '"']:
+            argument_name = "argument"
         return argument_name
 
 
@@ -90,11 +104,28 @@ class BasicScalarValidator(Validator):
     def __init__(
         self,
         value: Union[int, float],
-        basic_range_validation: Callable[..., bool],
+        range_validation: Callable[..., bool],
     ) -> None:
-        super().__init__()
+        super().__init__(value)
         self._value = value
-        self._range_validation = basic_range_validation
+        self._range_validation = range_validation
+        self._condition = "a scalar"
+        self._update_condition()
+        # self._condition = " ".join(
+        #     self._range_validation.__name__.split("_")[1:]
+        # )
+        # if self._condition[0] in ["a", "e", "i", "o", "u"]:
+        #     self._condition = "an " + self._condition
+        # else:
+        #     self._condition = "a " + self._condition
+        # self._return_type: Literal["integer", "number"] = (
+        #     "integer"
+        #     if self._condition.split(" ")[-1] == "integer"
+        #     else "number"
+        # )
+        self.add_validation(self._validate_value_range)
+
+    def _update_condition(self) -> None:
         self._condition = " ".join(
             self._range_validation.__name__.split("_")[1:]
         )
@@ -102,12 +133,6 @@ class BasicScalarValidator(Validator):
             self._condition = "an " + self._condition
         else:
             self._condition = "a " + self._condition
-        self._return_type: Literal["integer", "number"] = (
-            "integer"
-            if self._condition.split(" ")[-1] == "integer"
-            else "number"
-        )
-        self.add_validation(self._validate_value_range)
 
     def _validate_value_range(self) -> bool:
         if self._range_validation(self._value):
@@ -118,56 +143,71 @@ class BasicScalarValidator(Validator):
         )
         return False
 
-    @overload
-    def get_value(self) -> int: ...
+    # @overload
+    # def get_value(self) -> int: ...
 
-    @overload  # type: ignore
-    def get_value(self) -> float: ...
+    # @overload  # type: ignore
+    # def get_value(self) -> float: ...
 
     def get_value(self) -> Union[int, float]:
-        match self._return_type:
-            case "integer":
-                return int(self._value)
-            case "number":
-                return self._value
-            case _ as return_type:
-                assert_never(return_type)
+        return self._value
+        # match self._return_type:
+        #     case "integer":
+        #         return int(self._value)
+        #     case "number":
+        #         return self._value
+        #     case _ as return_type:
+        #         assert_never(return_type)
 
 
 class IntegerValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float]) -> None:
-        super().__init__(value, is_integer)
+    def __init__(
+        self,
+        value: Union[int, float],
+        range_validation: Callable[..., bool] = is_integer,
+    ) -> None:
+        super().__init__(value, range_validation)
+
+    def get_value(self) -> int:
+        return int(self._value)
 
 
-class PositiveIntegerValidator(BasicScalarValidator):
+class PositiveIntegerValidator(IntegerValidator):
     def __init__(self, value: Union[int, float]) -> None:
         super().__init__(value, is_positive_integer)
 
 
-class NonnegativeIntegerValidator(BasicScalarValidator):
+class NonnegativeIntegerValidator(IntegerValidator):
     def __init__(self, value: Union[int, float]) -> None:
         super().__init__(value, is_nonnegative_integer)
 
 
 class NumberValidator(BasicScalarValidator):
-    def __init__(self, value: Union[int, float]) -> None:
-        super().__init__(value, is_number)
+    def __init__(
+        self,
+        value: Union[int, float],
+        range_validation: Callable[..., bool] = is_number,
+    ) -> None:
+        super().__init__(value, range_validation)
+
+    def get_value(self) -> float:
+        return float(self._value)
 
 
-class PositiveNumberValidator(BasicScalarValidator):
+class PositiveNumberValidator(NumberValidator):
     def __init__(self, value: Union[int, float]) -> None:
         super().__init__(value, is_positive_number)
 
 
-class NonnegativeNumberValidator(BasicScalarValidator):
+class NonnegativeNumberValidator(NumberValidator):
     def __init__(self, value: Union[int, float]) -> None:
         super().__init__(value, is_nonnegative_number)
 
 
 class SignalTrajectoryValidator(Validator):
     def __init__(self, signal_trajectory: Dict[str, ArrayLike]) -> None:
-        super().__init__()
-        self._signal_trajectory = signal_trajectory
+        super().__init__(signal_trajectory)
+        self._signal_trajectory = cast(Dict[str, ArrayLike], self._argument)
         self.add_validation(
             self._validate_type,
             self._validate_time_key,
@@ -177,8 +217,8 @@ class SignalTrajectoryValidator(Validator):
         if isinstance(self._signal_trajectory, dict):
             return True
         self.add_error(
-            "signal_trajectory must be a dictionary.",
-            f"{type(self._signal_trajectory) = }",
+            f"{self._name} must be a dictionary.",
+            f"{self._name} given is of type {type(self._signal_trajectory)}",
         )
         return False
 
@@ -186,8 +226,8 @@ class SignalTrajectoryValidator(Validator):
         if "time" in self._signal_trajectory.keys():
             return True
         self.add_error(
-            "'time' must be a key in signal_trajectory.",
-            f"{self._signal_trajectory.keys() = }",
+            f"'time' must be a key in {self._name}.",
+            f"{self._name} given has keys {self._signal_trajectory.keys()}",
         )
         return False
 
@@ -198,7 +238,7 @@ class SignalTrajectoryValidator(Validator):
         return signal_trajectory
 
 
-class PathValidator(Validator):
+class BasePathValidator(Validator):
     def _resolve_path(self, path: Union[str, Path]) -> Path:
         return Path(path).resolve()
 
@@ -229,11 +269,11 @@ class PathValidator(Validator):
             print("Invalid input. Please enter 'y' or 'n'.")
 
 
-class FolderPathExistenceValidator(PathValidator):
+class FolderPathExistenceValidator(BasePathValidator):
     def __init__(
         self, foldername: Union[str, Path], auto_create: bool = False
     ) -> None:
-        super().__init__()
+        super().__init__(foldername)
         self._foldername = self._resolve_path(foldername)
         self._auto_create = auto_create
         self.add_validation(self._validate_folderpath_existence)
@@ -259,11 +299,11 @@ class FolderPathExistenceValidator(PathValidator):
         return Path(self._foldername)
 
 
-class FilePathExistenceValidator(PathValidator):
+class FilePathExistenceValidator(BasePathValidator):
     def __init__(
         self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
     ) -> None:
-        super().__init__()
+        super().__init__(filename)
         self._filename = self._resolve_path(filename)
         self._extension = extension
         self.add_validation(self._validate_filepath_existence)
@@ -291,14 +331,14 @@ class FilePathExistenceValidator(PathValidator):
         return Path(self._filename)
 
 
-class FilePathValidator(PathValidator):
+class FilePathValidator(BasePathValidator):
     def __init__(
         self,
         filename: Union[str, Path],
         extension: Union[str, Iterable[str]],
         auto_create_directory: bool = True,
     ) -> None:
-        super().__init__()
+        super().__init__(filename)
         self._filename = self._resolve_path(filename)
         self._extension = extension
         self._auto_create = auto_create_directory

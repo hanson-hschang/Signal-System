@@ -13,16 +13,14 @@ class ContinuousTimeSystem(System):
     class _NoiseCovarianceValidator(Validator):
         def __init__(
             self,
+            noise_covariance: Optional[ArrayLike],
             dimension: int,
-            name: Optional[str] = None,
-            noise_covariance: Optional[ArrayLike] = None,
         ) -> None:
-            super().__init__()
+            super().__init__(noise_covariance)
             if noise_covariance is None:
                 noise_covariance = np.zeros((dimension, dimension))
             self._noise_covariance = np.array(noise_covariance)
             self._dimension = dimension
-            self._name = name if name is not None else "noise_covariance"
             self._validate_functions.append(self._validate_shape)
 
         def _validate_shape(self) -> bool:
@@ -62,12 +60,12 @@ class ContinuousTimeSystem(System):
         )
 
         self._process_noise_covariance = self._NoiseCovarianceValidator(
-            state_dim, "process_noise_covariance", process_noise_covariance
+            process_noise_covariance,
+            state_dim,
         ).get_noise_covariance()
         self._observation_noise_covariance = self._NoiseCovarianceValidator(
-            observation_dim,
-            "observation_noise_covariance",
             observation_noise_covariance,
+            observation_dim,
         ).get_noise_covariance()
 
     process_noise_covariance = NDArrayDescriptor("_state_dim", "_state_dim")

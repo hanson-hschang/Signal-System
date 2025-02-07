@@ -20,7 +20,7 @@ class HmmFilterFigure(SequenceTrajectoryFigure):
             time_length: int,
             signal_name: str = "signal_trajectory",
         ) -> None:
-            super().__init__()
+            super().__init__(signal_trajectory)
             if signal_trajectory is None:
                 signal_trajectory = np.full((1, time_length), np.nan)
             self._signal_trajectory = np.array(

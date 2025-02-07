@@ -12,7 +12,7 @@ from ss.utility.descriptor import NDArrayDescriptor
 class QuadraticCost(Cost):
     class _CostWeightValidator(Validator):
         def __init__(self, cost_weight: ArrayLike) -> None:
-            super().__init__()
+            super().__init__(cost_weight)
             self._cost_weight = np.array(cost_weight)
             self._validate_functions.append(self._validate_shape)
 
@@ -30,7 +30,7 @@ class QuadraticCost(Cost):
         def __init__(
             self, dimension: int, cost_weight: Optional[ArrayLike] = None
         ) -> None:
-            super().__init__()
+            super().__init__(cost_weight)
             if cost_weight is None:
                 cost_weight = np.zeros((dimension, dimension))
             self._cost_weight = np.array(cost_weight)
@@ -49,9 +49,11 @@ class QuadraticCost(Cost):
 
     class _IntrinsicVectorValidator(Validator):
         def __init__(
-            self, dimension: int, intrinsic_vector: Optional[ArrayLike]
+            self,
+            intrinsic_vector: Optional[ArrayLike],
+            dimension: int,
         ) -> None:
-            super().__init__()
+            super().__init__(intrinsic_vector)
             if intrinsic_vector is None:
                 intrinsic_vector = np.zeros(dimension)
             self._intrinsic_vector = np.array(intrinsic_vector)
@@ -98,10 +100,12 @@ class QuadraticCost(Cost):
         ).get_weight()
 
         self._intrinsic_state = self._IntrinsicVectorValidator(
-            state_dim, intrinsic_state
+            intrinsic_state,
+            state_dim,
         ).get_vector()
         self._intrinsic_control = self._IntrinsicVectorValidator(
-            control_dim, intrinsic_control
+            intrinsic_control,
+            control_dim,
         ).get_vector()
 
         super().__init__(

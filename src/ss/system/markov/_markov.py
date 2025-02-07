@@ -37,7 +37,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             transition_matrix: ArrayLike,
             discrete_state_dim: Optional[int] = None,
         ) -> None:
-            super().__init__()
+            super().__init__(transition_matrix)
             self._transition_matrix = np.array(
                 transition_matrix, dtype=np.float64
             )
@@ -86,10 +86,10 @@ class HiddenMarkovModel(DiscreteTimeSystem):
     class _EmissionMatrixValidator(Validator):
         def __init__(
             self,
-            discrete_state_dim: int,
             emission_matrix: ArrayLike,
+            discrete_state_dim: int,
         ) -> None:
-            super().__init__()
+            super().__init__(emission_matrix)
             self._emission_matrix = np.array(emission_matrix, dtype=np.float64)
             self._discrete_state_dim = discrete_state_dim
             self._validate_functions.append(self._validate_shape)
@@ -137,8 +137,8 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._emission_matrix,
             self._emission_cumsum_matrix,
         ) = self._EmissionMatrixValidator(
-            discrete_state_dim=self._discrete_state_dim,
             emission_matrix=emission_matrix,
+            discrete_state_dim=self._discrete_state_dim,
         ).get_matrices()
         self._discrete_observation_dim = self._emission_matrix.shape[1]
 
@@ -224,8 +224,8 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             self._emission_matrix,
             self._emission_cumsum_matrix,
         ) = self._EmissionMatrixValidator(
-            discrete_state_dim=self._discrete_state_dim,
             emission_matrix=matrix,
+            discrete_state_dim=self._discrete_state_dim,
         ).get_matrices()
 
     def duplicate(self, number_of_systems: int) -> "HiddenMarkovModel":

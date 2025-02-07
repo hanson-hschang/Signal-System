@@ -94,7 +94,7 @@ def train(
         model=learning_filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=1,
+        number_of_epochs=5,
         model_filename=model_filepath,
         evaluate_model_iteration_skip=100,
         save_model_epoch_skip=1,

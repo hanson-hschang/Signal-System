@@ -17,7 +17,7 @@ from ss.utility.figure import SequenceTrajectoryFigure
 class Cost:
     class _TimeStepValidator(Validator):
         def __init__(self, time_step: float) -> None:
-            super().__init__()
+            super().__init__(time_step)
             self._time_step = time_step
             self._validate_functions.append(self._validate_value_range)
 
@@ -34,7 +34,7 @@ class Cost:
 
     class _StateDimValidator(Validator):
         def __init__(self, state_dim: int) -> None:
-            super().__init__()
+            super().__init__(state_dim)
             self._state_dim = state_dim
             self._validate_functions.append(self._validate_value_range)
 
@@ -51,7 +51,7 @@ class Cost:
 
     class _ControlDimValidator(Validator):
         def __init__(self, control_dim: int) -> None:
-            super().__init__()
+            super().__init__(control_dim)
             self._control_dim = control_dim
             self._validate_functions.append(self._validate_value_range)
 
@@ -68,7 +68,7 @@ class Cost:
 
     class _NumberOfSystemsValidator(Validator):
         def __init__(self, number_of_systems: int) -> None:
-            super().__init__()
+            super().__init__(number_of_systems)
             self._number_of_systems = number_of_systems
             self._validate_functions.append(self._validate_value_range)
 
