@@ -94,6 +94,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
     def save(
         self,
         filename: Union[str, Path],
+        trained_epochs: Optional[int] = None,
     ) -> None:
         filepath = FilePathValidator(
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
@@ -101,11 +102,14 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         model_info = dict(
             config=self._config,
             model_state_dict=self.state_dict(),
+            trained_epochs=trained_epochs,
         )
         torch.save(model_info, filepath)
 
     @classmethod
-    def load(cls: Type[BLM], filename: Union[str, Path]) -> BLM:
+    def load(
+        cls: Type[BLM], filename: Union[str, Path]
+    ) -> Tuple[BLM, Dict[str, Any]]:
         filepath = FilePathValidator(
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
@@ -122,7 +126,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         }
         model = cls(config.__class__(**config_field))
         model.load_state_dict(model_info.pop("model_state_dict"))
-        return model
+        return model, model_info
 
 
 def reset_module(instance: Any) -> None:
@@ -181,13 +185,6 @@ class CheckpointInfo(dict):
 
 
 class BaseLearningProcess:
-    class _NumberOfEpochsValidator(PositiveIntegerValidator):
-        def __init__(self, number_of_epochs: int) -> None:
-            super().__init__(number_of_epochs)
-
-    class _SaveModelEpochSkipValidator(NonnegativeIntegerValidator):
-        def __init__(self, save_model_epoch_skip: int) -> None:
-            super().__init__(save_model_epoch_skip)
 
     def __init__(
         self,
@@ -196,24 +193,28 @@ class BaseLearningProcess:
         optimizer: torch.optim.Optimizer,
         number_of_epochs: int,
         model_filename: Union[str, Path],
+        evaluate_model_iteration_skip: int = 1,
         save_model_epoch_skip: int = 0,
     ) -> None:
         self._device_manager = DeviceManager()
         self._model = self._device_manager.load_module(model)
         self._loss_function = loss_function
         self._optimizer = optimizer
-        self._number_of_epochs = self._NumberOfEpochsValidator(
+        self._number_of_epochs = PositiveIntegerValidator(
             number_of_epochs
         ).get_value()
         self._model_filepath = FilePathValidator(
             model_filename,
             BaseLearningModule.MODEL_FILE_EXTENSION,
         ).get_filepath()
-        self._save_model_step_skip = self._SaveModelEpochSkipValidator(
+        self._evaluate_model_iteration_skip = PositiveIntegerValidator(
+            evaluate_model_iteration_skip
+        ).get_value()
+        self._save_model_epoch_skip = NonnegativeIntegerValidator(
             save_model_epoch_skip
         ).get_value()
 
-        self._iteration_idx = 0
+        self._iteration_idx: int = 0
         self._epoch_history: DefaultDict[str, List[int]] = defaultdict(list)
         self._training_loss = 0.0
         self._evaluation_loss_history: DefaultDict[str, List[float]] = (
@@ -223,10 +224,10 @@ class BaseLearningProcess:
             defaultdict(list)
         )
 
-        self._save_intermediate_models = self._save_model_step_skip > 0
+        self._save_intermediate_models = self._save_model_epoch_skip > 0
         if self._save_intermediate_models:
             self._digits_of_number_of_checkpoints = (
-                len(str(self._number_of_epochs // self._save_model_step_skip))
+                len(str(self._number_of_epochs // self._save_model_epoch_skip))
                 + 1
             )
             self._intermediate_model_filename = (
@@ -285,16 +286,26 @@ class BaseLearningProcess:
         return _loss
 
     def train_model(
-        self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
+        self,
+        data_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        evaluation_loader: DataLoader[Tuple[torch.Tensor, ...]],
     ) -> float:
         logger.info("Training one epoch...")
         self._model.train()
         with logging_redirect_tqdm(loggers=[logger]):
             for data_batch in tqdm(data_loader, total=len(data_loader)):
-                loss = self._train_one_batch(data_batch).item()
-                self.update_training_loss(loss)
-                self._training_loss = (loss + self._training_loss) / 2
+                training_loss = self._train_one_batch(data_batch).item()
+                self.update_training_loss(training_loss)
+                self._training_loss = (training_loss + self._training_loss) / 2
                 self._iteration_idx += 1
+
+                if (
+                    self._iteration_idx % self._evaluate_model_iteration_skip
+                    == 0
+                ):
+                    evaluation_loss = self.evaluate_model(evaluation_loader)
+                    self.update_evaluation_loss(evaluation_loss)
+
         return self._training_loss
 
     def train(
@@ -317,11 +328,8 @@ class BaseLearningProcess:
         logger.info("Start training...")
         for epoch_idx in range(1, self._number_of_epochs + 1):
 
-            loss = self.train_model(training_loader)
+            loss = self.train_model(training_loader, evaluation_loader)
             logger.info(f"Training loss (running average): {loss}")
-
-            loss = self.evaluate_model(evaluation_loader)
-            self.update_evaluation_loss(loss)
 
             self.update_epoch(epoch_idx)
             checkpoint_idx = self.save_intermediate_model(
@@ -345,9 +353,9 @@ class BaseLearningProcess:
         if self._save_intermediate_models:
             if epoch_idx == 0:
                 logger.info(
-                    f"Intermediate models are saved every {self._save_model_step_skip} epoch(s)"
+                    f"Intermediate models are saved every {self._save_model_epoch_skip} epoch(s)"
                 )
-            if epoch_idx % self._save_model_step_skip == 0:
+            if epoch_idx % self._save_model_epoch_skip == 0:
                 self.save_model(checkpoint_idx)
                 return checkpoint_idx + 1
         return checkpoint_idx
@@ -363,6 +371,7 @@ class BaseLearningProcess:
 
         self._model.save(
             filename=model_filepath,
+            trained_epochs=self._number_of_epochs,
         )
         logger.debug(f"model saved to {model_filepath}")
 
@@ -377,6 +386,11 @@ class BaseLearningProcess:
             training_loss_history=self._training_loss_history,
         )
         return checkpoint_info
+
+    def load_model(self, filename: Union[str, Path]) -> None:
+        model, model_info = self._model.load(filename)
+        self._model = self._device_manager.load_module(model)
+        self._number_of_epochs = model_info["trained_epochs"]
 
 
 class InferenceContext(ContextManager[None]):

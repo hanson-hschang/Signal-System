@@ -96,6 +96,7 @@ def train(
         optimizer=optimizer,
         number_of_epochs=1,
         model_filename=model_filepath,
+        evaluate_model_iteration_skip=100,
         save_model_epoch_skip=1,
     )
     with device_manager.monitor_performance(
@@ -136,7 +137,7 @@ def visualize(
     )
 
     # Load the model
-    learning_filter = LearningHmmFilter.load(model_filepath)
+    learning_filter, _ = LearningHmmFilter.load(model_filepath)
     np.set_printoptions(precision=3)
     with torch.no_grad():
         emission_matrix = learning_filter.emission_matrix.numpy()
@@ -239,7 +240,7 @@ def inference(
     )  # (time_horizon,)
 
     # Load the model
-    learning_filter = LearningHmmFilter.load(model_filepath)
+    learning_filter, _ = LearningHmmFilter.load(model_filepath)
 
     # Inference
     given_time_horizon = 20  # This is like prompt length
