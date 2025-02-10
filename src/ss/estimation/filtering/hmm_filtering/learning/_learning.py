@@ -4,17 +4,14 @@ import torch
 from numpy.typing import ArrayLike
 from torch import nn
 
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_data import (
+from ss.estimation.filtering.hmm_filtering.learning import config as Config
+from ss.estimation.filtering.hmm_filtering.learning._learning_data import (
     HmmObservationDataset,
 )
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
-    LearningHmmFilterConfig,
-    LearningHmmFilterEstimationOption,
-)
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_emission import (
+from ss.estimation.filtering.hmm_filtering.learning._learning_emission import (
     LearningHmmFilterEmissionProcess,
 )
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_transition import (
+from ss.estimation.filtering.hmm_filtering.learning._learning_transition import (
     LearningHmmFilterTransitionProcess,
 )
 from ss.learning import BaseLearningModule, BaseLearningProcess
@@ -27,14 +24,14 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
+class LearningHmmFilter(BaseLearningModule[Config.LearningHmmFilterConfig]):
     """
     `LearningHmmFilter` class for learning the hidden Markov model and estimating the next observation.
     """
 
     def __init__(
         self,
-        config: LearningHmmFilterConfig,
+        config: Config.LearningHmmFilterConfig,
     ) -> None:
         """
         Initialize the `LearningHmmFilter` class
@@ -198,7 +195,7 @@ class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
 
     def set_estimation_option(
         self,
-        estimation_option: LearningHmmFilterEstimationOption,
+        estimation_option: Config.EstimationConfig.Option,
     ) -> None:
         """
         Set the estimation option for the `LearningHiddenMarkovModelFilter` class.
@@ -208,7 +205,7 @@ class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
         estimation_option : LearningHiddenMarkovModelFilterEstimationOption
             The option for the estimation.
         """
-        self._config.estimation_option = estimation_option
+        self._config.estimation.option = estimation_option
         self._init_batch_size(batch_size=self._batch_size)
 
     @torch.inference_mode()
@@ -267,9 +264,9 @@ class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
 
     @torch.inference_mode()
     def _estimate(self) -> torch.Tensor:
-        match self._config.estimation_option:
+        match self._config.estimation.option:
             case (
-                LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+                Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
             ):
                 estimation: torch.Tensor = self._emission_process(
                     self._transition_process.predicted_next_state_over_layers
@@ -277,19 +274,19 @@ class LearningHmmFilter(BaseLearningModule[LearningHmmFilterConfig]):
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
             case (
-                LearningHmmFilterEstimationOption.PREDICTED_NEXT_STATE_OVER_LAYERS
+                Config.EstimationConfig.Option.PREDICTED_NEXT_STATE_OVER_LAYERS
             ):
                 estimation = (
                     self._transition_process.predicted_next_state_over_layers
                 )
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
-            case LearningHmmFilterEstimationOption.ESTIMATED_STATE:
+            case Config.EstimationConfig.Option.ESTIMATED_STATE:
                 estimation = self._estimated_state
-            case LearningHmmFilterEstimationOption.PREDICTED_NEXT_STATE:
+            case Config.EstimationConfig.Option.PREDICTED_NEXT_STATE:
                 estimation = self._predicted_next_state
             case (
-                LearningHmmFilterEstimationOption.PREDICTED_NEXT_OBSERVATION_PROBABILITY
+                self._config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY
             ):
                 estimation = self._predicted_next_observation_probability
             case _ as _invalid_estimation_option:

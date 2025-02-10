@@ -7,7 +7,8 @@ import torch
 from numba import njit
 from numpy.typing import NDArray
 
-from ss.estimation.filtering.hmm_filtering import HmmFilter, LearningHmmFilter
+from ss.estimation.filtering.hmm_filtering import HmmFilter
+from ss.estimation.filtering.hmm_filtering.learning import LearningHmmFilter
 from ss.learning import Mode
 from ss.system.markov import one_hot_encoding
 from ss.utility.logging import Logging

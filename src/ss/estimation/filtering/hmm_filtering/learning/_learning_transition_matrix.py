@@ -3,19 +3,16 @@ from typing import Optional, Tuple, assert_never
 import torch
 from torch import nn
 
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
-    LearningHmmFilterConfig,
-    LearningHmmFilterTransitionBlockOption,
-)
+from ss.estimation.filtering.hmm_filtering.learning import config as Config
 from ss.learning import BaseLearningModule
 
 
-class BaseLearningHmmFilterTransitionBlock(
-    BaseLearningModule[LearningHmmFilterConfig]
+class BaseLearningHmmFilterTransitionMatrix(
+    BaseLearningModule[Config.LearningHmmFilterConfig]
 ):
     def __init__(
         self,
-        config: LearningHmmFilterConfig,
+        config: Config.LearningHmmFilterConfig,
         feature_id: int,
     ) -> None:
         super().__init__(config)
@@ -28,8 +25,11 @@ class BaseLearningHmmFilterTransitionBlock(
         self._dropout = nn.Dropout(p=dropout_rate)
 
         self._initial_state = nn.Parameter(
-            torch.randn(self._state_dim, dtype=torch.float64)
+            self._config.transition.initial_state.initializer.initialize(
+                self._state_dim,
+            )
         )  # (state_dim,)
+
         self._is_initialized = False
         self._estimated_previous_state = (
             torch.ones(self._state_dim, dtype=torch.float64) / self._state_dim
@@ -141,34 +141,39 @@ class BaseLearningHmmFilterTransitionBlock(
 
     @classmethod
     def create(
-        cls, config: LearningHmmFilterConfig, feature_id: int
-    ) -> "BaseLearningHmmFilterTransitionBlock":
-        match config.block_option:
-            case LearningHmmFilterTransitionBlockOption.FULL_MATRIX:
-                return LearningHmmFilterTransitionFullMatrixBlock(
+        cls, config: Config.LearningHmmFilterConfig, feature_id: int
+    ) -> "BaseLearningHmmFilterTransitionMatrix":
+        match config.transition.matrix.option:
+            case Config.TransitionMatrixConfig.Option.FULL_MATRIX:
+                return LearningHmmFilterTransitionFullMatrix(
                     config, feature_id
                 )
-            case LearningHmmFilterTransitionBlockOption.SPATIAL_INVARIANT:
-                return LearningHmmFilterTransitionSpatialInvariantBlock(
+            case Config.TransitionMatrixConfig.Option.SPATIAL_INVARIANT:
+                return LearningHmmFilterTransitionSpatialInvariantMatrix(
                     config, feature_id
                 )
             case _ as _invalid_block_option:
                 assert_never(_invalid_block_option)
 
 
-class LearningHmmFilterTransitionFullMatrixBlock(
-    BaseLearningHmmFilterTransitionBlock
+class LearningHmmFilterTransitionFullMatrix(
+    BaseLearningHmmFilterTransitionMatrix
 ):
     def __init__(
-        self, config: LearningHmmFilterConfig, feature_id: int
+        self, config: Config.LearningHmmFilterConfig, feature_id: int
     ) -> None:
         super().__init__(config, feature_id)
-        self._weight = nn.Parameter(
-            torch.randn(
-                (self._state_dim, self._state_dim),
-                dtype=torch.float64,
-            )
+        _weight = torch.empty(
+            (self._state_dim, self._state_dim),
+            dtype=torch.float64,
         )
+        for i in range(self._state_dim):
+            _weight[i, :] = (
+                self._config.transition.matrix.initializer.initialize(
+                    self._state_dim, i
+                )
+            )
+        self._weight = nn.Parameter(_weight)
 
     @property
     def transition_matrix(self) -> torch.Tensor:
@@ -176,21 +181,19 @@ class LearningHmmFilterTransitionFullMatrixBlock(
         return nn.functional.softmax(weight, dim=1)
 
 
-class LearningHmmFilterTransitionSpatialInvariantBlock(
-    BaseLearningHmmFilterTransitionBlock
+class LearningHmmFilterTransitionSpatialInvariantMatrix(
+    BaseLearningHmmFilterTransitionMatrix
 ):
     def __init__(
         self,
-        config: LearningHmmFilterConfig,
+        config: Config.LearningHmmFilterConfig,
         feature_id: int,
     ) -> None:
         super().__init__(config, feature_id)
-        self._weight = nn.Parameter(
-            torch.randn(
-                self._state_dim,
-                dtype=torch.float64,
-            )
+        _weight = self._config.transition.matrix.initializer.initialize(
+            self._state_dim,
         )
+        self._weight = nn.Parameter(_weight)
 
     @property
     def transition_matrix(self) -> torch.Tensor:

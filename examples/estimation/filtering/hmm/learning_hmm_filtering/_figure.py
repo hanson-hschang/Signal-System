@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Self, Tuple
+from typing import Dict, Optional, Self, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,13 +10,13 @@ from numpy.typing import NDArray
 from ss.system.markov import one_hot_encoding
 from ss.utility.figure import SequenceTrajectoryFigure
 
-from ._learning_hmm_filtering_utility import FilterResultTrajectory
+from ._utility import FilterResultTrajectory
 
 
 def add_loss_line(
     ax: Axes,
     loss: float,
-    text: str = "loss: {:.2f}",
+    text: str = "loss: {:.3f}",
     arrowhead_x_offset_ratio: float = 0.05,
     text_offset: tuple[float, float] = (64, 32),
     text_coordinates: str = "offset pixels",
@@ -29,7 +29,7 @@ def add_loss_line(
     )
     xlim_min, xlim_max = ax.get_xlim()
     xlim_range = xlim_max - xlim_min
-    text = text.replace("{:.2f}", "{:.2f} ({:.1f}% accurate)")
+    text = text.replace("{:.3f}", "{:.3f} ({:.1f}% accurate)")
     ax.annotate(
         text.format(loss, np.exp(-loss) * 100),
         (xlim_min + arrowhead_x_offset_ratio * xlim_range, loss),

@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch import nn
 
-from ss.estimation.filtering.hmm_filtering._hmm_filtering_learning_config import (
+from ss.estimation.filtering.hmm_filtering.learning.config._config import (
     LearningHmmFilterConfig,
 )
 from ss.learning import BaseLearningModule

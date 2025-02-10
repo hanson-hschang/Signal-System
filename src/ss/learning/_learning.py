@@ -17,7 +17,7 @@ from typing import (
 )
 
 from collections import defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, fields, is_dataclass
 from enum import StrEnum
 from pathlib import Path
 
@@ -34,11 +34,8 @@ from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
+from ss.utility.learning import registration
 from ss.utility.learning.device import DeviceManager
-from ss.utility.learning.registration import (
-    register_numpy,
-    register_subclasses,
-)
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -62,17 +59,18 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 class BaseLearningModule(nn.Module, Generic[BLC]):
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
-    def __init__(self, config: Optional[BLC] = None) -> None:
+    def __init__(self, config: BLC) -> None:
         super().__init__()
-        if config is None:
-            self._config: BLC = cast(BLC, BaseLearningConfig())
-        else:
-            assert issubclass(
-                type(config), BaseLearningConfig
-            ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
-            self._config = config
+        assert issubclass(
+            type(config), BaseLearningConfig
+        ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
+        self._config = config
         self.inference = False
         self._device_manager = DeviceManager()
+
+    @property
+    def config(self) -> BLC:
+        return self._config
 
     def reset(self) -> None: ...
 
@@ -114,17 +112,11 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
 
-        register_subclasses(BaseLearningConfig, "ss")
+        registration.register_subclasses(BaseLearningConfig, "ss")
+        registration.register_builtin()
         # register_numpy() # Uncomment this line to register numpy types
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
-        config = model_info.pop("config")
-        config_dict: Dict[str, Any] = config.__dict__
-        config_field = {
-            key: value
-            for key, value in config_dict.items()
-            if not key.startswith("_")
-        }
-        model = cls(config.__class__(**config_field))
+        model = cls(model_info.pop("config"))
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model, model_info
 

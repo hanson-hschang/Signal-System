@@ -126,20 +126,36 @@ def register_subclasses(base_class: Type, package_name: str) -> None:
     unregistered_types: Set = set()
     for cls in all_classes:
         logger.debug(
-            f"    { cls.__name__ } "
+            f"    { cls.__qualname__ } "
             f"( from { resolve_module_name(cls.__module__) } module )"
         )
         unregistered_fields = get_nondefault_type_fields(cls)
         for field_name, field_type in unregistered_fields.items():
             logger.debug(
                 f"        { field_name }: "
-                f"{ field_type.__name__ } "
+                f"{ field_type.__qualname__ } "
                 f"( from { resolve_module_name(field_type.__module__) } module )"
             )
-        unregistered_types.update(unregistered_fields.values())
+            # The following lines is a temporary work around to the _get_user_allowed_globals
+            # defined in the torch._weights_only_unpickler.py (torch version 2.6.0). The proper way should be
+            # module, name = f.__module__, f.__qualname__ rather than the current implementation
+            # module, name = f.__module__, f.__name__
+            unregistered_type = (
+                field_type,
+                f"{field_type.__module__}.{field_type.__qualname__}",
+            )
+            unregistered_types.add(unregistered_type)
+            # Once the _get_user_allowed_globals is fixed, the following line should be used instead
+            # unregistered_types.add(field_type)
 
     torch.serialization.add_safe_globals(list(all_classes))
     torch.serialization.add_safe_globals(list(unregistered_types))
+
+
+def register_builtin() -> None:
+    torch.serialization.add_safe_globals(
+        [getattr, setattr]
+    )  # This is for getter and setter of properties
 
 
 def register_numpy() -> None:
