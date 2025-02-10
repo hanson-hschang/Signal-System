@@ -8,6 +8,9 @@ from ss.estimation.filtering.hmm_filtering.learning.config._config_emission impo
 from ss.estimation.filtering.hmm_filtering.learning.config._config_estimation import (
     EstimationConfig,
 )
+from ss.estimation.filtering.hmm_filtering.learning.config._config_prediction import (
+    PredictionConfig,
+)
 from ss.estimation.filtering.hmm_filtering.learning.config._config_transition import (
     TransitionConfig,
 )
@@ -44,6 +47,7 @@ class LearningHmmFilterConfig(BaseLearningConfig):
     transition: TransitionConfig = field(default_factory=TransitionConfig)
     emission: EmissionConfig = field(default_factory=EmissionConfig)
     estimation: EstimationConfig = field(default_factory=EstimationConfig)
+    prediction: PredictionConfig = field(default_factory=PredictionConfig)
 
     def __post_init__(self) -> None:
         self.state_dim = PositiveIntegerValidator(self.state_dim).get_value()

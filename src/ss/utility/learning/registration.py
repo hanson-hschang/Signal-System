@@ -137,7 +137,8 @@ def register_subclasses(base_class: Type, package_name: str) -> None:
                 f"( from { resolve_module_name(field_type.__module__) } module )"
             )
             # The following lines is a temporary work around to the _get_user_allowed_globals
-            # defined in the torch._weights_only_unpickler.py (torch version 2.6.0). The proper way should be
+            # defined in the torch._weights_only_unpickler.py (torch version 2.6.0). Issue link:
+            # https://github.com/pytorch/pytorch/issues/146814. The proper way should be
             # module, name = f.__module__, f.__qualname__ rather than the current implementation
             # module, name = f.__module__, f.__name__
             unregistered_type = (

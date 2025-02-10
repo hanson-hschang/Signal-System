@@ -30,6 +30,11 @@ def inference(
 
     # Load the model
     learning_filter, _ = LearningHmmFilter.load(model_filepath)
+    learning_filter.config.prediction.option = (
+        learning_filter.config.prediction.Option.TOP_P
+    )
+    learning_filter.config.prediction.probability_threshold = 0.9
+    learning_filter.config.prediction.temperature = 0.5
 
     # Inference
     given_time_horizon = 20  # This is like prompt length

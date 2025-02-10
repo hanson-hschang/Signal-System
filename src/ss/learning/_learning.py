@@ -45,12 +45,15 @@ BLC = TypeVar("BLC", bound="BaseLearningConfig")
 
 @dataclass
 class BaseLearningConfig:
-    def to_dict(self) -> Dict[str, Any]:
+
+    def reload(self: BLC) -> BLC:
         """
-        Convert dataclass to a dictionary suitable for ** unpacking.
-        Uses dataclasses.asdict() for nested conversion.
+        Reload the configuration to ensure that the configuration is updated.
         """
-        return asdict(self)
+        # Do not use asdict(self) method for conversion because it does not work
+        # for different versions due to inconsistent arguments. Instead, use the
+        # meta method self.__dict__.
+        return self.__class__(**self.__dict__)
 
 
 BLM = TypeVar("BLM", bound="BaseLearningModule")
@@ -116,7 +119,8 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
         registration.register_builtin()
         # register_numpy() # Uncomment this line to register numpy types
         model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
-        model = cls(model_info.pop("config"))
+        config = cast(BLC, model_info.pop("config"))
+        model = cls(config.reload())
         model.load_state_dict(model_info.pop("model_state_dict"))
         return model, model_info
 

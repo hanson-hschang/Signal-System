@@ -304,7 +304,9 @@ class LearningHmmFilter(BaseLearningModule[Config.LearningHmmFilterConfig]):
             shape = (batch_size, 1) or (1,) if batch_size is 1
         """
         predicted_next_observation = torch.multinomial(
-            self.predicted_next_observation_probability,
+            self._config.prediction.process_probability(
+                self.predicted_next_observation_probability,
+            ),
             1,
             replacement=True,
         )  # (batch_size, 1) or (1,) if batch_size is 1
