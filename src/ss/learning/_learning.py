@@ -17,7 +17,7 @@ from typing import (
 )
 
 from collections import defaultdict
-from dataclasses import asdict, dataclass, fields, is_dataclass
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
@@ -34,13 +34,24 @@ from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
-from ss.utility.learning import registration
+from ss.utility.learning import serialization
 from ss.utility.learning.device import DeviceManager
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
 BLC = TypeVar("BLC", bound="BaseLearningConfig")
+
+
+def initialize_safe_callables() -> None:
+    if not serialization.SafeCallables.initialized:
+        serialization.add_subclasses(
+            BaseLearningConfig, "ss"
+        ).to_registered_safe_callables()
+        serialization.add_builtin().to_registered_safe_callables()
+        # Uncomment the following line to register numpy types
+        # serialization.add_numpy_types().to_registered_safe_callables()
+        serialization.SafeCallables.initialized = True
 
 
 @dataclass
@@ -115,13 +126,13 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
             filename, BaseLearningModule.MODEL_FILE_EXTENSION
         ).get_filepath()
 
-        registration.register_subclasses(BaseLearningConfig, "ss")
-        registration.register_builtin()
-        # register_numpy() # Uncomment this line to register numpy types
-        model_info: Dict[str, Any] = torch.load(filepath, weights_only=True)
-        config = cast(BLC, model_info.pop("config"))
-        model = cls(config.reload())
-        model.load_state_dict(model_info.pop("model_state_dict"))
+        initialize_safe_callables()
+
+        with serialization.SafeCallables():
+            model_info: Dict[str, Any] = torch.load(filepath)
+            config = cast(BLC, model_info.pop("config"))
+            model = cls(config.reload())
+            model.load_state_dict(model_info.pop("model_state_dict"))
         return model, model_info
 
 
