@@ -1,4 +1,4 @@
-from ss.system.nonlinear._nonlinear import (
+from ._nonlinear import (
     ContinuousTimeNonlinearSystem,
     DiscreteTimeNonlinearSystem,
 )

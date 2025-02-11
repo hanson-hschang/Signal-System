@@ -1,7 +1,6 @@
 from typing import (
     Any,
     Callable,
-    ContextManager,
     Dict,
     Generator,
     Generic,
@@ -19,11 +18,12 @@ from pathlib import Path
 import torch
 from torch import nn
 
-from ss.learning.config import BLC, BaseLearningConfig
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.learning import serialization
 from ss.utility.learning.device import DeviceManager
 from ss.utility.logging import Logging
+
+from . import config as Config
 
 logger = Logging.get_logger(__name__)
 
@@ -31,7 +31,7 @@ logger = Logging.get_logger(__name__)
 def initialize_safe_callables() -> None:
     if not serialization.SafeCallables.initialized:
         serialization.add_subclasses(
-            BaseLearningConfig, "ss"
+            Config.BaseLearningConfig, "ss"
         ).to_registered_safe_callables()
         serialization.add_builtin().to_registered_safe_callables()
         # Uncomment the following line to register numpy types
@@ -42,20 +42,20 @@ def initialize_safe_callables() -> None:
 BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
-class BaseLearningModule(nn.Module, Generic[BLC]):
+class BaseLearningModule(nn.Module, Generic[Config.BLC]):
     MODEL_FILE_EXTENSION = (".pt", ".pth")
 
-    def __init__(self, config: BLC) -> None:
+    def __init__(self, config: Config.BLC) -> None:
         super().__init__()
         assert issubclass(
-            type(config), BaseLearningConfig
-        ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
+            type(config), Config.BaseLearningConfig
+        ), f"{type(config) = } must be a subclass of {Config.BaseLearningConfig.__name__}"
         self._config = config
         self._inference = False
         self._device_manager = DeviceManager()
 
     @property
-    def config(self) -> BLC:
+    def config(self) -> Config.BLC:
         return self._config
 
     def reset(self) -> None: ...
@@ -120,7 +120,7 @@ class BaseLearningModule(nn.Module, Generic[BLC]):
 
         with serialization.SafeCallables():
             model_info: Dict[str, Any] = torch.load(filepath)
-            config = cast(BLC, model_info.pop("config"))
+            config = cast(Config.BLC, model_info.pop("config"))
             model = cls(config.reload())
             model.load_state_dict(model_info.pop("model_state_dict"))
         return model, model_info

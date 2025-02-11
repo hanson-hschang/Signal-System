@@ -111,18 +111,6 @@ class BasicScalarValidator(Validator):
         self._range_validation = range_validation
         self._condition = "a scalar"
         self._update_condition()
-        # self._condition = " ".join(
-        #     self._range_validation.__name__.split("_")[1:]
-        # )
-        # if self._condition[0] in ["a", "e", "i", "o", "u"]:
-        #     self._condition = "an " + self._condition
-        # else:
-        #     self._condition = "a " + self._condition
-        # self._return_type: Literal["integer", "number"] = (
-        #     "integer"
-        #     if self._condition.split(" ")[-1] == "integer"
-        #     else "number"
-        # )
         self.add_validation(self._validate_value_range)
 
     def _update_condition(self) -> None:
@@ -143,21 +131,8 @@ class BasicScalarValidator(Validator):
         )
         return False
 
-    # @overload
-    # def get_value(self) -> int: ...
-
-    # @overload  # type: ignore
-    # def get_value(self) -> float: ...
-
     def get_value(self) -> Union[int, float]:
         return self._value
-        # match self._return_type:
-        #     case "integer":
-        #         return int(self._value)
-        #     case "number":
-        #         return self._value
-        #     case _ as return_type:
-        #         assert_never(return_type)
 
 
 class IntegerValidator(BasicScalarValidator):

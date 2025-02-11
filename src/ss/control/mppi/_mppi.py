@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 from ss.control import Controller
-from ss.control.cost.quadratic import QuadraticCost
+from ss.control.cost import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
 from ss.system import ContinuousTimeSystem
 from ss.utility.assertion import is_nonnegative_number, is_positive_number

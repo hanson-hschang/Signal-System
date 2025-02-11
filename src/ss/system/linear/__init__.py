@@ -1,4 +1,1 @@
-from ss.system.linear._linear import (
-    ContinuousTimeLinearSystem,
-    DiscreteTimeLinearSystem,
-)
+from ._linear import ContinuousTimeLinearSystem, DiscreteTimeLinearSystem

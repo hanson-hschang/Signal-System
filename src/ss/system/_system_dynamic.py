@@ -3,10 +3,11 @@ from typing import Any, Optional, Union
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ss.system._system import System
 from ss.utility.assertion import is_positive_number
 from ss.utility.assertion.validator import Validator
 from ss.utility.descriptor import NDArrayDescriptor
+
+from ._system import System
 
 
 class ContinuousTimeSystem(System):

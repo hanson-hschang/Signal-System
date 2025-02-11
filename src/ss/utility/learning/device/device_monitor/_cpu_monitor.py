@@ -4,9 +4,7 @@ from pathlib import Path
 
 import psutil
 
-from ss.utility.learning.device.device_monitor._device_monitor import (
-    DeviceMonitor,
-)
+from ._device_monitor import DeviceMonitor
 
 
 class CpuMonitor(DeviceMonitor):

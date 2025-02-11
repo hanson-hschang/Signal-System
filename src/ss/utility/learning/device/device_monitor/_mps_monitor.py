@@ -4,9 +4,7 @@ from pathlib import Path
 
 from torch import mps
 
-from ss.utility.learning.device.device_monitor._device_monitor import (
-    DeviceMonitor,
-)
+from ._device_monitor import DeviceMonitor
 
 
 class MpsMonitor(DeviceMonitor):

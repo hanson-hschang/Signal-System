@@ -1,4 +1,4 @@
-from ss.system.markov._markov import (
+from ._markov import (
     HiddenMarkovModel,
     HmmCallback,
     one_hot_decoding,
