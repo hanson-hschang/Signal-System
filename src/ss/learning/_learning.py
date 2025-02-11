@@ -1,192 +1,24 @@
-from types import TracebackType
-from typing import (
-    Any,
-    Callable,
-    ContextManager,
-    DefaultDict,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Self,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Callable, DefaultDict, List, Optional, Tuple, Union
 
 from collections import defaultdict
-from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 
-import h5py
-import numpy as np
 import torch
-from torch import nn
 from torch.utils.data import DataLoader
 
+from ss.learning._learning_module import BaseLearningModule
+from ss.learning.checkpoint_info import CheckpointInfo
+from ss.learning.inference import InferenceContext
 from ss.utility.assertion.validator import (
     FilePathValidator,
     NonnegativeIntegerValidator,
     PositiveIntegerValidator,
 )
-from ss.utility.learning import serialization
 from ss.utility.learning.device import DeviceManager
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
-
-BLC = TypeVar("BLC", bound="BaseLearningConfig")
-
-
-def initialize_safe_callables() -> None:
-    if not serialization.SafeCallables.initialized:
-        serialization.add_subclasses(
-            BaseLearningConfig, "ss"
-        ).to_registered_safe_callables()
-        serialization.add_builtin().to_registered_safe_callables()
-        # Uncomment the following line to register numpy types
-        # serialization.add_numpy_types().to_registered_safe_callables()
-        serialization.SafeCallables.initialized = True
-
-
-@dataclass
-class BaseLearningConfig:
-
-    def reload(self: BLC) -> BLC:
-        """
-        Reload the configuration to ensure that the configuration is updated.
-        """
-        # Do not use asdict(self) method for conversion because it does not work
-        # for different versions due to inconsistent arguments. Instead, use the
-        # meta method self.__dict__.
-        return self.__class__(**self.__dict__)
-
-
-BLM = TypeVar("BLM", bound="BaseLearningModule")
-
-
-class BaseLearningModule(nn.Module, Generic[BLC]):
-    MODEL_FILE_EXTENSION = (".pt", ".pth")
-
-    def __init__(self, config: BLC) -> None:
-        super().__init__()
-        assert issubclass(
-            type(config), BaseLearningConfig
-        ), f"{type(config) = } must be a subclass of {BaseLearningConfig.__name__}"
-        self._config = config
-        self.inference = False
-        self._device_manager = DeviceManager()
-
-    @property
-    def config(self) -> BLC:
-        return self._config
-
-    def reset(self) -> None: ...
-
-    def inference_mode(self, inference: bool = True) -> None:
-        if inference:
-            self.eval()
-        else:
-            self.train()
-        self._inference_mode(inference)
-
-    def _inference_mode(self, inference: bool) -> None:
-        self.inference = inference
-        for submodule_name in self._modules:
-            if isinstance(
-                submodule := getattr(self, submodule_name), BaseLearningModule
-            ):
-                submodule._inference_mode(inference)
-
-    def save(
-        self,
-        filename: Union[str, Path],
-        trained_epochs: Optional[int] = None,
-    ) -> None:
-        filepath = FilePathValidator(
-            filename, BaseLearningModule.MODEL_FILE_EXTENSION
-        ).get_filepath()
-        model_info = dict(
-            config=self._config,
-            model_state_dict=self.state_dict(),
-            trained_epochs=trained_epochs,
-        )
-        torch.save(model_info, filepath)
-
-    @classmethod
-    def load(
-        cls: Type[BLM], filename: Union[str, Path]
-    ) -> Tuple[BLM, Dict[str, Any]]:
-        filepath = FilePathValidator(
-            filename, BaseLearningModule.MODEL_FILE_EXTENSION
-        ).get_filepath()
-
-        initialize_safe_callables()
-
-        with serialization.SafeCallables():
-            model_info: Dict[str, Any] = torch.load(filepath)
-            config = cast(BLC, model_info.pop("config"))
-            model = cls(config.reload())
-            model.load_state_dict(model_info.pop("model_state_dict"))
-        return model, model_info
-
-
-def reset_module(instance: Any) -> None:
-    reset_method: Optional[Callable[[], Any]] = getattr(
-        instance, "reset", None
-    )
-    if callable(reset_method):
-        reset_method()
-
-
-class CheckpointInfo(dict):
-    _data_file_extension = ".hdf5"
-
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-
-    @classmethod
-    def load(cls, filename: Union[str, Path]) -> Self:
-        filepath = FilePathValidator(
-            filename, cls._data_file_extension
-        ).get_filepath()
-        with h5py.File(filepath, "r") as f:
-            checkpoint_info = cls._load(f)
-        return cls(**checkpoint_info)
-
-    @classmethod
-    def _load(cls, group: h5py.Group) -> Dict[str, Any]:
-        checkpoint_info: Dict[str, Any] = dict()
-        for key, value in group.items():
-            if isinstance(value, h5py.Group):
-                checkpoint_info[key] = cls._load(value)
-            elif isinstance(value, h5py.Dataset):
-                checkpoint_info[key] = np.array(value)
-            else:
-                checkpoint_info[key] = value
-        return checkpoint_info
-
-    def save(self, filename: Union[str, Path]) -> None:
-        filepath = FilePathValidator(
-            filename, self._data_file_extension
-        ).get_filepath()
-        with h5py.File(filepath, "w") as f:
-            for key, value in self.items():
-                self._save(f, key, value)
-
-    @classmethod
-    def _save(cls, group: h5py.Group, name: str, value: Any) -> None:
-        if isinstance(value, dict):
-            subgroup = group.create_group(name)
-            for key, val in value.items():
-                cls._save(subgroup, key, val)
-        elif isinstance(value, (list, tuple, np.ndarray)):
-            group.create_dataset(name, data=value)
-        else:
-            group.attrs[name] = value
 
 
 class BaseLearningProcess:
@@ -266,17 +98,17 @@ class BaseLearningProcess:
     def evaluate_model(
         self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
     ) -> float:
-        logger.info("Evaluating model...")
-        self._model.eval()
-        loss = 0.0
-        with torch.no_grad():
-            for i, data_batch in logger.progress_bar(
-                enumerate(data_loader), total=len(data_loader)
-            ):
-                loss += self._evaluate_one_batch(
-                    self._device_manager.load_data_batch(data_batch)
-                ).item()
-        loss /= i + 1
+        with self._model.evaluation_mode():
+            logger.info("Evaluating model...")
+            loss = 0.0
+            with torch.no_grad():
+                for i, data_batch in logger.progress_bar(
+                    enumerate(data_loader), total=len(data_loader)
+                ):
+                    loss += self._evaluate_one_batch(
+                        self._device_manager.load_data_batch(data_batch)
+                    ).item()
+            loss /= i + 1
         return loss
 
     def _train_one_batch(
@@ -295,20 +127,22 @@ class BaseLearningProcess:
         data_loader: DataLoader[Tuple[torch.Tensor, ...]],
         evaluation_loader: DataLoader[Tuple[torch.Tensor, ...]],
     ) -> float:
-        logger.info("Training one epoch...")
-        self._model.train()
-        for data_batch in logger.progress_bar(
-            data_loader, total=len(data_loader)
-        ):
-            training_loss = self._train_one_batch(data_batch).item()
-            self.update_training_loss(training_loss)
-            self._training_loss = (training_loss + self._training_loss) / 2
-            self._iteration_idx += 1
+        with self._model.training_mode():
+            logger.info("Training one epoch...")
+            for data_batch in logger.progress_bar(
+                data_loader, total=len(data_loader)
+            ):
+                training_loss = self._train_one_batch(data_batch).item()
+                self.update_training_loss(training_loss)
+                self._training_loss = (training_loss + self._training_loss) / 2
+                self._iteration_idx += 1
 
-            if self._iteration_idx % self._evaluate_model_iteration_skip == 0:
-                evaluation_loss = self.evaluate_model(evaluation_loader)
-                self.update_evaluation_loss(evaluation_loss)
-
+                if (
+                    self._iteration_idx % self._evaluate_model_iteration_skip
+                    == 0
+                ):
+                    evaluation_loss = self.evaluate_model(evaluation_loader)
+                    self.update_evaluation_loss(evaluation_loss)
         return self._training_loss
 
     def train(
@@ -394,34 +228,6 @@ class BaseLearningProcess:
         model, model_info = self._model.load(filename)
         self._model = self._device_manager.load_module(model)
         self._number_of_epochs = model_info["trained_epochs"]
-
-
-class InferenceContext(ContextManager[None]):
-    def __init__(self, *modules: BaseLearningModule) -> None:
-        self._device_manager = DeviceManager()
-        self._modules = tuple(
-            self._device_manager.load_module(module) for module in modules
-        )
-        self._previous_modes: List[bool] = [False] * len(modules)
-        self._no_grad = torch.no_grad()
-
-    def __enter__(self) -> None:
-        self._no_grad.__enter__()
-
-        for i, module in enumerate(self._modules):
-            self._previous_modes[i] = module.inference
-            module.inference_mode(True)
-
-    def __exit__(
-        self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
-    ) -> None:
-        for module, inference in zip(self._modules, self._previous_modes):
-            module.inference_mode(inference)
-
-        self._no_grad.__exit__(exc_type, exc_value, traceback)
 
 
 class Mode(StrEnum):

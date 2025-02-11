@@ -5,7 +5,8 @@ import pytest
 import torch
 from torch import nn
 
-from ss.learning import BaseLearningConfig, BaseLearningModule
+from ss.learning import BaseLearningModule
+from ss.learning.config import BaseLearningConfig
 
 
 @dataclass

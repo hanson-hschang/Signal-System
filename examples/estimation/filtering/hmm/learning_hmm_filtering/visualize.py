@@ -8,7 +8,8 @@ from numpy.typing import NDArray
 from ss.estimation.filtering.hmm_filtering import HmmFilter
 from ss.estimation.filtering.hmm_filtering.learning import LearningHmmFilter
 from ss.estimation.filtering.hmm_filtering.learning import config as Config
-from ss.learning import CheckpointInfo, IterationFigure
+from ss.learning import IterationFigure
+from ss.learning.checkpoint_info import CheckpointInfo
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.logging import Logging

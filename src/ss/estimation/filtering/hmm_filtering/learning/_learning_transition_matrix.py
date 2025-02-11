@@ -40,7 +40,7 @@ class BaseLearningHmmFilterTransitionMatrix(
     def get_estimated_previous_state(
         self, batch_size: int = 1
     ) -> torch.Tensor:
-        if not self.inference:
+        if not self._inference:
             self._is_initialized = False
             _estimated_previous_state = nn.functional.softmax(
                 self._initial_state, dim=0
@@ -112,7 +112,15 @@ class BaseLearningHmmFilterTransitionMatrix(
         # prediction step based on model process (predicted probability)
         predicted_state = self._prediction_step(
             estimated_previous_state,
-            transition_matrix,
+            (
+                torch.eye(
+                    self._state_dim,
+                    dtype=torch.float64,
+                    device=self._device_manager.device,
+                )
+                if self._config.transition.skip_first_transition
+                else transition_matrix
+            ),
         )  # (batch_size, state_dim)
 
         for k in range(horizon):
@@ -134,8 +142,12 @@ class BaseLearningHmmFilterTransitionMatrix(
             estimated_previous_state = estimated_state
             predicted_state = predicted_next_state
 
-        if self.inference:
-            self._estimated_previous_state = estimated_previous_state
+        if self._inference:
+            self._estimated_previous_state = (
+                predicted_state
+                if self._config.transition.skip_first_transition
+                else estimated_previous_state
+            )
 
         return estimated_state_trajectory, predicted_next_state_trajectory
 

@@ -14,7 +14,7 @@ from ss.estimation.filtering.hmm_filtering.learning.config._config_prediction im
 from ss.estimation.filtering.hmm_filtering.learning.config._config_transition import (
     TransitionConfig,
 )
-from ss.learning import BaseLearningConfig
+from ss.learning.config import BaseLearningConfig
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.logging import Logging
 

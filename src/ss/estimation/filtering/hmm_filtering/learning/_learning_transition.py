@@ -131,7 +131,7 @@ class LearningHmmFilterTransitionProcess(
     def forward(
         self, likelihood_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if self.inference:
+        if self._inference:
             self._check_batch_size(likelihood_state_trajectory.shape[0])
             self._predicted_next_state_over_layers[:, 0, :] = (
                 nn.functional.normalize(
@@ -145,7 +145,7 @@ class LearningHmmFilterTransitionProcess(
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 layer(likelihood_state_trajectory)
             )
-            if self.inference:
+            if self._inference:
                 self._predicted_next_state_over_layers[:, i + 1, :] = (
                     predicted_next_state_trajectory[:, -1, :]
                 )

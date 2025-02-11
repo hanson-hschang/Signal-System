@@ -3,7 +3,7 @@ from typing import Optional
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ss.learning import BaseLearningConfig
+from ss.learning.config import BaseLearningConfig
 
 
 @dataclass

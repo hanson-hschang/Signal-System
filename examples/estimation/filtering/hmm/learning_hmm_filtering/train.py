@@ -6,9 +6,9 @@ import torch
 from ss.estimation.filtering.hmm_filtering.learning import (
     HmmObservationDataset,
     LearningHmmFilter,
-    LearningHmmFilterConfig,
     LearningHmmFilterProcess,
 )
+from ss.estimation.filtering.hmm_filtering.learning import config as Config
 from ss.utility.data import Data
 from ss.utility.learning.device import DeviceManager
 from ss.utility.logging import Logging
@@ -52,7 +52,7 @@ def train(
     # Prepare model
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
     discrete_state_dim = int(np.sqrt(data.meta_info["discrete_state_dim"]))
-    config = LearningHmmFilterConfig(
+    config = Config.LearningHmmFilterConfig(
         state_dim=discrete_state_dim,
         discrete_observation_dim=discrete_observation_dim,
         feature_dim_over_layers=(1,),
@@ -76,6 +76,7 @@ def train(
     config.estimation.option = (
         config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY
     )
+    config.transition.skip_first_transition = True
 
     learning_filter = LearningHmmFilter(config)
 
@@ -92,7 +93,7 @@ def train(
         model=learning_filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=10,
+        number_of_epochs=5,
         model_filename=model_filepath,
         evaluate_model_iteration_skip=100,
         save_model_epoch_skip=1,

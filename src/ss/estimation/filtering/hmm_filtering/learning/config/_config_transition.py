@@ -5,7 +5,7 @@ from enum import StrEnum
 
 import torch
 
-from ss.learning import BaseLearningConfig
+from ss.learning.config import BaseLearningConfig
 
 
 @dataclass
@@ -94,3 +94,4 @@ class TransitionConfig(BaseLearningConfig):
     initial_state: TransitionInitialStateConfig = field(
         default_factory=TransitionInitialStateConfig
     )
+    skip_first_transition: bool = False

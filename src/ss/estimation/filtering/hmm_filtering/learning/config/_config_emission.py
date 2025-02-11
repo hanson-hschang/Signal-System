@@ -5,7 +5,7 @@ from enum import StrEnum
 
 import torch
 
-from ss.learning import BaseLearningConfig
+from ss.learning.config import BaseLearningConfig
 
 
 @dataclass
