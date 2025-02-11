@@ -26,8 +26,6 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.utility.assertion.validator import (
     FilePathValidator,
@@ -299,19 +297,17 @@ class BaseLearningProcess:
     ) -> float:
         logger.info("Training one epoch...")
         self._model.train()
-        with logging_redirect_tqdm(loggers=[logger]):
-            for data_batch in tqdm(data_loader, total=len(data_loader)):
-                training_loss = self._train_one_batch(data_batch).item()
-                self.update_training_loss(training_loss)
-                self._training_loss = (training_loss + self._training_loss) / 2
-                self._iteration_idx += 1
+        for data_batch in logger.progress_bar(
+            data_loader, total=len(data_loader)
+        ):
+            training_loss = self._train_one_batch(data_batch).item()
+            self.update_training_loss(training_loss)
+            self._training_loss = (training_loss + self._training_loss) / 2
+            self._iteration_idx += 1
 
-                if (
-                    self._iteration_idx % self._evaluate_model_iteration_skip
-                    == 0
-                ):
-                    evaluation_loss = self.evaluate_model(evaluation_loader)
-                    self.update_evaluation_loss(evaluation_loss)
+            if self._iteration_idx % self._evaluate_model_iteration_skip == 0:
+                evaluation_loss = self.evaluate_model(evaluation_loader)
+                self.update_evaluation_loss(evaluation_loss)
 
         return self._training_loss
 
