@@ -20,13 +20,17 @@ class LearningHmmFilterEmissionProcess(
         self._state_dim = self._config.state_dim
         self._discrete_observation_dim = self._config.discrete_observation_dim
 
-        self._weight = nn.Parameter(
-            torch.randn(
-                self._state_dim,
-                self._discrete_observation_dim,
-                dtype=torch.float64,
-            )
+        _weight = torch.empty(
+            (self._state_dim, self._discrete_observation_dim),
+            dtype=torch.float64,
         )
+        for i in range(self._state_dim):
+            _weight[i, :] = (
+                self._config.emission.matrix.initializer.initialize(
+                    self._discrete_observation_dim,
+                )
+            )
+        self._weight = nn.Parameter(_weight)
 
         dropout_rate = (
             self._config.dropout_rate

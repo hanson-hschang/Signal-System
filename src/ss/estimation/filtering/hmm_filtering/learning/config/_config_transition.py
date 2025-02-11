@@ -19,22 +19,33 @@ class TransitionMatrixConfig(BaseLearningConfig):
         NORMAL_DISTRIBUTION = "NORMAL_DISTRIBUTION"
         UNIFORM_DISTRIBUTION = "UNIFORM_DISTRIBUTION"
         IDENTITY = "IDENTITY"
-        CONSTANT = "CONSTANT"
 
-        def initialize(
-            self, state_dim: int, row_index: int = 0
-        ) -> torch.Tensor:
+        def __init__(self, value: str) -> None:
+            self.mean: float = 0.0
+            self.variance: float = 1.0
+            self.min_value: float = 0.0
+            self.max_value: float = 1.0
+            self.log_zero_value: float = -10.0
+
+        def initialize(self, dim: int, row_index: int = 0) -> torch.Tensor:
             match self:
                 case self.NORMAL_DISTRIBUTION:
-                    return torch.randn(state_dim, dtype=torch.float64)
+                    return torch.normal(
+                        self.mean,  # type: ignore
+                        self.variance,  # type: ignore
+                        (dim,),
+                        dtype=torch.float64,
+                    )
                 case self.UNIFORM_DISTRIBUTION:
-                    return torch.rand(state_dim, dtype=torch.float64)
+                    return self.min_value + (  # type: ignore
+                        self.max_value - self.min_value  # type: ignore
+                    ) * torch.rand(dim, dtype=torch.float64)
                 case self.IDENTITY:
-                    row = -10.0 * torch.ones(state_dim, dtype=torch.float64)
+                    row = self.log_zero_value * torch.ones(  # type: ignore
+                        dim, dtype=torch.float64
+                    )
                     row[row_index] = 0.0
-                    return row
-                case self.CONSTANT:
-                    return torch.zeros(state_dim, dtype=torch.float64)
+                    return torch.Tensor(row)
                 case _ as _invalid_initializer:
                     assert_never(_invalid_initializer)  # type: ignore
 
@@ -48,16 +59,26 @@ class TransitionInitialStateConfig(BaseLearningConfig):
     class Initializer(StrEnum):
         NORMAL_DISTRIBUTION = "NORMAL_DISTRIBUTION"
         UNIFORM_DISTRIBUTION = "UNIFORM_DISTRIBUTION"
-        CONSTANT = "CONSTANT"
 
-        def initialize(self, state_dim: int) -> torch.Tensor:
+        def __init__(self, value: str) -> None:
+            self.mean: float = 0.0
+            self.variance: float = 1.0
+            self.min_value: float = 0.0
+            self.max_value: float = 1.0
+
+        def initialize(self, dim: int) -> torch.Tensor:
             match self:
                 case self.NORMAL_DISTRIBUTION:
-                    return torch.randn(state_dim, dtype=torch.float64)
+                    return torch.normal(
+                        self.mean,  # type: ignore
+                        self.variance,  # type: ignore
+                        (dim,),
+                        dtype=torch.float64,
+                    )
                 case self.UNIFORM_DISTRIBUTION:
-                    return torch.rand(state_dim, dtype=torch.float64)
-                case self.CONSTANT:
-                    return torch.zeros(state_dim, dtype=torch.float64)
+                    return self.min_value + (  # type: ignore
+                        self.max_value - self.min_value  # type: ignore
+                    ) * torch.rand(dim, dtype=torch.float64)
                 case _ as _invalid_initializer:
                     assert_never(_invalid_initializer)  # type: ignore
 

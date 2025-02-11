@@ -64,12 +64,15 @@ def train(
     config.transition.matrix.initializer = (
         config.transition.matrix.Initializer.NORMAL_DISTRIBUTION
     )
+    config.transition.matrix.initializer.variance = 0.0
     config.transition.initial_state.initializer = (
         config.transition.initial_state.Initializer.NORMAL_DISTRIBUTION
     )
+    config.transition.initial_state.initializer.variance = 0.0
     config.emission.matrix.initializer = (
         config.emission.matrix.Initializer.NORMAL_DISTRIBUTION
     )
+    config.emission.matrix.initializer.variance = 0.0
     config.estimation.option = (
         config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY
     )
