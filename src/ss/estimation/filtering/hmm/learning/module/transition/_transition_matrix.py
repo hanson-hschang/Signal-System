@@ -18,7 +18,7 @@ class BaseLearningHmmFilterTransitionMatrix(
     ) -> None:
         super().__init__(config)
         self._feature_id = feature_id
-        self._state_dim = self._config.state_dim
+        self._state_dim = self._config.filter.state_dim
 
         self._config.dropout.rate = (
             self._config.dropout.rate if self._state_dim > 1 else 0.0

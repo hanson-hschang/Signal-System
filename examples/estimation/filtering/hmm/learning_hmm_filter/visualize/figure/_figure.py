@@ -17,6 +17,7 @@ def add_loss_line(
     ax: Axes,
     loss: float,
     text: str = "loss: {:.3f}",
+    log_base: float = np.e,
     arrowhead_x_offset_ratio: float = 0.05,
     text_offset: tuple[float, float] = (64, 32),
     text_coordinates: str = "offset pixels",
@@ -31,7 +32,7 @@ def add_loss_line(
     xlim_range = xlim_max - xlim_min
     text = text.replace("{:.3f}", "{:.3f} ({:.1f}% accurate)")
     ax.annotate(
-        text.format(loss, np.exp(-loss) * 100),
+        text.format(loss, np.power(log_base, -loss) * 100),
         (xlim_min + arrowhead_x_offset_ratio * xlim_range, loss),
         xytext=text_offset,
         textcoords=text_coordinates,
@@ -58,6 +59,7 @@ class FilterResultFigure(Figure.SequenceTrajectoryFigure):
         time_trajectory: NDArray,
         observation_trajectory: NDArray,
         filter_result_trajectory_dict: Dict[str, FilterResultTrajectory],
+        loss_scaling: float = 1.0,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
     ) -> None:
@@ -67,6 +69,7 @@ class FilterResultFigure(Figure.SequenceTrajectoryFigure):
         ].estimated_next_observation_probability.shape[0]
         self._number_of_filters = len(filter_names)
         self._filter_result_trajectory_dict = filter_result_trajectory_dict
+        self._loss_scaling = loss_scaling
         basis = np.identity(discrete_observation_dim)
         self._observation_trajectory = one_hot_encoding(
             observation_trajectory[0, :-1], basis
@@ -112,7 +115,7 @@ class FilterResultFigure(Figure.SequenceTrajectoryFigure):
 
             self._plot_signal_trajectory(
                 ax=self._loss_subplot,
-                signal_trajectory=filter_result.loss,
+                signal_trajectory=filter_result.loss * self._loss_scaling,
                 ylabel="loss",
                 label=label_name
                 + f" (loss: {np.mean(filter_result.loss[-last_horizon_for_loss_mean:]):.2f})",

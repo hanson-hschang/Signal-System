@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Self, Tuple
 
 from dataclasses import dataclass, field
 
@@ -9,6 +9,7 @@ from ss.utility.logging import Logging
 
 from ._config_emission import EmissionConfig
 from ._config_estimation import EstimationConfig
+from ._config_filter import FilterConfig
 from ._config_prediction import PredictionConfig
 from ._config_transition import TransitionConfig
 
@@ -32,29 +33,45 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         The values of the tuple (positive integers) are the dimension of features for each layer.
     """
 
-    state_dim: int
-    discrete_observation_dim: int
-    feature_dim_over_layers: Tuple[int, ...]
+    # state_dim: int
+    # discrete_observation_dim: int
+    # feature_dim_over_layers: Tuple[int, ...]
+    filter: FilterConfig = field(default_factory=FilterConfig)
     dropout: DropoutConfig = field(default_factory=DropoutConfig)
     transition: TransitionConfig = field(default_factory=TransitionConfig)
     emission: EmissionConfig = field(default_factory=EmissionConfig)
     estimation: EstimationConfig = field(default_factory=EstimationConfig)
     prediction: PredictionConfig = field(default_factory=PredictionConfig)
 
-    def __post_init__(self) -> None:
-        self.state_dim = PositiveIntegerValidator(self.state_dim).get_value()
-        self.discrete_observation_dim = PositiveIntegerValidator(
-            self.discrete_observation_dim
-        ).get_value()
-        for feature_dim in self.feature_dim_over_layers:
-            assert type(feature_dim) == int, (
-                f"feature_dim_over_layers must be a tuple of integers. "
-                f"feature_dim_over_layers given is {self.feature_dim_over_layers}."
+    # def __post_init__(self) -> None:
+    #     self.state_dim = PositiveIntegerValidator(self.state_dim).get_value()
+    #     self.discrete_observation_dim = PositiveIntegerValidator(
+    #         self.discrete_observation_dim
+    #     ).get_value()
+    #     for feature_dim in self.feature_dim_over_layers:
+    #         assert type(feature_dim) == int, (
+    #             f"feature_dim_over_layers must be a tuple of integers. "
+    #             f"feature_dim_over_layers given is {self.feature_dim_over_layers}."
+    #         )
+
+    # @property
+    # def layer_dim(self) -> int:
+    #     return len(self.feature_dim_over_layers)
+
+    # def get_feature_dim(self, layer_id: int) -> int:
+    #     return self.feature_dim_over_layers[layer_id]
+
+    @classmethod
+    def basic_config(
+        cls,
+        state_dim: int,
+        discrete_observation_dim: int,
+        feature_dim_over_layers: Tuple[int, ...],
+    ) -> Self:
+        return cls(
+            filter=FilterConfig(
+                state_dim=state_dim,
+                discrete_observation_dim=discrete_observation_dim,
+                feature_dim_over_layers=feature_dim_over_layers,
             )
-
-    @property
-    def layer_dim(self) -> int:
-        return len(self.feature_dim_over_layers)
-
-    def get_feature_dim(self, layer_id: int) -> int:
-        return self.feature_dim_over_layers[layer_id]
+        )

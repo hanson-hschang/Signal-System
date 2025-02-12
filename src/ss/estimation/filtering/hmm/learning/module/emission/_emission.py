@@ -16,8 +16,10 @@ class LearningHmmFilterEmissionProcess(
         config: Config.LearningHmmFilterConfig,
     ) -> None:
         super().__init__(config)
-        self._state_dim = self._config.state_dim
-        self._discrete_observation_dim = self._config.discrete_observation_dim
+        self._state_dim = self._config.filter.state_dim
+        self._discrete_observation_dim = (
+            self._config.filter.discrete_observation_dim
+        )
 
         _weight = torch.empty(
             (self._state_dim, self._discrete_observation_dim),

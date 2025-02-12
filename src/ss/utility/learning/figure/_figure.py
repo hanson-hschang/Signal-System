@@ -12,6 +12,7 @@ class IterationFigure(Figure.SequenceTrajectoryFigure):
         self,
         training_loss_trajectory: Dict[str, NDArray],
         validation_loss_trajectory: Optional[Dict[str, NDArray]] = None,
+        scaling: float = 1.0,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
@@ -49,6 +50,7 @@ class IterationFigure(Figure.SequenceTrajectoryFigure):
                 len(validation_loss_trajectory["loss"].shape) == 2
             ), "validation_loss_trajectory['loss'] must be a 2D array with shape (number_of_trainings, iteration_length)"
         self._validation_loss_trajectory = validation_loss_trajectory
+        self._scaling = scaling
 
     @property
     def loss_plot_ax(self) -> Axes:
@@ -65,7 +67,7 @@ class IterationFigure(Figure.SequenceTrajectoryFigure):
     def _plot_training_trajectory(self) -> None:
         self._plot_signal_trajectory(
             self._loss_plot,
-            self._training_loss_trajectory["loss"][0],
+            self._training_loss_trajectory["loss"][0] * self._scaling,
             ylabel="loss",
             label="training",
         )
@@ -78,7 +80,7 @@ class IterationFigure(Figure.SequenceTrajectoryFigure):
             ]
             self._loss_plot.scatter(
                 iteration_trajectory,
-                validation_loss_trajectory[0, :],
+                validation_loss_trajectory[0, :] * self._scaling,
                 label="validation",
                 color="C1",
                 s=100,

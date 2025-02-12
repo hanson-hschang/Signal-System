@@ -50,7 +50,7 @@ def train(
     # Prepare model
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
     discrete_state_dim = int(np.sqrt(data.meta_info["discrete_state_dim"]))
-    config = Config.LearningHmmFilterConfig(
+    config = Config.LearningHmmFilterConfig.basic_config(
         state_dim=discrete_state_dim,
         discrete_observation_dim=discrete_observation_dim,
         feature_dim_over_layers=(1,),

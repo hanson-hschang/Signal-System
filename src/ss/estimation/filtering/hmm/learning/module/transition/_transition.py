@@ -23,7 +23,9 @@ class LearningHmmFilterTransitionLayer(
     ) -> None:
         super().__init__(config)
         self._layer_id = layer_id
-        self._feature_dim = self._config.get_feature_dim(self._layer_id - 1)
+        self._feature_dim = self._config.filter.get_feature_dim(
+            self._layer_id - 1
+        )
 
         self._weight = nn.Parameter(
             torch.randn(
@@ -92,8 +94,8 @@ class LearningHmmFilterTransitionProcess(
         config: Config.LearningHmmFilterConfig,
     ) -> None:
         super().__init__(config)
-        self._layer_dim = self._config.layer_dim + 1
-        self._state_dim = self._config.state_dim
+        self._layer_dim = self._config.filter.layer_dim + 1
+        self._state_dim = self._config.filter.state_dim
         self.layers = nn.ModuleList()
         for layer_id in range(1, self._layer_dim):
             self.layers.append(

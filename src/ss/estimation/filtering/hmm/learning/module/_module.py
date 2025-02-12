@@ -38,9 +38,11 @@ class LearningHmmFilter(
         super().__init__(config)
 
         # Define the dimensions of the state, observation, and the number of layers
-        self._state_dim = self._config.state_dim
-        self._discrete_observation_dim = self._config.discrete_observation_dim
-        self._layer_dim = self._config.layer_dim
+        self._state_dim = self._config.filter.state_dim
+        self._discrete_observation_dim = (
+            self._config.filter.discrete_observation_dim
+        )
+        self._layer_dim = self._config.filter.layer_dim
 
         # Define the learnable emission process and transition process
         self._emission_process = LearningHmmFilterEmissionProcess(self._config)
