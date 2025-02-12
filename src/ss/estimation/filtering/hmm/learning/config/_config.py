@@ -2,8 +2,9 @@ from typing import Tuple
 
 from dataclasses import dataclass, field
 
-from ss.learning.config import BaseLearningConfig
 from ss.utility.assertion.validator import PositiveIntegerValidator
+from ss.utility.learning import config as Config
+from ss.utility.learning.module.dropout.config import DropoutConfig
 from ss.utility.logging import Logging
 
 from ._config_emission import EmissionConfig
@@ -15,7 +16,7 @@ logger = Logging.get_logger(__name__)
 
 
 @dataclass
-class LearningHmmFilterConfig(BaseLearningConfig):
+class LearningHmmFilterConfig(Config.BaseLearningConfig):
     """
     Configuration of the `LearningHmmFilter` class.
 
@@ -29,14 +30,12 @@ class LearningHmmFilterConfig(BaseLearningConfig):
         The dimension of features for each layer.
         The length of the tuple is the number of layers.
         The values of the tuple (positive integers) are the dimension of features for each layer.
-    dropout_rate : float, default = 0.1
-        The dropout rate for the model. (0.0 <= dropout_rate < 1.0)
     """
 
     state_dim: int
     discrete_observation_dim: int
     feature_dim_over_layers: Tuple[int, ...]
-    dropout_rate: float = 0.1
+    dropout: DropoutConfig = field(default_factory=DropoutConfig)
     transition: TransitionConfig = field(default_factory=TransitionConfig)
     emission: EmissionConfig = field(default_factory=EmissionConfig)
     estimation: EstimationConfig = field(default_factory=EstimationConfig)
@@ -47,10 +46,6 @@ class LearningHmmFilterConfig(BaseLearningConfig):
         self.discrete_observation_dim = PositiveIntegerValidator(
             self.discrete_observation_dim
         ).get_value()
-        assert 0.0 <= self.dropout_rate < 1.0, (
-            f"dropout_rate must be in the range of [0.0, 1.0). "
-            f"dropout_rate given is {self.dropout_rate}."
-        )
         for feature_dim in self.feature_dim_over_layers:
             assert type(feature_dim) == int, (
                 f"feature_dim_over_layers must be a tuple of integers. "

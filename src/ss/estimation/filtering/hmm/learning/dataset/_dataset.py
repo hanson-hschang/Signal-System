@@ -5,8 +5,8 @@ import torch
 from numpy.typing import ArrayLike
 from torch.utils.data import DataLoader
 
-from ss.learning import dataset as Dataset
 from ss.utility.deprecation import deprecated
+from ss.utility.learning import dataset as Dataset
 
 
 class HmmObservationDataset(Dataset.BaseDataset):

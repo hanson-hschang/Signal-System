@@ -1,3 +1,3 @@
-from ._learning_hmm_filter_inference import inference
-from ._learning_hmm_filter_train import train
-from ._learning_hmm_filter_visualize import visualize
+from .inference import inference
+from .train import train
+from .visualize import visualize

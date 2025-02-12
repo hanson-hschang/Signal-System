@@ -3,11 +3,11 @@ from typing import Optional
 from dataclasses import dataclass
 from enum import StrEnum
 
-from ss.learning.config import BaseLearningConfig
+from ss.utility.learning import config as Config
 
 
 @dataclass
-class EstimationConfig(BaseLearningConfig):
+class EstimationConfig(Config.BaseLearningConfig):
 
     class Option(StrEnum):
         ESTIMATED_STATE = "ESTIMATED_STATE"

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import click
 
-from ss.learning import Mode
 from ss.utility import basic_config
+from ss.utility.learning.mode import LearningMode
 
 from . import inference, train, visualize
 
@@ -14,10 +14,10 @@ from . import inference, train, visualize
 @click.option(
     "--mode",
     type=click.Choice(
-        [mode for mode in Mode],
+        [mode for mode in LearningMode],
         case_sensitive=False,
     ),
-    default=Mode.INFERENCE,
+    default=LearningMode.INFERENCE,
 )
 @click.option(
     "--data-foldername",
@@ -50,7 +50,7 @@ from . import inference, train, visualize
     help="Set the debug mode.",
 )
 def main(
-    mode: Mode,
+    mode: LearningMode,
     data_foldername: Path,
     data_filename: Path,
     model_foldername: Optional[Path],
@@ -66,13 +66,13 @@ def main(
         else path_manager.get_directory(model_foldername)
     )
     match mode:
-        case Mode.TRAIN:
+        case LearningMode.TRAIN:
             model_filepath = model_folderpath / "checkpoint" / model_filename
             train(data_filepath, model_filepath, path_manager.result_directory)
-        case Mode.VISUALIZE:
+        case LearningMode.VISUALIZE:
             model_filepath = model_folderpath / model_filename
             visualize(data_filepath, model_filepath)
-        case Mode.INFERENCE:
+        case LearningMode.INFERENCE:
             model_filepath = model_folderpath / model_filename
             inference(data_filepath, model_filepath)
         case _ as _mode:
