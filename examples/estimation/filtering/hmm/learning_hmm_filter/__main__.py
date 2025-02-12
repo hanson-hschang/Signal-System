@@ -49,6 +49,11 @@ from . import inference, train, visualize
     is_flag=True,
     help="Set the debug mode.",
 )
+@click.option(
+    "--result-directory",
+    type=click.Path(),
+    default=None,
+)
 def main(
     mode: LearningMode,
     data_foldername: Path,
@@ -57,8 +62,14 @@ def main(
     model_filename: Path,
     verbose: bool,
     debug: bool,
+    result_directory: Path,
 ) -> None:
-    path_manager = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(
+        __file__,
+        verbose=verbose,
+        debug=debug,
+        result_directory=result_directory,
+    )
     data_filepath = path_manager.get_directory(data_foldername) / data_filename
     model_folderpath = (
         path_manager.result_directory

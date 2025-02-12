@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import click
 import numpy as np
 
@@ -53,6 +55,11 @@ from . import hmm_filtering
     is_flag=True,
     help="Set the debug mode.",
 )
+@click.option(
+    "--result-directory",
+    type=click.Path(),
+    default=None,
+)
 def main(
     simulation_time_steps: int,
     step_skip: int,
@@ -62,8 +69,14 @@ def main(
     random_seed: int,
     verbose: bool,
     debug: bool,
+    result_directory: Path,
 ) -> None:
-    path_manager = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(
+        __file__,
+        verbose=verbose,
+        debug=debug,
+        result_directory=result_directory,
+    )
     np.random.seed(random_seed)
 
     hmm_filtering(
