@@ -191,7 +191,7 @@ class LearningHmmFilterTransitionFullMatrix(
 
     @property
     def transition_matrix(self) -> torch.Tensor:
-        mask = self._dropout(self._mask)
+        mask = self._dropout(self._mask).to(device=self._weight.device)
         extended_weight = torch.cat(
             [
                 self._weight,
@@ -238,7 +238,7 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
             dtype=torch.float64,
             device=self._device_manager.device,
         )
-        mask = self._dropout(self._mask)
+        mask = self._dropout(self._mask).to(device=self._weight.device)
         extended_weight = torch.cat(
             [
                 self._weight,
