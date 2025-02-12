@@ -16,32 +16,38 @@ from ss.utility.singleton import SingletonMeta
 logger = Logging.get_logger(__name__)
 
 
-class Device(StrEnum):
-    CUDA_GPU = "cuda"
-    CPU = "cpu"
-    MPS = "mps"
-
-
 M = TypeVar("M", bound=torch.nn.Module)
 
 
 class DeviceManager(metaclass=SingletonMeta):
+
+    class Device(StrEnum):
+        CUDA_GPU = "cuda"
+        CPU = "cpu"
+        MPS = "mps"
+
+        @property
+        def torch_device(self) -> torch.device:
+            return torch.device(self)
+
     def __init__(self, device: Optional[Device] = None) -> None:
         if device is None:
             device = (
-                Device.CUDA_GPU if torch.cuda.is_available() else Device.CPU
+                DeviceManager.Device.CUDA_GPU
+                if torch.cuda.is_available()
+                else DeviceManager.Device.CPU
             )
         match device:
-            case Device.CUDA_GPU:
+            case DeviceManager.Device.CUDA_GPU:
                 if not torch.cuda.is_available():
-                    device = Device.CPU
+                    device = DeviceManager.Device.CPU
                     logger.warning(
                         "No CUDA GPU is available. Switching to CPU."
                     )
-            case Device.CPU:
+            case DeviceManager.Device.CPU:
                 pass
-            case Device.MPS:
-                device = Device.CPU
+            case DeviceManager.Device.MPS:
+                device = DeviceManager.Device.CPU
                 logger.warning(
                     "MPS is not yet supported currently. Switching to CPU."
                 )
@@ -76,11 +82,11 @@ class DeviceManager(metaclass=SingletonMeta):
         try:
             _DeviceMonitor: Type[DeviceMonitor]
             match self._device:
-                case Device.MPS:
+                case DeviceManager.Device.MPS:
                     _DeviceMonitor = MpsMonitor
-                case Device.CUDA_GPU:
+                case DeviceManager.Device.CUDA_GPU:
                     _DeviceMonitor = CudaGpuMonitor
-                case Device.CPU:
+                case DeviceManager.Device.CPU:
                     _DeviceMonitor = CpuMonitor
                 case _ as _device:
                     assert_never(_device)

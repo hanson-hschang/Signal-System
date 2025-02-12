@@ -1,1 +1,1 @@
-from ss.utility.device._device import Device, DeviceManager
+from ss.utility.device._device import DeviceManager

@@ -119,7 +119,10 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         initialize_safe_callables()
 
         with serialization.SafeCallables():
-            model_info: Dict[str, Any] = torch.load(filepath)
+            model_info: Dict[str, Any] = torch.load(
+                filepath,
+                map_location=DeviceManager.Device.CPU,
+            )
             config = cast(Config.BLC, model_info.pop("config"))
             model = cls(config.reload())
             model.load_state_dict(model_info.pop("model_state_dict"))
