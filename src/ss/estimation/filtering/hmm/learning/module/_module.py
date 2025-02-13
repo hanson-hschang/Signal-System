@@ -1,4 +1,4 @@
-from typing import Tuple, assert_never
+from typing import List, Tuple, assert_never
 
 import torch
 
@@ -100,7 +100,14 @@ class LearningHmmFilter(
 
     @property
     def emission_matrix(self) -> torch.Tensor:
-        return self._emission_process.emission_matrix.detach()
+        return self._emission_process.matrix.detach()
+
+    @property
+    def transition_matrix(self) -> List[torch.Tensor]:
+        return [
+            transition_matrix.detach()
+            for transition_matrix in self._transition_process.matrix
+        ]
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
@@ -156,7 +163,7 @@ class LearningHmmFilter(
 
         # Get emission_matrix
         emission_matrix = (
-            self._emission_process.emission_matrix
+            self._emission_process.matrix
         )  # (state_dim, discrete_observation_dim)
 
         # Get emission based on each observation in the trajectory

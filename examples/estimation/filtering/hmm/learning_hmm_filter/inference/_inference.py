@@ -30,6 +30,37 @@ def inference(
 
     # Load the model
     learning_filter, _ = Module.LearningHmmFilter.load(model_filepath)
+    logger.info(
+        f"Load the learning filter model from the file: {model_filepath.name}"
+    )
+    logger.info("")
+
+    np.set_printoptions(precision=3, suppress=True)
+    with LearningMode.inference(learning_filter):
+        emission_matrix = learning_filter.emission_matrix.numpy()
+        logger.info("(layer 0) learned emission matrix = ")
+        for k in range(emission_matrix.shape[0]):
+            logger.info(f"    {emission_matrix[k]}")
+        transition_matrix_over_layers = [
+            transition_matrix.numpy()
+            for transition_matrix in learning_filter.transition_matrix
+        ]
+        for i, transition_matrix in enumerate(
+            transition_matrix_over_layers, start=1
+        ):
+            logger.info(f"(layer {i}) learned transition matrix = ")
+            for k in range(transition_matrix.shape[0]):
+                logger.info(f"    {transition_matrix[k]}")
+            logger.info(
+                "    eigenvalues and the corresponded left eigenvectors of the learned transition matrix = "
+            )
+            eig_values, eig_vectors = np.linalg.eig(transition_matrix.T)
+            for k in range(eig_values.shape[0]):
+                logger.info(
+                    f"        {eig_values[k]:+.03f}: {eig_vectors[:, k]}"
+                )
+        logger.info("")
+
     learning_filter.config.prediction.option = (
         learning_filter.config.prediction.Option.TOP_P
     )

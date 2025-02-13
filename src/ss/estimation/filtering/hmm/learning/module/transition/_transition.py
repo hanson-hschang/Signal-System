@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple, cast
 
 import torch
 from torch import nn
@@ -48,6 +48,20 @@ class LearningHmmFilterTransitionLayer(
                 )
             )
 
+    @property
+    def matrix(self) -> torch.Tensor:
+        weight = nn.functional.softmax(self._weight, dim=0)
+        transition_matrix = torch.zeros(
+            (self._config.filter.state_dim, self._config.filter.state_dim),
+            dtype=weight.dtype,
+        )
+        for i, block in enumerate(self.blocks):
+            transition_matrix += (
+                cast(BaseLearningHmmFilterTransitionMatrix, block).matrix
+                * weight[i]
+            )
+        return transition_matrix
+
     def forward(
         self, input_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -94,6 +108,7 @@ class LearningHmmFilterTransitionProcess(
         config: Config.LearningHmmFilterConfig,
     ) -> None:
         super().__init__(config)
+        # The initial emission layer is counted as a layer with layer_id = 0
         self._layer_dim = self._config.filter.layer_dim + 1
         self._state_dim = self._config.filter.state_dim
         self.layers = nn.ModuleList()
@@ -127,6 +142,13 @@ class LearningHmmFilterTransitionProcess(
         "_batch_size", "_layer_dim", "_state_dim"
     )
 
+    @property
+    def matrix(self) -> List[torch.Tensor]:
+        return [
+            cast(LearningHmmFilterTransitionLayer, layer).matrix
+            for layer in self.layers
+        ]
+
     def forward(
         self, likelihood_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -140,12 +162,12 @@ class LearningHmmFilterTransitionProcess(
                 )
             )  # (batch_size, state_dim)
 
-        for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers, start=1):
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 layer(likelihood_state_trajectory)
             )
             if self._inference:
-                self._predicted_next_state_over_layers[:, i + 1, :] = (
+                self._predicted_next_state_over_layers[:, i, :] = (
                     predicted_next_state_trajectory[:, -1, :]
                 )
             likelihood_state_trajectory = estimated_state_trajectory

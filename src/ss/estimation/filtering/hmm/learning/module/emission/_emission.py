@@ -42,7 +42,7 @@ class LearningHmmFilterEmissionProcess(
         self._mask = torch.ones_like(self._weight)
 
     @property
-    def emission_matrix(self) -> torch.Tensor:
+    def matrix(self) -> torch.Tensor:
         mask = self._dropout(self._mask).to(device=self._weight.device)
         extended_weight = torch.cat(
             [
@@ -73,7 +73,7 @@ class LearningHmmFilterEmissionProcess(
         emission_matrix: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if emission_matrix is None:
-            emission_matrix = self.emission_matrix
+            emission_matrix = self.matrix
 
         observation_probability_trajectory = torch.matmul(
             state_probability_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)

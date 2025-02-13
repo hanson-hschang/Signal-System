@@ -58,7 +58,7 @@ class BaseLearningHmmFilterTransitionMatrix(
         self._is_initialized = False
 
     @property
-    def transition_matrix(self) -> torch.Tensor:
+    def matrix(self) -> torch.Tensor:
         return torch.eye(self._state_dim, dtype=torch.float64)
 
     def _prediction_step(
@@ -67,7 +67,7 @@ class BaseLearningHmmFilterTransitionMatrix(
         transition_matrix: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         if transition_matrix is None:
-            transition_matrix = self.transition_matrix
+            transition_matrix = self.matrix
         predicted_state = torch.matmul(
             previous_estimated_state, transition_matrix
         )
@@ -104,7 +104,7 @@ class BaseLearningHmmFilterTransitionMatrix(
             device=self._device_manager.device,
         )
 
-        transition_matrix = self.transition_matrix  # (state_dim, state_dim)
+        transition_matrix = self.matrix  # (state_dim, state_dim)
 
         estimated_previous_state = self.get_estimated_previous_state(
             batch_size
@@ -190,7 +190,7 @@ class LearningHmmFilterTransitionFullMatrix(
         self._mask = torch.ones_like(self._weight)
 
     @property
-    def transition_matrix(self) -> torch.Tensor:
+    def matrix(self) -> torch.Tensor:
         mask = self._dropout(self._mask).to(device=self._weight.device)
         extended_weight = torch.cat(
             [
@@ -232,7 +232,7 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
         self._mask = torch.ones_like(self._weight)
 
     @property
-    def transition_matrix(self) -> torch.Tensor:
+    def matrix(self) -> torch.Tensor:
         matrix = torch.empty(
             (self._state_dim, self._state_dim),
             dtype=torch.float64,

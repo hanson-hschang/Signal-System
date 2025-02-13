@@ -52,12 +52,6 @@ def visualize(
 
     # Load the model
     learning_filter, _ = Module.LearningHmmFilter.load(model_filepath)
-    np.set_printoptions(precision=3)
-    with torch.no_grad():
-        emission_matrix = learning_filter.emission_matrix.numpy()
-        logger.info("learned emission_matrix = ")
-        for k in range(emission_matrix.shape[0]):
-            logger.info(f"    {emission_matrix[k]}")
     learning_filter.set_estimation_option(
         Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
     )
