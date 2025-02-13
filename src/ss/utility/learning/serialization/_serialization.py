@@ -100,7 +100,7 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
             )
             safe_callables.add(unregistered_type)
             # Once the _get_user_allowed_globals is fixed, the following line should be used instead
-            # safe_types.add(field_type)
+            # safe_callables.add(field_type)
 
     # Add all classes to the safe type set
     safe_callables.update(all_classes)
