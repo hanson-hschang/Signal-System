@@ -310,7 +310,7 @@ class FilePathValidator(BasePathValidator):
     def __init__(
         self,
         filename: Union[str, Path],
-        extension: Union[str, Iterable[str]],
+        extension: Optional[Union[str, Iterable[str]]] = None,
         auto_create_directory: bool = True,
     ) -> None:
         super().__init__(filename)
@@ -320,12 +320,13 @@ class FilePathValidator(BasePathValidator):
         self.add_validation(self._validate_filepath)
 
     def _validate_filepath(self) -> bool:
-        # Check if the extension is valid
-        if not is_extension_valid(self._extension):
-            self.add_error(
-                f"extension = '{self._extension}' must start with a '.'."
-            )
-            return False
+        if self._extension is not None:
+            # Check if the extension is valid
+            if not is_extension_valid(self._extension):
+                self.add_error(
+                    f"extension = '{self._extension}' must start with a '.'."
+                )
+                return False
 
         # Check if the filename is a valid filepath
         if is_filepath_valid(self._filename, self._extension):
@@ -336,8 +337,12 @@ class FilePathValidator(BasePathValidator):
             # The parent directory exists, but the filename is invalid
             # show an error message and return False
             self.add_error(
-                "filename must be a valid filepath (str or Path) "
-                f"with the correct extension: '{self._extension}'.",
+                "filename must be a valid filepath (str or Path)"
+                + (
+                    f" with the correct extension: '{self._extension}'."
+                    if self._extension is not None
+                    else "."
+                ),
                 f"filename provided is '{self._filename}'.",
             )
             return False
@@ -351,8 +356,12 @@ class FilePathValidator(BasePathValidator):
         # If the user does not want to create the folder, show an error message and return False
         self.add_error(
             f"folder: '{foldername}' does not exist. ",
-            "filename must be a valid filepath (str or Path) "
-            f"with the correct extension: '{self._extension}'. ",
+            "filename must be a valid filepath (str or Path)"
+            + (
+                f" with the correct extension: '{self._extension}'."
+                if self._extension is not None
+                else "."
+            ),
             f"filename provided is '{self._filename}'.",
         )
         return False

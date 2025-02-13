@@ -9,6 +9,7 @@ from ss.estimation.filtering.hmm.learning import module as Module
 from ss.estimation.filtering.hmm.learning import process as Process
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
+from ss.utility.learning.process.config import TrainingConfig
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -55,7 +56,7 @@ def train(
         discrete_observation_dim=discrete_observation_dim,
         feature_dim_over_layers=(1,),
     )
-    config.dropout.rate = 0.2
+    config.dropout.rate = 0.05
     config.dropout.log_zero_scale = -10.0
     config.transition.matrix.option = (
         config.transition.matrix.Option.FULL_MATRIX
@@ -92,16 +93,22 @@ def train(
         model=learning_filter,
         loss_function=loss_function,
         optimizer=optimizer,
-        number_of_epochs=5,
-        model_filename=model_filepath,
-        evaluate_model_iteration_skip=100,
-        save_model_epoch_skip=1,
+    )
+    training_config = TrainingConfig()
+    training_config.evaluation.per_iteration_period = 100
+    training_config.termination.max_epoch = 5
+    training_config.checkpoint.filepath = model_filepath.with_suffix("")
+    training_config.checkpoint.per_epoch_period = 1
+    training_config.checkpoint.appendix.option = (
+        training_config.checkpoint.appendix.Option.COUNTER
     )
     with device_manager.monitor_performance(
         sampling_rate=10.0,
         result_directory=result_directory,
     ):
-        learning_process.train(training_loader, evaluation_loader)
+        learning_process.train(
+            training_loader, evaluation_loader, training_config
+        )
 
     # Test model
     learning_process.test_model(testing_loader)

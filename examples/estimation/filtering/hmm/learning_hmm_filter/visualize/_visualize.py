@@ -9,7 +9,7 @@ from ss.estimation.filtering.hmm.learning import config as Config
 from ss.estimation.filtering.hmm.learning import module as Module
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
-from ss.utility.learning.process import CheckpointInfo
+from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 
 from . import figure as Figure

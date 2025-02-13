@@ -1,6 +1,6 @@
 import torch
 
-from ss.utility.assertion.validator import NonnegativeIntegerValidator
+from ss.utility.assertion.validator import NonnegativeNumberValidator
 from ss.utility.learning import module as Module
 from ss.utility.learning.module.dropout import config as Config
 
@@ -14,7 +14,7 @@ class NoScaleDropout(Module.BaseLearningModule[Config.DropoutConfig]):
         self,
         config: Config.DropoutConfig,
     ) -> None:
-        NonnegativeIntegerValidator(rate := config.rate)
+        NonnegativeNumberValidator(rate := config.rate)
         super().__init__(config)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

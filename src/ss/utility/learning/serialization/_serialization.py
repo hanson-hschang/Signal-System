@@ -20,18 +20,20 @@ class SafeCallables(set):
     registered_safe_callables: Set[SafeCallable] = set()
     initialized = False
 
-    def __init__(self, safe_types: Optional[Set[SafeCallable]] = None) -> None:
-        if safe_types is None:
-            safe_types = set()
-        super().__init__(safe_types)
+    def __init__(
+        self, safe_callables: Optional[Set[SafeCallable]] = None
+    ) -> None:
+        if safe_callables is None:
+            safe_callables = set()
+        super().__init__(safe_callables)
 
     def __enter__(self) -> None:
-        self._list_of_safe_types: List[SafeCallable] = list(self)
-        self._list_of_safe_types.extend(
+        self._list_of_safe_callables: List[SafeCallable] = list(self)
+        self._list_of_safe_callables.extend(
             self.__class__.registered_safe_callables
         )
         self._safe_globals_context_manager = torch.serialization.safe_globals(
-            self._list_of_safe_types
+            self._list_of_safe_callables
         )
         self._safe_globals_context_manager.__enter__()
 

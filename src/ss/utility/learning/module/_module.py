@@ -5,6 +5,7 @@ from typing import (
     Generator,
     Generic,
     Optional,
+    Set,
     Tuple,
     Type,
     TypeVar,
@@ -43,7 +44,7 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 
 
 class BaseLearningModule(nn.Module, Generic[Config.BLC]):
-    MODEL_FILE_EXTENSION = (".pt", ".pth")
+    FILE_EXTENSIONS = (".pt", ".pth")
 
     def __init__(self, config: Config.BLC) -> None:
         super().__init__()
@@ -79,7 +80,6 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         try:
             training = self.training
             self.train()
-            logger.info("Evaluating model...")
             yield
         finally:
             self.train(training)
@@ -96,37 +96,45 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
     def save(
         self,
         filename: Union[str, Path],
-        trained_epochs: Optional[int] = None,
+        **kwargs: Any,
     ) -> None:
         filepath = FilePathValidator(
-            filename, BaseLearningModule.MODEL_FILE_EXTENSION
+            filename, BaseLearningModule.FILE_EXTENSIONS
         ).get_filepath()
-        model_info = dict(
+        module_info = dict(
             config=self._config,
-            model_state_dict=self.state_dict(),
-            trained_epochs=trained_epochs,
+            module_state_dict=self.state_dict(),
+            **kwargs,
         )
-        torch.save(model_info, filepath)
+        torch.save(module_info, filepath)
+        logger.debug(f"module saved to {filepath}")
 
     @classmethod
     def load(
-        cls: Type[BLM], filename: Union[str, Path]
+        cls: Type[BLM],
+        filename: Union[str, Path],
+        safe_callables: Optional[Set[serialization.SafeCallable]] = None,
     ) -> Tuple[BLM, Dict[str, Any]]:
         filepath = FilePathValidator(
-            filename, BaseLearningModule.MODEL_FILE_EXTENSION
+            filename, BaseLearningModule.FILE_EXTENSIONS
         ).get_filepath()
 
         initialize_safe_callables()
 
-        with serialization.SafeCallables():
-            model_info: Dict[str, Any] = torch.load(
+        with serialization.SafeCallables(safe_callables):
+            module_info: Dict[str, Any] = torch.load(
                 filepath,
                 map_location=DeviceManager.Device.CPU,
             )
-            config = cast(Config.BLC, model_info.pop("config"))
-            model = cls(config.reload())
-            model.load_state_dict(model_info.pop("model_state_dict"))
-        return model, model_info
+            config = cast(Config.BLC, module_info.pop("config"))
+            module = cls(config.reload())
+            # model_state_dict is for backward compatibility
+            if "model_state_dict" in module_info:
+                module_state_dict = module_info.pop("model_state_dict")
+            if "module_state_dict" in module_info:
+                module_state_dict = module_info.pop("module_state_dict")
+            module.load_state_dict(module_state_dict)
+        return module, module_info
 
 
 def reset_module(instance: Any) -> None:
