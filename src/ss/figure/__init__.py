@@ -1,5 +1,1 @@
-from ss.figure._figure import (
-    SequenceTrajectoryFigure,
-    TimeTrajectoryFigure,
-    show,
-)
+from ._figure import SequenceTrajectoryFigure, TimeTrajectoryFigure, show

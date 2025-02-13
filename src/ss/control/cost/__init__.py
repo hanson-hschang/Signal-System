@@ -1,2 +1,2 @@
 from ._cost import Cost, CostCallback
-from ._quadratic import QuadraticCost
+from ._cost_quadratic import QuadraticCost

@@ -21,10 +21,9 @@ from torch import nn
 
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.device import DeviceManager
+from ss.utility.learning import config as Config
 from ss.utility.learning import serialization
 from ss.utility.logging import Logging
-
-from .. import config as Config
 
 logger = Logging.get_logger(__name__)
 
