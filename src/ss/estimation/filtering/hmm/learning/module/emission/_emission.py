@@ -5,7 +5,7 @@ from torch import nn
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
-from ss.utility.learning.module.dropout import NoScaleDropout
+from ss.utility.learning.module.dropout import Dropout
 
 
 class LearningHmmFilterEmissionProcess(
@@ -38,34 +38,39 @@ class LearningHmmFilterEmissionProcess(
             if self._discrete_observation_dim > 1
             else 0.0
         )
-        self._dropout = NoScaleDropout(self._config.dropout)
-        self._mask = torch.ones_like(self._weight)
+        self._dropout = Dropout(self._config.dropout)
+        # self._mask = torch.ones_like(self._weight)
 
     @property
     def matrix(self) -> torch.Tensor:
-        mask = self._dropout(self._mask).to(device=self._weight.device)
-        extended_weight = torch.cat(
-            [
-                self._weight,
-                torch.ones(
-                    (self._state_dim, 1),
-                    dtype=self._weight.dtype,
-                    device=self._weight.device,
-                ),
-            ],
-            dim=1,
-        )
-        row_norms = (
-            torch.norm(extended_weight, p=2, dim=1)
-            .unsqueeze(dim=1)
-            .expand(self._state_dim, self._discrete_observation_dim)
-        )
-        weight = nn.functional.softmax(
-            mask * self._weight
-            + (1 - mask) * row_norms * self._config.dropout.log_zero_scale,
-            dim=1,
-        )
-        return weight
+        weight = self._dropout(self._weight)
+        matrix = nn.functional.softmax(weight, dim=1)
+        return matrix
+
+        # mask = self._dropout(self._mask).to(device=self._weight.device)
+        # extended_weight = torch.cat(
+        #     [
+        #         self._weight,
+        #         torch.ones(
+        #             (self._state_dim, 1),
+        #             dtype=self._weight.dtype,
+        #             device=self._weight.device,
+        #         ),
+        #     ],
+        #     dim=1,
+        # )
+        # row_norms = (
+        #     torch.norm(extended_weight, p=2, dim=1)
+        #     .unsqueeze(dim=1)
+        #     .expand(self._state_dim, self._discrete_observation_dim)
+        # )
+
+        # weight = nn.functional.softmax(
+        #     mask * self._weight
+        #     + (1 - mask) * row_norms * self._config.dropout.value.log_zero_scale,
+        #     dim=1,
+        # )
+        # return weight
 
     def forward(
         self,

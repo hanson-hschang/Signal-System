@@ -61,7 +61,9 @@ def train(
         feature_dim_over_layers=(1,),
     )
     config.dropout.rate = 0.05
-    config.dropout.log_zero_scale = -10.0
+    # config.dropout.value = config.dropout.Value.LOG_ZERO
+    # config.dropout.value.log_zero_scale = -10.0
+    config.dropout.value = config.dropout.Value.ZERO
     config.transition.matrix.option = (
         config.transition.matrix.Option.FULL_MATRIX
     )

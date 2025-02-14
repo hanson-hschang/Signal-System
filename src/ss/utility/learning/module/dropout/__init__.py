@@ -1,1 +1,1 @@
-from ._dropout import NoScaleDropout
+from ._dropout import Dropout

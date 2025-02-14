@@ -6,6 +6,7 @@ from torch import nn
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
+from ss.utility.learning.module.dropout import Dropout
 from ss.utility.logging import Logging
 
 from ._transition_matrix import BaseLearningHmmFilterTransitionMatrix
@@ -37,7 +38,7 @@ class LearningHmmFilterTransitionLayer(
         dropout_rate = (
             self._config.dropout.rate if self._feature_dim > 1 else 0.0
         )
-        self._dropout = nn.Dropout(p=dropout_rate)
+        self._dropout = Dropout(self._config.dropout)
         self._mask = torch.ones_like(self._weight)
 
         self.blocks = nn.ModuleList()
@@ -65,12 +66,16 @@ class LearningHmmFilterTransitionLayer(
     def forward(
         self, input_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        mask = ~self._dropout(self._mask).to(
-            dtype=torch.bool,
-            device=self._weight.device,  # not sure why need this to make self and mask on the same device
-        )
+        # mask = ~self._dropout(self._mask).to(
+        #     dtype=torch.bool,
+        #     device=self._weight.device,
+        # )
+        # weight = nn.functional.softmax(
+        #     self._weight.masked_fill(mask, float("-inf")),
+        #     dim=0,
+        # )
         weight = nn.functional.softmax(
-            self._weight.masked_fill(mask, float("-inf")),
+            self._dropout(self._weight),
             dim=0,
         )
 
