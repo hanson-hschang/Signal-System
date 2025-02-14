@@ -21,8 +21,8 @@ from torch import nn
 
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.device import DeviceManager
-from ss.utility.learning import config as Config
 from ss.utility.learning import serialization
+from ss.utility.learning.module import config as Config
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -95,15 +95,24 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
     def save(
         self,
         filename: Union[str, Path],
-        **kwargs: Any,
+        model_info: Optional[Dict[str, Any]] = None,
     ) -> None:
+        if model_info is None:
+            model_info = dict()
+        reserved_key_names = ["config", "module_state_dict"]
+        for key_name in ["config", "module_state_dict"]:
+            if key_name in model_info:
+                logger.error(
+                    f"'{key_name}' is a reserved key name. "
+                    f"Do not use the following {reserved_key_names} as a key in model_info."
+                )
         filepath = FilePathValidator(
             filename, BaseLearningModule.FILE_EXTENSIONS
         ).get_filepath()
         module_info = dict(
             config=self._config,
             module_state_dict=self.state_dict(),
-            **kwargs,
+            **model_info,
         )
         torch.save(module_info, filepath)
         logger.debug(f"module saved to {filepath}")
@@ -121,19 +130,19 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         initialize_safe_callables()
 
         with serialization.SafeCallables(safe_callables):
-            module_info: Dict[str, Any] = torch.load(
+            model_info: Dict[str, Any] = torch.load(
                 filepath,
                 map_location=DeviceManager.Device.CPU,
             )
-            config = cast(Config.BLC, module_info.pop("config"))
+            config = cast(Config.BLC, model_info.pop("config"))
             module = cls(config.reload())
             # model_state_dict is for backward compatibility
-            if "model_state_dict" in module_info:
-                module_state_dict = module_info.pop("model_state_dict")
-            if "module_state_dict" in module_info:
-                module_state_dict = module_info.pop("module_state_dict")
+            if "model_state_dict" in model_info:
+                module_state_dict = model_info.pop("model_state_dict")
+            if "module_state_dict" in model_info:
+                module_state_dict = model_info.pop("module_state_dict")
             module.load_state_dict(module_state_dict)
-        return module, module_info
+        return module, model_info
 
 
 def reset_module(instance: Any) -> None:

@@ -3,7 +3,7 @@ from typing import Optional, Tuple, assert_never
 import torch
 from torch import nn
 
-from ss.estimation.filtering.hmm.learning import config as Config
+from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import NoScaleDropout
 

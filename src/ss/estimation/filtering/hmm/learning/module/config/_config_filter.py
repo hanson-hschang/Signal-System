@@ -3,7 +3,7 @@ from typing import Tuple
 from dataclasses import dataclass, field
 
 from ss.utility.assertion.validator import PositiveIntegerValidator
-from ss.utility.learning import config as Config
+from ss.utility.learning.module import config as Config
 
 
 @dataclass

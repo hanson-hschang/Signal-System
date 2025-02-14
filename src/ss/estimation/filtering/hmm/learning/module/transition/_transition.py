@@ -3,7 +3,7 @@ from typing import List, Tuple, cast
 import torch
 from torch import nn
 
-from ss.estimation.filtering.hmm.learning import config as Config
+from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
 from ss.utility.logging import Logging

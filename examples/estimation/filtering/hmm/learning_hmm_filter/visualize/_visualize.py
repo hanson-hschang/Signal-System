@@ -5,10 +5,11 @@ import torch
 from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm import HmmFilter
-from ss.estimation.filtering.hmm.learning import config as Config
-from ss.estimation.filtering.hmm.learning import module as Module
+from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
+from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
+from ss.utility.device import DeviceManager
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 
@@ -27,6 +28,8 @@ def visualize(
     data_filepath: Path,
     model_filepath: Path,
 ) -> None:
+    DeviceManager()
+
     # Prepare data
     data = Data.load(data_filepath)
     time_trajectory: NDArray = np.array(data["time"])
@@ -51,7 +54,14 @@ def visualize(
     )
 
     # Load the model
-    learning_filter, _ = Module.LearningHmmFilter.load(model_filepath)
+    learning_filter, _ = LearningHmmFilter.load(
+        model_filepath,
+        safe_callables={
+            torch.nn.functional.cross_entropy,
+            torch.optim.AdamW,
+            # types of extra arguments
+        },
+    )
     learning_filter.set_estimation_option(
         Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
     )

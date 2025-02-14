@@ -5,8 +5,8 @@ import pytest
 import torch
 from torch import nn
 
-from ss.utility.learning import config as Config
 from ss.utility.learning.module import BaseLearningModule
+from ss.utility.learning.module import config as Config
 
 
 @dataclass
@@ -55,7 +55,7 @@ class TestBaseLearningModule:
     def test_model_load(
         self, simple_model: SimpleModel, tmp_path: Path
     ) -> None:
-        simple_model.save(tmp_path / "model.pt", trained_epochs=10)
+        simple_model.save(tmp_path / "model.pt", dict(trained_epochs=10))
         loaded_model, loaded_model_info = SimpleModel.load(
             tmp_path / "model.pt"
         )

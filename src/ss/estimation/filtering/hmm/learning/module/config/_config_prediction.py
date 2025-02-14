@@ -5,7 +5,7 @@ from enum import StrEnum
 
 import torch
 
-from ss.utility.learning import config as Config
+from ss.utility.learning.module import config as Config
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)

@@ -111,6 +111,7 @@ class Checkpoint:
         self,
         module: Module.BaseLearningModule,
         checkpoint_info: CheckpointInfo,
+        model_info: Dict[str, Any],
     ) -> None:
         if self._counter == 0:
             logger.info(
@@ -121,6 +122,7 @@ class Checkpoint:
             filename=filepath.with_suffix(
                 Module.BaseLearningModule.FILE_EXTENSIONS[0]
             ),
+            model_info=model_info,
         )
         checkpoint_info.save(
             filename=filepath.with_suffix(CheckpointInfo.FILE_EXTENSION),

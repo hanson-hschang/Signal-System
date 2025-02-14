@@ -1,12 +1,16 @@
+from typing import Any, Callable, Dict
+
 from pathlib import Path
 
 import numpy as np
 import torch
 
-from ss.estimation.filtering.hmm.learning import config as Config
 from ss.estimation.filtering.hmm.learning import dataset as Dataset
-from ss.estimation.filtering.hmm.learning import module as Module
-from ss.estimation.filtering.hmm.learning import process as Process
+from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
+from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.process import (
+    LearningHmmFilterProcess,
+)
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
 from ss.utility.learning.process.config import TrainingConfig
@@ -64,21 +68,17 @@ def train(
     config.transition.matrix.initializer = (
         config.transition.matrix.Initializer.NORMAL_DISTRIBUTION
     )
-    # config.transition.matrix.initializer.variance = 0.0
     config.transition.initial_state.initializer = (
         config.transition.initial_state.Initializer.NORMAL_DISTRIBUTION
     )
-    # config.transition.initial_state.initializer.variance = 0.0
     config.emission.matrix.initializer = (
         config.emission.matrix.Initializer.NORMAL_DISTRIBUTION
     )
-    # config.emission.matrix.initializer.variance = 0.0
     config.estimation.option = (
         config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY
     )
-    # config.transition.skip_first_transition = True
 
-    learning_filter = Module.LearningHmmFilter(config)
+    learning_filter = LearningHmmFilter(config)
 
     # Prepare loss function
     loss_function = torch.nn.functional.cross_entropy
@@ -88,9 +88,27 @@ def train(
         learning_filter.parameters(), lr=0.0005, weight_decay=0.01
     )
 
-    # Train model
-    learning_process = Process.LearningHmmFilterProcess(
-        model=learning_filter,
+    # Prepare learning process
+    class LearningProcess(LearningHmmFilterProcess):
+        def __init__(
+            self,
+            module: LearningHmmFilter,
+            loss_function: Callable[..., torch.Tensor],
+            optimizer: torch.optim.Optimizer,
+            # extra arguments
+        ) -> None:
+            super().__init__(module, loss_function, optimizer)
+
+        def _save_model_info(self) -> Dict[str, Any]:
+            model_info = dict(
+                loss_function=self._loss_function,
+                optimizer=self._optimizer,
+                # save extra arguments if needed
+            )
+            return model_info
+
+    learning_process = LearningProcess(
+        module=learning_filter,
         loss_function=loss_function,
         optimizer=optimizer,
     )
@@ -102,6 +120,8 @@ def train(
     training_config.checkpoint.appendix.option = (
         training_config.checkpoint.appendix.Option.COUNTER
     )
+
+    # Train model
     with device_manager.monitor_performance(
         sampling_rate=10.0,
         result_directory=result_directory,

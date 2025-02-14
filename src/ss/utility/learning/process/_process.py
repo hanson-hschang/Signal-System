@@ -9,8 +9,8 @@ from torch.utils.data import DataLoader
 from ss.utility.device import DeviceManager
 from ss.utility.learning import module as Module
 from ss.utility.learning import serialization
-from ss.utility.learning.process import config as Config
 from ss.utility.learning.process.checkpoint import Checkpoint, CheckpointInfo
+from ss.utility.learning.process.config import TrainingConfig
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -20,12 +20,12 @@ class BaseLearningProcess:
 
     def __init__(
         self,
-        model: Module.BaseLearningModule,
+        module: Module.BaseLearningModule,
         loss_function: Callable[..., torch.Tensor],
         optimizer: torch.optim.Optimizer,
     ) -> None:
         self._device_manager = DeviceManager()
-        self._model = self._device_manager.load_module(model)
+        self._module = self._device_manager.load_module(module)
         self._loss_function = loss_function
         self._optimizer = optimizer
 
@@ -64,7 +64,7 @@ class BaseLearningProcess:
     def evaluate_model(
         self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
     ) -> float:
-        with self._model.evaluation_mode():
+        with self._module.evaluation_mode():
             logger.info("Evaluating model...")
             loss = 0.0
             with torch.no_grad():
@@ -92,9 +92,9 @@ class BaseLearningProcess:
         self,
         data_loader: DataLoader[Tuple[torch.Tensor, ...]],
         evaluation_loader: DataLoader[Tuple[torch.Tensor, ...]],
-        training_config: Config.TrainingConfig,
+        training_config: TrainingConfig,
     ) -> float:
-        with self._model.training_mode():
+        with self._module.training_mode():
             logger.info("Training one epoch...")
             for data_batch in logger.progress_bar(
                 data_loader, total=len(data_loader)
@@ -123,7 +123,7 @@ class BaseLearningProcess:
         self,
         training_loader: DataLoader[Tuple[torch.Tensor, ...]],
         evaluation_loader: DataLoader[Tuple[torch.Tensor, ...]],
-        training_config: Config.TrainingConfig,
+        training_config: TrainingConfig,
     ) -> None:
         self._checkpoint = Checkpoint(training_config.checkpoint)
 
@@ -133,8 +133,9 @@ class BaseLearningProcess:
 
         self._update_epoch(training_config.termination.max_epoch)
         self._checkpoint.save(
-            self._model,
-            self._create_checkpoint_info(),
+            self._module,
+            self._save_checkpoint_info(),
+            self._save_model_info(),
         )
 
         logger.info("Start training...")
@@ -155,16 +156,18 @@ class BaseLearningProcess:
                 epoch=self._epoch
             ).satisfied():
                 self._checkpoint.save(
-                    self._model,
-                    self._create_checkpoint_info(),
+                    self._module,
+                    self._save_checkpoint_info(),
+                    self._save_model_info(),
                 )
 
         logger.info(
             f"Training is completed with {training_config.termination.reason} reached"
         )
         self._checkpoint.finalize().save(
-            self._model,
-            self._create_checkpoint_info(),
+            self._module,
+            self._save_checkpoint_info(),
+            self._save_model_info(),
         )
 
     def test_model(
@@ -175,7 +178,7 @@ class BaseLearningProcess:
         loss = self.evaluate_model(testing_loader)
         logger.info(f"Testing is completed with loss: {loss}")
 
-    def _create_checkpoint_info(self) -> CheckpointInfo:
+    def _save_checkpoint_info(self) -> CheckpointInfo:
         checkpoint_info = CheckpointInfo(
             iteration=self._iteration,
             epoch=self._epoch,
@@ -186,20 +189,23 @@ class BaseLearningProcess:
         )
         return checkpoint_info
 
+    def _save_model_info(self) -> Dict[str, Any]:
+        return dict()
+
     def load_checkpoint(
         self,
         filepath: Path,
         safe_callables: Optional[Set[serialization.SafeCallable]] = None,
     ) -> Dict[str, Any]:
-        model, module_info = self._model.load(
+        module, model_info = self._module.load(
             filepath.with_suffix(Module.BaseLearningModule.FILE_EXTENSIONS[0]),
             safe_callables,
         )
-        self._model = self._device_manager.load_module(model)
+        self._module = self._device_manager.load_module(module)
         checkpoint_info = CheckpointInfo.load(
             filepath.with_suffix(CheckpointInfo.FILE_EXTENSION)
         )
         self._iteration = checkpoint_info.get("iteration", 0)
         self._epoch = checkpoint_info.get("epoch", 0)
         self._training_loss = checkpoint_info.get("training_loss", 0.0)
-        return module_info
+        return model_info

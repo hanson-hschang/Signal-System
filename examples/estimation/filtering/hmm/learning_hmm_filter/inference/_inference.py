@@ -4,8 +4,9 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from ss.estimation.filtering.hmm.learning import module as Module
+from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.utility.data import Data
+from ss.utility.device import DeviceManager
 from ss.utility.learning.mode import LearningMode
 from ss.utility.logging import Logging
 
@@ -16,6 +17,8 @@ def inference(
     data_filepath: Path,
     model_filepath: Path,
 ) -> None:
+    DeviceManager()
+
     # Prepare data
     data = Data.load(data_filepath)
     number_of_systems = int(data.meta_info["number_of_systems"])
@@ -29,7 +32,14 @@ def inference(
     )  # (time_horizon,)
 
     # Load the model
-    learning_filter, _ = Module.LearningHmmFilter.load(model_filepath)
+    learning_filter, _ = LearningHmmFilter.load(
+        model_filepath,
+        safe_callables={
+            torch.nn.functional.cross_entropy,
+            torch.optim.AdamW,
+            # types of extra arguments
+        },
+    )
     logger.info(
         f"Load the learning filter model from the file: {model_filepath.name}"
     )

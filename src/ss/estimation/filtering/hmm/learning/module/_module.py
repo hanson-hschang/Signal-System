@@ -2,7 +2,7 @@ from typing import List, Tuple, assert_never
 
 import torch
 
-from ss.estimation.filtering.hmm.learning import config as Config
+from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.descriptor import (
     BatchTensorReadOnlyDescriptor,
     ReadOnlyDescriptor,
