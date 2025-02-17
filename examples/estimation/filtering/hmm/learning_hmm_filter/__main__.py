@@ -1,0 +1,94 @@
+from typing import Optional, assert_never
+
+from pathlib import Path
+
+import click
+
+from ss.utility import basic_config
+from ss.utility.learning.mode import LearningMode
+
+from . import inference, train, visualize
+
+
+@click.command()
+@click.option(
+    "--mode",
+    type=click.Choice(
+        [mode for mode in LearningMode],
+        case_sensitive=False,
+    ),
+    default=LearningMode.INFERENCE,
+)
+@click.option(
+    "--data-foldername",
+    type=click.Path(),
+    default="hmm_filter_result",
+)
+@click.option(
+    "--data-filename",
+    type=click.Path(),
+    default="system_train.hdf5",
+)
+@click.option(
+    "--model-foldername",
+    type=click.Path(),
+    default=None,
+)
+@click.option(
+    "--model-filename",
+    type=click.Path(),
+    default="learning_filter.pt",
+)
+@click.option(
+    "--verbose",
+    is_flag=True,
+    help="Set the verbose mode.",
+)
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Set the debug mode.",
+)
+@click.option(
+    "--result-directory",
+    type=click.Path(),
+    default=None,
+)
+def main(
+    mode: LearningMode,
+    data_foldername: Path,
+    data_filename: Path,
+    model_foldername: Optional[Path],
+    model_filename: Path,
+    verbose: bool,
+    debug: bool,
+    result_directory: Path,
+) -> None:
+    path_manager = basic_config(
+        __file__,
+        verbose=verbose,
+        debug=debug,
+        result_directory=result_directory,
+    )
+    data_filepath = path_manager.get_directory(data_foldername) / data_filename
+    model_folderpath = (
+        path_manager.result_directory
+        if model_foldername is None
+        else path_manager.get_directory(model_foldername)
+    )
+    match mode:
+        case LearningMode.TRAIN:
+            model_filepath = model_folderpath / "checkpoint" / model_filename
+            train(data_filepath, model_filepath, path_manager.result_directory)
+        case LearningMode.VISUALIZE:
+            model_filepath = model_folderpath / model_filename
+            visualize(data_filepath, model_filepath)
+        case LearningMode.INFERENCE:
+            model_filepath = model_folderpath / model_filename
+            inference(data_filepath, model_filepath)
+        case _ as _mode:
+            assert_never(_mode)
+
+
+if __name__ == "__main__":
+    main()

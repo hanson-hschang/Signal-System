@@ -5,7 +5,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 from ss.control import Controller
-from ss.control.cost.quadratic import QuadraticCost
+from ss.control.cost import QuadraticCost
 from ss.signal.smoothing.moving_averaging import MovingAveragingSmoother
 from ss.system import ContinuousTimeSystem
 from ss.utility.assertion import is_nonnegative_number, is_positive_number
@@ -50,7 +50,7 @@ class ModelPredictivePathIntegralController(Controller):
             self,
             system: ContinuousTimeSystem,
         ) -> None:
-            super().__init__()
+            super().__init__(system)
             self._system = system
             self._validate_functions.append(self._validate_type)
 
@@ -67,7 +67,7 @@ class ModelPredictivePathIntegralController(Controller):
             self,
             cost: QuadraticCost,
         ) -> None:
-            super().__init__()
+            super().__init__(cost)
             self._cost = cost
             self._validate_functions.append(self._validate_type)
 
@@ -85,7 +85,7 @@ class ModelPredictivePathIntegralController(Controller):
             system: ContinuousTimeSystem,
             cost: QuadraticCost,
         ) -> None:
-            super().__init__()
+            super().__init__(system)
             self._system_state_dim = system.state_dim
             self._system_control_dim = system.control_dim
             self._cost_state_dim = cost.state_dim
@@ -135,7 +135,7 @@ class ModelPredictivePathIntegralController(Controller):
             self,
             base_control_confidence: float,
         ) -> None:
-            super().__init__()
+            super().__init__(base_control_confidence)
             self._base_control_confidence = base_control_confidence
             self._validate_functions.append(self._validate_value_range)
 
@@ -157,7 +157,7 @@ class ModelPredictivePathIntegralController(Controller):
             self,
             exploration_percentage: float,
         ) -> None:
-            super().__init__()
+            super().__init__(exploration_percentage)
             self._exploration_percentage = exploration_percentage
             self._validate_functions.append(self._validate_value_range)
 

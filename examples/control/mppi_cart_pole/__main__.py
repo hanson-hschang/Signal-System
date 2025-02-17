@@ -1,17 +1,14 @@
 import click
-import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from ss.control.cost import CostCallback, CostTrajectoryFigure
-from ss.control.cost.quadratic import QuadraticCost
+from ss.control.cost import CostCallback, QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
 from ss.system import SystemCallback
-from ss.system.examples.cart_pole import (
-    CartPoleStateTrajectoryFigure,
-    CartPoleSystem,
-)
+from ss.system.examples.cart_pole import CartPoleSystem
 from ss.utility import basic_config
+
+from . import figure as Figure
 
 
 @click.command()
@@ -50,7 +47,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    result_directory = basic_config(__file__, verbose, debug)
+    path_manager = basic_config(__file__, verbose, debug)
 
     simulation_time_steps = int(simulation_time / time_step)
     system = CartPoleSystem(
@@ -115,18 +112,18 @@ def main(
     system_callback.record(simulation_time_steps, current_time)
 
     # Save the data
-    system_callback.save(result_directory / "system.hdf5")
-    cost_callback.save(result_directory / "cost.hdf5")
+    system_callback.save(path_manager.result_directory / "system.hdf5")
+    cost_callback.save(path_manager.result_directory / "cost.hdf5")
 
-    CartPoleStateTrajectoryFigure(
+    Figure.CartPoleStateTrajectoryFigure(
         system_callback["time"],
         system_callback["state"],
     ).plot()
-    CostTrajectoryFigure(
+    Figure.CostTrajectoryFigure(
         cost_callback["time"],
         cost_callback["cost"],
     ).plot()
-    plt.show()
+    Figure.show()
 
 
 if __name__ == "__main__":

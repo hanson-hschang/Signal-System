@@ -31,6 +31,10 @@ class PathManager:
     def result_directory(self) -> Path:
         return self._result_directory_path
 
+    @result_directory.setter
+    def result_directory(self, path: Path) -> None:
+        self._result_directory_path = path
+
     @property
     def current_date(self) -> Path:
         return Path(self._date)
