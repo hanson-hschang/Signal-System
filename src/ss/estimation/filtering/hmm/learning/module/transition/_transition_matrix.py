@@ -20,9 +20,6 @@ class BaseLearningHmmFilterTransitionMatrix(
         self._feature_id = feature_id
         self._state_dim = self._config.filter.state_dim
 
-        self._config.dropout.rate = (
-            self._config.dropout.rate if self._state_dim > 1 else 0.0
-        )
         self._dropout = Dropout(self._config.dropout)
 
         self._initial_state = nn.Parameter(

@@ -58,7 +58,3 @@ class DropoutConfig(Config.BaseLearningConfig):
             f"dropout_rate must be in the range of [0.0, 1.0). "
             f"dropout_rate given is {self.rate}."
         )
-        # assert self.log_zero_scale < 0.0, (
-        #     f"log_zero_scale must be less than 0.0. "
-        #     f"log_zero_scale given is {self.log_zero_scale}."
-        # )

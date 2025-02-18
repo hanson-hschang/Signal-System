@@ -121,7 +121,8 @@ class LearningHmmFilterTransitionProcess(
             self.layers.append(
                 LearningHmmFilterTransitionLayer(layer_id, self._config)
             )
-        self._init_batch_size(batch_size=1)
+        with self.evaluation_mode():
+            self._init_batch_size(batch_size=1)
 
     def _init_batch_size(
         self, batch_size: int, is_initialized: bool = False

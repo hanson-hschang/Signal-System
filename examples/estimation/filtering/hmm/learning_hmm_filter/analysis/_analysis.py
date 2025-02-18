@@ -1,3 +1,5 @@
+from typing import Callable
+
 from pathlib import Path
 
 import numpy as np
@@ -5,8 +7,12 @@ import torch
 from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm import HmmFilter
+from ss.estimation.filtering.hmm.learning import dataset as Dataset
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.process import (
+    LearningHmmFilterProcess,
+)
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
@@ -24,10 +30,14 @@ from .utility import (
 logger = Logging.get_logger(__name__)
 
 
-def visualize(
+def analysis(
     data_filepath: Path,
-    model_filepath: Path,
+    model_folderpath: Path,
+    model_filename: Path,
+    result_directory: Path,
 ) -> None:
+    model_filepath = model_folderpath / model_filename
+
     DeviceManager()
 
     # Prepare data
@@ -36,6 +46,7 @@ def visualize(
     observation_trajectory: NDArray = np.array(
         data["observation"], dtype=np.int64
     )  # (number_of_systems, 1, time_horizon)
+    number_of_systems = int(data.meta_info["number_of_systems"])
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
     transition_matrix: NDArray = np.array(data.meta_data["transition_matrix"])
     emission_matrix: NDArray = np.array(data.meta_data["emission_matrix"])
@@ -53,21 +64,21 @@ def visualize(
         ),
     )
 
-    # Load the model
+    # Load the module
+    module_filename = model_filepath.with_suffix(
+        LearningHmmFilter.FILE_EXTENSIONS[0]
+    )
     learning_filter, _ = LearningHmmFilter.load(
-        model_filepath,
+        module_filename,
         safe_callables={
             torch.nn.functional.cross_entropy,
             torch.optim.AdamW,
             # types of extra arguments
         },
     )
-    learning_filter.set_estimation_option(
-        Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
-    )
 
     # Convert the natural logarithm to the log_base logarithm
-    log_base = 10.0
+    log_base = np.e
     scaling = 1.0 / np.log(log_base)
 
     # Compute the loss trajectory of the filter and learning_filter
@@ -86,13 +97,13 @@ def visualize(
     logger.info(
         "Computing the average loss of the learning_filter over layers"
     )
-    learning_filter.reset()
-    _, average_loss_over_layer = compute_layer_loss_trajectory(
+
+    _, loss_mean_over_layer = compute_layer_loss_trajectory(
         learning_filter=learning_filter,
         observation_trajectory=observation_trajectory,
     )
-    average_loss_over_layer = average_loss_over_layer * scaling
-    logger.info(f"{average_loss_over_layer = }")
+    loss_mean_over_layer = loss_mean_over_layer * scaling
+    logger.info(f"{loss_mean_over_layer = }")
 
     # Compute the random guess loss
     random_guess_loss = -np.log(1 / discrete_observation_dim) * scaling
@@ -114,8 +125,8 @@ def visualize(
     # Plot the training and validation loss together with the optimal loss
     checkpoint_info = CheckpointInfo.load(model_filepath.with_suffix(".hdf5"))
     loss_figure = Figure.IterationFigure(
-        training_loss_trajectory=checkpoint_info["training_loss_history"],
-        validation_loss_trajectory=checkpoint_info["evaluation_loss_history"],
+        training_loss_history=checkpoint_info["__training_loss_history__"],
+        validation_loss_history=checkpoint_info["__validation_loss_history__"],
         scaling=scaling,
     ).plot()
     Figure.add_loss_line(
@@ -129,8 +140,9 @@ def visualize(
         empirical_optimal_loss,
         "optimal loss: {:.3f}\n(based on HMM-filter)",
         log_base=log_base,
+        text_offset=(64, -48),
     )
-    for l, loss in enumerate(average_loss_over_layer):
+    for l, loss in enumerate(loss_mean_over_layer):
         Figure.add_loss_line(
             loss_figure.loss_plot_ax,
             loss,

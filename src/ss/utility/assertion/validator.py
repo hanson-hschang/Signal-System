@@ -5,9 +5,11 @@ from typing import (
     Dict,
     Generic,
     Iterable,
+    KeysView,
     List,
     Literal,
     Optional,
+    Set,
     Type,
     TypeVar,
     Union,
@@ -98,6 +100,56 @@ class Validator(metaclass=ValidatorMeta):
         if argument_name[0] in ["'", '"']:
             argument_name = "argument"
         return argument_name
+
+
+class ReservedKeyNameValidator(Validator):
+    def __init__(
+        self,
+        dictionary: Dict[str, Any],
+        reserved_key_view: KeysView[str],
+        allow_dunder_names: bool = False,
+    ) -> None:
+        super().__init__(dictionary)
+        self._dictionary = dictionary
+        self._reserved_keys_view = reserved_key_view
+        self.add_validation(self._validate_no_single_underline)
+        self.add_validation(self._validate_no_reserved_names)
+        if not allow_dunder_names:
+            self.add_validation(self._validate_no_dunder_names)
+
+    def _validate_no_single_underline(self) -> bool:
+        for key in self._dictionary.keys():
+            if key == "_":
+                self.add_error(
+                    "key cannot be a single underline '_'. "
+                    f"The dictionary {self._name} given has a key '{key}' as a single underline."
+                )
+                return False
+        return True
+
+    def _validate_no_dunder_names(self) -> bool:
+        for key in self._dictionary.keys():
+            if len(key) < 2:
+                continue
+            if key[:2] == "__" and key[-2:] == "__":
+                self.add_error(
+                    "key cannot be a dunder name string (both start and end with '__'). "
+                    f"The dictionary {self._name} given has a key '{key}' as a dunder name."
+                )
+                return False
+        return True
+
+    def _validate_no_reserved_names(self) -> bool:
+        if not self._reserved_keys_view:
+            return True
+        for key in self._dictionary.keys():
+            if key in self._reserved_keys_view:
+                self.add_error(
+                    f"key '{key}' is a reserved key name string for the dictionary {self._name}. "
+                    f"Do not use the following reserved names: {self._reserved_keys_view} as keys."
+                )
+                return False
+        return True
 
 
 class BasicScalarValidator(Validator):

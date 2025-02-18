@@ -7,7 +7,7 @@ from numpy.typing import NDArray
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
-from ss.utility.learning.mode import LearningMode
+from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -15,7 +15,9 @@ logger = Logging.get_logger(__name__)
 
 def inference(
     data_filepath: Path,
-    model_filepath: Path,
+    model_folderpath: Path,
+    model_filename: Path,
+    result_directory: Path,
 ) -> None:
     DeviceManager()
 
@@ -31,22 +33,22 @@ def inference(
         dtype=np.int64,
     )  # (time_horizon,)
 
-    # Load the model
+    # Load the module
+    module_filename = model_filename.with_suffix(
+        LearningHmmFilter.FILE_EXTENSIONS[0]
+    )
+    module_filepath = model_folderpath / module_filename
     learning_filter, _ = LearningHmmFilter.load(
-        model_filepath,
+        module_filepath,
         safe_callables={
             torch.nn.functional.cross_entropy,
             torch.optim.AdamW,
             # types of extra arguments
         },
     )
-    logger.info(
-        f"Load the learning filter model from the file: {model_filepath.name}"
-    )
-    logger.info("")
 
     np.set_printoptions(precision=3, suppress=True)
-    with LearningMode.inference(learning_filter):
+    with BaseLearningProcess.inference_mode(learning_filter):
         emission_matrix = learning_filter.emission_matrix.numpy()
         logger.info("(layer 0) learned emission matrix = ")
         for k in range(emission_matrix.shape[0]):
@@ -82,7 +84,7 @@ def inference(
     future_time_steps = 10  # This is like how many next token to predict
     number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
 
-    with LearningMode.inference(learning_filter):
+    with BaseLearningProcess.inference_mode(learning_filter):
         _observation_trajectory = torch.tensor(
             observation_trajectory[:given_time_horizon], dtype=torch.int64
         )

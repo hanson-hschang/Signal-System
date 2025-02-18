@@ -5,19 +5,19 @@ from pathlib import Path
 import click
 
 from ss.utility import basic_config
-from ss.utility.learning.mode import LearningMode
+from ss.utility.learning.process import BaseLearningProcess
 
-from . import inference, train, visualize
+from . import analysis, inference, training
 
 
 @click.command()
 @click.option(
     "--mode",
     type=click.Choice(
-        [mode for mode in LearningMode],
+        [mode for mode in BaseLearningProcess.Mode],
         case_sensitive=False,
     ),
-    default=LearningMode.INFERENCE,
+    default=BaseLearningProcess.Mode.INFERENCE,
 )
 @click.option(
     "--data-foldername",
@@ -37,7 +37,7 @@ from . import inference, train, visualize
 @click.option(
     "--model-filename",
     type=click.Path(),
-    default="learning_filter.pt",
+    default="learning_filter",
 )
 @click.option(
     "--verbose",
@@ -54,15 +54,21 @@ from . import inference, train, visualize
     type=click.Path(),
     default=None,
 )
+@click.option(
+    "--continue-training",
+    is_flag=True,
+    help="Continue training the model.",
+)
 def main(
-    mode: LearningMode,
+    mode: BaseLearningProcess.Mode,
     data_foldername: Path,
     data_filename: Path,
     model_foldername: Optional[Path],
     model_filename: Path,
     verbose: bool,
     debug: bool,
-    result_directory: Path,
+    result_directory: Optional[Path],
+    continue_training: bool,
 ) -> None:
     path_manager = basic_config(
         __file__,
@@ -76,16 +82,33 @@ def main(
         if model_foldername is None
         else path_manager.get_directory(model_foldername)
     )
+    result_directory = path_manager.result_directory
     match mode:
-        case LearningMode.TRAIN:
-            model_filepath = model_folderpath / "checkpoint" / model_filename
-            train(data_filepath, model_filepath, path_manager.result_directory)
-        case LearningMode.VISUALIZE:
-            model_filepath = model_folderpath / model_filename
-            visualize(data_filepath, model_filepath)
-        case LearningMode.INFERENCE:
-            model_filepath = model_folderpath / model_filename
-            inference(data_filepath, model_filepath)
+        case BaseLearningProcess.Mode.TRAINING:
+            # model_filepath = model_folderpath / "checkpoints" / model_filename
+            training(
+                data_filepath,
+                model_folderpath,
+                model_filename,
+                result_directory,
+                not continue_training,
+            )
+        case BaseLearningProcess.Mode.ANALYSIS:
+            # model_filepath = model_folderpath / model_filename
+            analysis(
+                data_filepath,
+                model_folderpath,
+                model_filename,
+                result_directory,
+            )
+        case BaseLearningProcess.Mode.INFERENCE:
+            # model_filepath = model_folderpath / model_filename
+            inference(
+                data_filepath,
+                model_folderpath,
+                model_filename,
+                result_directory,
+            )
         case _ as _mode:
             assert_never(_mode)
 

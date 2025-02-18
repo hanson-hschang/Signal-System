@@ -5,11 +5,15 @@ from enum import Enum, Flag, auto
 
 from ss.utility.condition import Condition
 from ss.utility.learning.process.checkpoint.config import CheckpointConfig
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 @dataclass
-class EvaluationConfig:
+class ValidationConfig:
     per_iteration_period: int = 1
+    at_initial: bool = True
 
     def __post_init__(self) -> None:
         self._condition = Condition(any)
@@ -29,6 +33,7 @@ class TerminationConfig:
         NOT_TERMINATED = 0
         MAX_EPOCH = auto()
         MAX_ITERATION = auto()
+        USER_INTERRUPT = auto()
         # MAX_NO_IMPROVEMENT = auto()
 
     max_epoch: int = 1
@@ -40,14 +45,11 @@ class TerminationConfig:
         self._termination_reason = self.TerminationReason.NOT_TERMINATED
         self._update_condition()
 
-    @property
-    def reason(self) -> TerminationReason:
-        return self._termination_reason
-
     def _update_condition(
         self,
         max_epoch: bool = False,
         max_iteration: bool = False,
+        user_interrupt: bool = False,
     ) -> None:
         if max_epoch:
             self._termination_reason = (
@@ -65,9 +67,25 @@ class TerminationConfig:
                 else self._termination_reason
                 | self.TerminationReason.MAX_ITERATION
             )
+        if user_interrupt:
+            self._termination_reason = self.TerminationReason.USER_INTERRUPT
         self._condition(
             max_epoch=max_epoch,
             max_iteration=max_iteration,
+            user_interrupt=user_interrupt,
+        )
+
+    @property
+    def reason(self) -> TerminationReason:
+        return self._termination_reason
+
+    @reason.setter
+    def reason(self, reason: TerminationReason) -> None:
+        if reason == self.TerminationReason.USER_INTERRUPT:
+            self._update_condition(user_interrupt=True)
+            return
+        logger.error(
+            f"Cannot manually set the termination reason unless it is a user interruption."
         )
 
     def condition(
@@ -99,5 +117,5 @@ class TerminationConfig:
 @dataclass
 class TrainingConfig:
     termination: TerminationConfig = field(default_factory=TerminationConfig)
-    evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
+    validation: ValidationConfig = field(default_factory=ValidationConfig)
     checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)

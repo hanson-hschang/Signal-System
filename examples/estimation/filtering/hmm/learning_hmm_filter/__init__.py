@@ -1,3 +1,3 @@
+from .analysis import analysis
 from .inference import inference
-from .train import train
-from .visualize import visualize
+from .training import training

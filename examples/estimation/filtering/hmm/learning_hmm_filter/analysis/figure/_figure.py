@@ -138,6 +138,7 @@ class FilterResultFigure(Figure.SequenceTrajectoryFigure):
         ax.set_xticks([])
         ax.set_yticks([])
         ax.patch.set_alpha(0.0)
+        ax.zorder = 0
 
         color_bar: Colorbar = self._fig.colorbar(
             mappable=plt.cm.ScalarMappable(
@@ -160,6 +161,7 @@ class FilterResultFigure(Figure.SequenceTrajectoryFigure):
         space = 1 / 1.2 / len(axes) / 5
         height = 3 * space
         for k, ax in enumerate(axes):
+            ax.zorder = k + 1
             ax.set_position(
                 (
                     0.05,

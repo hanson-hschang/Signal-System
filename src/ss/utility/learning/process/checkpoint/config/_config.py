@@ -4,6 +4,9 @@ from enum import Flag, auto
 from pathlib import Path
 
 from ss.utility.condition import Condition
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 @dataclass
@@ -50,16 +53,19 @@ class CheckpointConfig:
                 appendix += now.strftime(self._time_format)
             return appendix
 
-    filepath: Path = field(default_factory=lambda: Path("checkpoints/model"))
+    folderpath: Path = field(default_factory=lambda: Path("checkpoints"))
+    filename: Path = field(default_factory=lambda: Path("model"))
     appendix: Appendix = field(default_factory=Appendix)
-    # checkpoint_filename_format: str = "_checkpoint_{:04d}"
-    # checkpoint_filename_format: str = field(default="_%Y%m%d_%H%M%S")
-
     per_epoch_period: int = 1
+
     # save_last: bool = True
     # save_best: bool = True
 
     def __post_init__(self) -> None:
+        if not (self.filename.suffix == ""):
+            logger.error(
+                "The suffix of the checkpoint filename should be empty."
+            )
         self._condition = Condition(any)
 
     def condition(self, epoch: int) -> Condition:

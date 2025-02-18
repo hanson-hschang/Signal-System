@@ -23,8 +23,8 @@ class LearningHmmFilterProcess(BaseLearningProcess):
         predicted_next_observation_log_probability_trajectory = self._module(
             observation_trajectory=observation_trajectory
         )  # (batch_size, discrete_observation_dim, max_length)
-        _loss: torch.Tensor = self._loss_function(
+        loss_tensor: torch.Tensor = self._loss_function(
             predicted_next_observation_log_probability_trajectory,
             next_observation_trajectory,  # (batch_size, max_length)
         )
-        return _loss
+        return loss_tensor

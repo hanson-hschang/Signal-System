@@ -1,5 +1,6 @@
-from typing import Any, Generator, Optional, Tuple
+from typing import Any, Generator, Optional, Tuple, cast
 
+from collections import deque
 from dataclasses import dataclass
 
 import numpy as np
@@ -10,7 +11,7 @@ from numpy.typing import NDArray
 from ss.estimation.filtering.hmm import HmmFilter
 from ss.estimation.filtering.hmm.learning import module as Module
 from ss.system.markov import one_hot_encoding
-from ss.utility.learning.mode import LearningMode
+from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -81,21 +82,20 @@ def observation_generator(
             yield observation[0], next_observation[0]
 
 
-@njit(cache=True)  # type: ignore
 def cross_entropy(
     input_probability: NDArray[np.float64],
     target_probability: NDArray[np.float64],
-) -> float:
+) -> NDArray[np.float64]:
     """
     Compute the batch size cross-entropy loss, which is defined as
-    :math: `-\\frac{1}{N} \\sum_{i=1}^{N} \\sum_{j=1}^{C} p^*_{ij} \\log(p_{ij})`
-    where :math: `N` is the batch size, :math: `C` is the number of classes,
-    :math: `p^*_{ij}` is the `target_probability`, and :math: `p_{ij}` is the `input_probability`.
+    :math: `-\\sum_{c=1}^{C} p^*_{nc} \\log(p_{nc})`
+    where :math: `C` is the number of classes, :math: `n \\in N` with `N` as the batch size,
+    :math: `p^*_{nc}` is the `target_probability`, and :math: `p_{nc}` is the `input_probability`.
 
     Parameters
     ----------
     input_probability : NDArray
-        probability of input with shape (num_classes,) or (batch_size, num_classes)
+        probability of input with shape (batch_size, num_classes)
         values should be in the range of :math: `(0, 1]`
     target_probability : NDArray
         probability of target with the same shape as input_probability
@@ -103,18 +103,26 @@ def cross_entropy(
 
     Returns
     -------
-    loss : float
-        The cross-entropy loss of the input and target probability.
+    losses : NDArray
+        losses with shape (batch_size,)
+        The batch size cross-entropy loss of the input and target probability.
     """
-    if input_probability.ndim == 1:
-        loss = -np.sum(target_probability * np.log(input_probability))
-    else:
-        num_classes = input_probability.shape[1]
-        loss = (
-            -np.mean(target_probability * np.log(input_probability))
-            * num_classes
-        )
-    return float(loss)
+    losses = -np.sum(
+        target_probability * np.log(input_probability),
+        axis=1,
+    )
+    return np.array(losses)
+
+
+class FixLengthObservationQueue(deque):
+    def __init__(self, max_length: int) -> None:
+        super().__init__(maxlen=max_length)
+
+    def append(self, observation: NDArray) -> None:
+        super().append(observation[:, 0])
+
+    def to_numpy(self) -> NDArray:
+        return np.array(self).T
 
 
 def compute_optimal_loss(
@@ -133,11 +141,11 @@ def compute_optimal_loss(
 
     Returns
     -------
-    average_loss : float
+    loss_mean : float
         The average loss of the optimal estimation.
     """
-    time_horizon = observation_trajectory.shape[-1]
-    loss_trajectory = np.empty(time_horizon - 1)
+    number_of_systems, _, time_horizon = observation_trajectory.shape
+    loss_trajectory = np.empty((number_of_systems, time_horizon - 1))
     for k, (observation, next_observation_one_hot) in logger.progress_bar(
         enumerate(
             observation_generator(
@@ -149,12 +157,12 @@ def compute_optimal_loss(
     ):
         filter.update(observation=observation)
         filter.estimate()
-        loss_trajectory[k] = cross_entropy(
+        loss_trajectory[:, k] = cross_entropy(
             input_probability=filter.estimation,
             target_probability=next_observation_one_hot,
         )
-    average_loss = float(np.mean(loss_trajectory))
-    return average_loss
+    loss_mean = float(loss_trajectory.mean())
+    return loss_mean
 
 
 def compute_layer_loss_trajectory(
@@ -176,7 +184,7 @@ def compute_layer_loss_trajectory(
     loss_trajectory : NDArray
         The loss trajectory of the learning_filter for each layer.
         shape = (number_of_systems, layer_dim, time_horizon - 1)
-    average_loss : NDArray
+    loss_mean_over_layers : NDArray
         The average loss of the learning_filter for each layer.
         shape = (layer_dim,)
     """
@@ -187,7 +195,15 @@ def compute_layer_loss_trajectory(
     loss_trajectory = np.empty(
         (number_of_systems, layer_dim, time_horizon - 1)
     )
-    with LearningMode.inference(learning_filter):
+    learning_filter.set_estimation_option(
+        learning_filter.config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+    )
+
+    with BaseLearningProcess.inference_mode(learning_filter):
+        observation_queue = FixLengthObservationQueue(
+            max_length=128,
+        )
+        learning_filter.reset()
         for k, (observation, next_observation) in logger.progress_bar(
             enumerate(
                 observation_generator(
@@ -197,21 +213,20 @@ def compute_layer_loss_trajectory(
             ),
             total=time_horizon - 1,
         ):
+            # learning_filter.reset()
+            # observation_queue.append(observation)
+            # learning_filter.update(torch.tensor(observation_queue.to_numpy()))
             learning_filter.update(torch.tensor(observation))
             learning_filter.estimate()
             layer_output = learning_filter.estimation.numpy()
             for l in range(layer_dim):
                 loss_trajectory[:, l, k] = cross_entropy(
-                    input_probability=(
-                        layer_output[:, l, :]
-                        if number_of_systems > 1
-                        else layer_output[l]
-                    ),
+                    input_probability=layer_output[:, l, :],
                     target_probability=next_observation,
                 )
-    average_loss = np.mean(loss_trajectory, axis=(0, 2))
+    loss_mean_over_layers = np.mean(loss_trajectory, axis=(0, 2))
 
-    return loss_trajectory, average_loss
+    return loss_trajectory, loss_mean_over_layers
 
 
 @dataclass
@@ -254,7 +269,16 @@ def compute_loss_trajectory(
     learning_filter_estimated_next_observation_probability = np.empty(
         (discrete_observation_dim, time_horizon - 1)
     )
-    with LearningMode.inference(learning_filter):
+    learning_filter.set_estimation_option(
+        learning_filter.config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+    )
+
+    with BaseLearningProcess.inference_mode(learning_filter):
+        observation_queue = FixLengthObservationQueue(
+            max_length=128,
+        )
+
+        learning_filter.reset()
         for k, (observation, next_observation) in logger.progress_bar(
             enumerate(
                 observation_generator(
@@ -266,39 +290,46 @@ def compute_loss_trajectory(
         ):
             filter.update(observation)
             filter.estimate()
+
+            # learning_filter.reset()
+            # observation_queue.append(observation[np.newaxis, :])
+            # learning_filter.update(torch.tensor(observation_queue.to_numpy()))
+
             learning_filter.update(torch.tensor(observation))
             learning_filter.estimate()
+
             filter_estimated_next_observation_probability[:, k] = (
                 filter.estimation
             )
             filter_loss_trajectory[k] = cross_entropy(
-                input_probability=filter.estimation,
-                target_probability=next_observation,
-            )
+                input_probability=filter.estimation[np.newaxis, :],
+                target_probability=next_observation[np.newaxis, :],
+            )[0]
+
             learning_filter_estimated_next_observation_probability[:, k] = (
                 learning_filter.predicted_next_observation_probability.numpy()
             )
             learning_filter_loss_trajectory[k] = cross_entropy(
-                input_probability=learning_filter.predicted_next_observation_probability.numpy(),
-                target_probability=next_observation,
-            )
+                input_probability=learning_filter.predicted_next_observation_probability.numpy()[
+                    np.newaxis, :
+                ],
+                target_probability=next_observation[np.newaxis, :],
+            )[0]
 
-    filter_mean_loss_trajectory = np.empty(time_horizon - 1)
-    learning_filter_mean_loss_trajectory = np.empty(time_horizon - 1)
+    filter_loss_mean_trajectory = np.empty(time_horizon - 1)
+    learning_filter_loss_mean_trajectory = np.empty(time_horizon - 1)
     for k in range(time_horizon - 1):
-        filter_mean_loss_trajectory[k] = np.sum(filter_loss_trajectory[:k]) / (
-            k + 1
+        filter_loss_mean_trajectory[k] = filter_loss_trajectory[: k + 1].mean()
+        learning_filter_loss_mean_trajectory[k] = (
+            learning_filter_loss_trajectory[: k + 1].mean()
         )
-        learning_filter_mean_loss_trajectory[k] = np.sum(
-            learning_filter_loss_trajectory[:k]
-        ) / (k + 1)
 
     filter_result_trajectory = FilterResultTrajectory(
-        loss=filter_mean_loss_trajectory,
+        loss=filter_loss_mean_trajectory,
         estimated_next_observation_probability=filter_estimated_next_observation_probability,
     )
     learning_filter_result_trajectory = FilterResultTrajectory(
-        loss=learning_filter_mean_loss_trajectory,
+        loss=learning_filter_loss_mean_trajectory,
         estimated_next_observation_probability=learning_filter_estimated_next_observation_probability,
     )
     return filter_result_trajectory, learning_filter_result_trajectory

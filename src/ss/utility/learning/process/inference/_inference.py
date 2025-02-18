@@ -1,21 +1,19 @@
 from types import TracebackType
 from typing import ContextManager, Dict, Optional, Type
 
-from enum import StrEnum
-
 import torch
 
 from ss.utility.device import DeviceManager
-from ss.utility.learning.module import BaseLearningModule
+from ss.utility.learning import module as Module
 
 
 class InferenceContext(ContextManager[None]):
-    def __init__(self, *modules: BaseLearningModule) -> None:
+    def __init__(self, *modules: Module.BaseLearningModule) -> None:
         self._device_manager = DeviceManager()
         self._modules = tuple(
             self._device_manager.load_module(module) for module in modules
         )
-        self._inference_setting: Dict[BaseLearningModule, bool] = dict()
+        self._inference_setting: Dict[Module.BaseLearningModule, bool] = dict()
         self._no_grad = torch.no_grad()
 
     def __enter__(self) -> None:
@@ -23,7 +21,7 @@ class InferenceContext(ContextManager[None]):
 
         for module in self._modules:
             self._inference_setting[module] = module.inference
-            module.inference = True
+            Module.set_inference_mode(module)
 
     def __exit__(
         self,
@@ -32,16 +30,7 @@ class InferenceContext(ContextManager[None]):
         traceback: Optional[TracebackType],
     ) -> None:
         for module, inference in self._inference_setting.items():
-            module.inference = inference
+            # module.inference = inference
+            Module.set_inference_mode(module, inference)
 
         self._no_grad.__exit__(exc_type, exc_value, traceback)
-
-
-class LearningMode(StrEnum):
-    TRAIN = "TRAIN"
-    VISUALIZE = "VISUALIZE"
-    INFERENCE = "INFERENCE"
-
-    @classmethod
-    def inference(cls, *modules: BaseLearningModule) -> InferenceContext:
-        return InferenceContext(*modules)
