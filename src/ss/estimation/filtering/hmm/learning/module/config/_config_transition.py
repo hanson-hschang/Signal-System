@@ -1,7 +1,7 @@
 from typing import assert_never
 
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import StrEnum, auto
 
 import torch
 
@@ -12,13 +12,14 @@ from ss.utility.learning.module import config as Config
 class TransitionMatrixConfig(Config.BaseLearningConfig):
 
     class Option(StrEnum):
-        FULL_MATRIX = "FULL_MATRIX"
-        SPATIAL_INVARIANT = "SPATIAL_INVARIANT"
+        FULL_MATRIX = auto()
+        SPATIAL_INVARIANT = auto()
+        IID = auto()
 
     class Initializer(StrEnum):
-        NORMAL_DISTRIBUTION = "NORMAL_DISTRIBUTION"
-        UNIFORM_DISTRIBUTION = "UNIFORM_DISTRIBUTION"
-        IDENTITY = "IDENTITY"
+        NORMAL_DISTRIBUTION = auto()
+        UNIFORM_DISTRIBUTION = auto()
+        IDENTITY = auto()
 
         def __init__(self, value: str) -> None:
             self.mean: float = 0.0
@@ -31,17 +32,17 @@ class TransitionMatrixConfig(Config.BaseLearningConfig):
             match self:
                 case self.NORMAL_DISTRIBUTION:
                     return torch.normal(
-                        self.mean,  # type: ignore
-                        self.variance,  # type: ignore
+                        self.mean,
+                        self.variance,
                         (dim,),
                         dtype=torch.float64,
                     )
                 case self.UNIFORM_DISTRIBUTION:
-                    return self.min_value + (  # type: ignore
-                        self.max_value - self.min_value  # type: ignore
+                    return self.min_value + (
+                        self.max_value - self.min_value
                     ) * torch.rand(dim, dtype=torch.float64)
                 case self.IDENTITY:
-                    row = self.log_zero_value * torch.ones(  # type: ignore
+                    row = self.log_zero_value * torch.ones(
                         dim, dtype=torch.float64
                     )
                     row[row_index] = 0.0
@@ -51,14 +52,15 @@ class TransitionMatrixConfig(Config.BaseLearningConfig):
 
     option: Option = Option.FULL_MATRIX
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
+    initial_state_binding: bool = False
 
 
 @dataclass
 class TransitionInitialStateConfig(Config.BaseLearningConfig):
 
     class Initializer(StrEnum):
-        NORMAL_DISTRIBUTION = "NORMAL_DISTRIBUTION"
-        UNIFORM_DISTRIBUTION = "UNIFORM_DISTRIBUTION"
+        NORMAL_DISTRIBUTION = auto()
+        UNIFORM_DISTRIBUTION = auto()
 
         def __init__(self, value: str) -> None:
             self.mean: float = 0.0
@@ -70,14 +72,14 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
             match self:
                 case self.NORMAL_DISTRIBUTION:
                     return torch.normal(
-                        self.mean,  # type: ignore
-                        self.variance,  # type: ignore
+                        self.mean,
+                        self.variance,
                         (dim,),
                         dtype=torch.float64,
                     )
                 case self.UNIFORM_DISTRIBUTION:
-                    return self.min_value + (  # type: ignore
-                        self.max_value - self.min_value  # type: ignore
+                    return self.min_value + (
+                        self.max_value - self.min_value
                     ) * torch.rand(dim, dtype=torch.float64)
                 case _ as _invalid_initializer:
                     assert_never(_invalid_initializer)  # type: ignore

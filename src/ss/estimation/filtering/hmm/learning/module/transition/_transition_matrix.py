@@ -22,7 +22,7 @@ class BaseLearningHmmFilterTransitionMatrix(
 
         self._dropout = Dropout(self._config.dropout)
 
-        self._initial_state = nn.Parameter(
+        self._initial_state_weight = nn.Parameter(
             self._config.transition.initial_state.initializer.initialize(
                 self._state_dim,
             )
@@ -34,6 +34,7 @@ class BaseLearningHmmFilterTransitionMatrix(
         ).repeat(
             1, 1
         )  # (batch_size, state_dim)
+        self._matrix_weight: nn.Parameter
 
     def get_estimated_previous_state(
         self, batch_size: int = 1
@@ -41,13 +42,13 @@ class BaseLearningHmmFilterTransitionMatrix(
         if not self._inference:
             self._is_initialized = False
             _estimated_previous_state = nn.functional.softmax(
-                self._initial_state, dim=0
+                self._initial_state_weight, dim=0
             ).repeat(batch_size, 1)
             return _estimated_previous_state
         if not self._is_initialized:
             self._is_initialized = True
             self._estimated_previous_state = nn.functional.softmax(
-                self._initial_state, dim=0
+                self._initial_state_weight, dim=0
             ).repeat(batch_size, 1)
         return self._estimated_previous_state
 
@@ -55,12 +56,16 @@ class BaseLearningHmmFilterTransitionMatrix(
         self._is_initialized = False
 
     @property
+    def initial_state_weight(self) -> torch.Tensor:
+        return self._initial_state_weight
+
+    @property
+    def matrix_weight(self) -> torch.Tensor:
+        raise NotImplementedError
+
+    @property
     def matrix(self) -> torch.Tensor:
-        return torch.eye(
-            self._state_dim,
-            dtype=torch.float64,
-            device=self._initial_state.device,
-        )
+        raise NotImplementedError
 
     def _prediction_step(
         self,
@@ -166,6 +171,8 @@ class BaseLearningHmmFilterTransitionMatrix(
                 return LearningHmmFilterTransitionSpatialInvariantMatrix(
                     config, feature_id
                 )
+            case Config.TransitionMatrixConfig.Option.IID:
+                return LearningHmmFilterTransitionIIDMatrix(config, feature_id)
             case _ as _invalid_block_option:
                 assert_never(_invalid_block_option)
 
@@ -187,12 +194,16 @@ class LearningHmmFilterTransitionFullMatrix(
                     self._state_dim, i
                 )
             )
-        self._weight = nn.Parameter(_weight)
+        self._matrix_weight = nn.Parameter(_weight)
         # self._mask = torch.ones_like(self._weight)
 
     @property
+    def matrix_weight(self) -> torch.Tensor:
+        return self._matrix_weight
+
+    @property
     def matrix(self) -> torch.Tensor:
-        weight = self._dropout(self._weight)
+        weight = self._dropout(self._matrix_weight)
         matrix = nn.functional.softmax(weight, dim=1)
         return matrix
 
@@ -234,18 +245,24 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
         _weight = self._config.transition.matrix.initializer.initialize(
             self._state_dim,
         )
-        self._weight = nn.Parameter(_weight)
+        if self._config.transition.matrix.initial_state_binding:
+            _weight = self._initial_state_weight
+        self._matrix_weight = nn.Parameter(_weight)
         # self._mask = torch.ones_like(self._weight)
+
+    @property
+    def matrix_weight(self) -> torch.Tensor:
+        return self._matrix_weight
 
     @property
     def matrix(self) -> torch.Tensor:
         matrix = torch.empty(
             (self._state_dim, self._state_dim),
             dtype=torch.float64,
-            device=self._weight.device,
+            device=self._matrix_weight.device,
         )
         matrix[0, :] = nn.functional.softmax(
-            self._dropout(self._weight),
+            self._dropout(self._matrix_weight),
             dim=0,
         )
         for i in range(1, self._state_dim):
@@ -275,3 +292,40 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
         # for i in range(1, self._state_dim):
         #     matrix[i, :] = torch.roll(matrix[i - 1, :], shifts=1)
         # return matrix
+
+
+class LearningHmmFilterTransitionIIDMatrix(
+    BaseLearningHmmFilterTransitionMatrix
+):
+    def __init__(
+        self,
+        config: Config.LearningHmmFilterConfig,
+        feature_id: int,
+    ) -> None:
+        super().__init__(config, feature_id)
+        # _weight = self._config.transition.matrix.initializer.initialize(
+        #     self._state_dim,
+        # )
+        # if self._config.transition.matrix.initial_state_binding:
+        self._config.transition.matrix.initial_state_binding = True
+        _weight = self._initial_state_weight
+        self._matrix_weight = nn.Parameter(_weight)
+
+    @property
+    def matrix_weight(self) -> torch.Tensor:
+        return self._matrix_weight
+
+    @property
+    def matrix(self) -> torch.Tensor:
+        matrix = torch.empty(
+            (self._state_dim, self._state_dim),
+            dtype=torch.float64,
+            device=self._matrix_weight.device,
+        )
+        matrix[0, :] = nn.functional.softmax(
+            self._dropout(self._matrix_weight),
+            dim=0,
+        )
+        for i in range(1, self._state_dim):
+            matrix[i, :] = matrix[i - 1, :]
+        return matrix

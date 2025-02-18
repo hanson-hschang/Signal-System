@@ -170,19 +170,20 @@ class BaseLearningProcess:
     ) -> None:
         self._checkpoint = Checkpoint(training_config.checkpoint)
 
-        if training_config.validation.at_initial:
-            logger.info("Model evaluation before training...")
-            validation_losses = self.evaluate_model(validation_data_loader)
-            self._update_validation_loss(validation_losses)
-
-            self._update_epoch(training_config.termination.max_epoch)
-            self._checkpoint.save(
-                self._module,
-                self.save_checkpoint_info(),
-                self.save_model_info(),
-            )
-
         try:
+
+            if training_config.validation.at_initial:
+                logger.info("Model evaluation before training...")
+                validation_losses = self.evaluate_model(validation_data_loader)
+                self._update_validation_loss(validation_losses)
+
+                self._update_epoch(training_config.termination.max_epoch)
+                self._checkpoint.save(
+                    self._module,
+                    self.save_checkpoint_info(),
+                    self.save_model_info(),
+                )
+
             logger.info("Start training...")
             while training_config.termination.condition(
                 epoch=self._epoch
@@ -204,14 +205,17 @@ class BaseLearningProcess:
                         self.save_checkpoint_info(),
                         self.save_model_info(),
                     )
+
         except KeyboardInterrupt:
             training_config.termination.reason = (
                 training_config.termination.TerminationReason.USER_INTERRUPT
             )
 
-        logger.info(
-            f"Training is terminated with reason: {training_config.termination.reason} triggered!"
-        )
+        finally:
+            logger.info(
+                f"Training is terminated with reason: {training_config.termination.reason} triggered!"
+            )
+
         self._checkpoint.finalize().save(
             self._module,
             self.save_checkpoint_info(),

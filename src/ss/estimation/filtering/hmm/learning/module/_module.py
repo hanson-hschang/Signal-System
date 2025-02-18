@@ -100,6 +100,14 @@ class LearningHmmFilter(
     batch_size = ReadOnlyDescriptor[int]()
 
     @property
+    def emission_process(self) -> LearningHmmFilterEmissionProcess:
+        return self._emission_process
+
+    @property
+    def transition_process(self) -> LearningHmmFilterTransitionProcess:
+        return self._transition_process
+
+    @property
     def emission_matrix(self) -> torch.Tensor:
         return self._emission_process.matrix.detach()
 

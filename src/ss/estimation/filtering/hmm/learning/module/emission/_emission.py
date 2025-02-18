@@ -31,7 +31,7 @@ class LearningHmmFilterEmissionProcess(
                     self._discrete_observation_dim,
                 )
             )
-        self._weight = nn.Parameter(_weight)
+        self._matrix_weight = nn.Parameter(_weight)
 
         self._config.dropout.rate = (
             self._config.dropout.rate
@@ -42,8 +42,12 @@ class LearningHmmFilterEmissionProcess(
         # self._mask = torch.ones_like(self._weight)
 
     @property
+    def matrix_weight(self) -> torch.Tensor:
+        return self._matrix_weight
+
+    @property
     def matrix(self) -> torch.Tensor:
-        weight = self._dropout(self._weight)
+        weight = self._dropout(self._matrix_weight)
         matrix = nn.functional.softmax(weight, dim=1)
         return matrix
 

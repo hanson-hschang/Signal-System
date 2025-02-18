@@ -41,13 +41,20 @@ class LearningHmmFilterTransitionLayer(
         self._dropout = Dropout(self._config.dropout)
         self._mask = torch.ones_like(self._weight)
 
-        self.blocks = nn.ModuleList()
+        self._blocks = nn.ModuleList()
         for feature_id in range(self._feature_dim):
-            self.blocks.append(
+            self._blocks.append(
                 BaseLearningHmmFilterTransitionMatrix.create(
                     self._config, feature_id
                 )
             )
+
+    @property
+    def blocks(self) -> List[BaseLearningHmmFilterTransitionMatrix]:
+        return [
+            cast(BaseLearningHmmFilterTransitionMatrix, block)
+            for block in self._blocks
+        ]
 
     @property
     def matrix(self) -> torch.Tensor:
@@ -56,7 +63,7 @@ class LearningHmmFilterTransitionLayer(
             (self._config.filter.state_dim, self._config.filter.state_dim),
             dtype=weight.dtype,
         )
-        for i, block in enumerate(self.blocks):
+        for i, block in enumerate(self._blocks):
             transition_matrix += (
                 cast(BaseLearningHmmFilterTransitionMatrix, block).matrix
                 * weight[i]
@@ -85,7 +92,7 @@ class LearningHmmFilterTransitionLayer(
         average_predicted_next_state_trajectory = torch.zeros_like(
             input_state_trajectory
         )
-        for i, block in enumerate(self.blocks):
+        for i, block in enumerate(self._blocks):
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 block(input_state_trajectory)
             )
@@ -101,7 +108,7 @@ class LearningHmmFilterTransitionLayer(
         )
 
     def reset(self) -> None:
-        for block in self.blocks:
+        for block in self._blocks:
             reset_module(block)
 
 
@@ -116,9 +123,9 @@ class LearningHmmFilterTransitionProcess(
         # The initial emission layer is counted as a layer with layer_id = 0
         self._layer_dim = self._config.filter.layer_dim + 1
         self._state_dim = self._config.filter.state_dim
-        self.layers = nn.ModuleList()
+        self._layers = nn.ModuleList()
         for layer_id in range(1, self._layer_dim):
-            self.layers.append(
+            self._layers.append(
                 LearningHmmFilterTransitionLayer(layer_id, self._config)
             )
         with self.evaluation_mode():
@@ -149,10 +156,17 @@ class LearningHmmFilterTransitionProcess(
     )
 
     @property
+    def layers(self) -> List[LearningHmmFilterTransitionLayer]:
+        return [
+            cast(LearningHmmFilterTransitionLayer, layer)
+            for layer in self._layers
+        ]
+
+    @property
     def matrix(self) -> List[torch.Tensor]:
         return [
             cast(LearningHmmFilterTransitionLayer, layer).matrix
-            for layer in self.layers
+            for layer in self._layers
         ]
 
     def forward(
@@ -168,7 +182,7 @@ class LearningHmmFilterTransitionProcess(
                 )
             )  # (batch_size, state_dim)
 
-        for i, layer in enumerate(self.layers, start=1):
+        for i, layer in enumerate(self._layers, start=1):
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 layer(likelihood_state_trajectory)
             )
@@ -182,5 +196,5 @@ class LearningHmmFilterTransitionProcess(
 
     def reset(self) -> None:
         self._is_initialized = False
-        for layer in self.layers:
+        for layer in self._layers:
             reset_module(layer)
