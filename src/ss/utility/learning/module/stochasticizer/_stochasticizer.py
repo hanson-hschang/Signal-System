@@ -70,6 +70,33 @@ class Stochasticizer(BaseLearningModule[Config.StochasticizerConfig]):
             case _:
                 return super().get_parameter(name)
 
+    def get_value(self, name: str) -> torch.Tensor:
+        """
+        Get the value of the parameter of the Stochasticizer module.
+
+        Parameters
+        ----------
+        name : str
+            The name of the parameter.
+
+        Returns
+        -------
+        value : torch.Tensor
+            The value of the parameter.
+        """
+        match name:
+            case "temperature":
+                if (
+                    not self.config.option
+                    == Config.StochasticizerConfig.Option.SOFTMAX
+                ):
+                    logger.error(
+                        f"temperature is not used for the option {self.config.option}."
+                    )
+                return cast(SoftmaxStochasticizer, self).temperature
+            case _:
+                raise ValueError(f"Invalid parameter name: {name}")
+
 
 class SoftmaxStochasticizer(Stochasticizer):
     def __init__(self, config: Config.StochasticizerConfig) -> None:
