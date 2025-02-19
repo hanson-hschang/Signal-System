@@ -68,6 +68,9 @@ def training(
     config.transition.initial_state.stochasticizer.temperature.initial_value = (
         2.0
     )
+    config.transition.coefficient.stochasticizer.temperature.initial_value = (
+        2.0
+    )
     config.emission.matrix.stochasticizer.temperature.initial_value = 2.0
     config.transition.matrix.stochasticizer.temperature.require_training = True
 

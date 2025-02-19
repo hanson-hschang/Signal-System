@@ -98,7 +98,7 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
 
 
 @dataclass
-class TransitionWeightConfig(Config.BaseLearningConfig):
+class TransitionCoefficientConfig(Config.BaseLearningConfig):
     class Initializer(StrEnum):
         NORMAL_DISTRIBUTION = auto()
         UNIFORM_DISTRIBUTION = auto()
@@ -140,6 +140,6 @@ class TransitionConfig(Config.BaseLearningConfig):
     initial_state: TransitionInitialStateConfig = field(
         default_factory=TransitionInitialStateConfig
     )
-    coefficient: TransitionWeightConfig = field(
-        default_factory=TransitionWeightConfig
+    coefficient: TransitionCoefficientConfig = field(
+        default_factory=TransitionCoefficientConfig
     )
