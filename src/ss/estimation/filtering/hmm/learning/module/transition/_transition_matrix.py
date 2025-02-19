@@ -6,7 +6,7 @@ from torch import nn
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import Dropout
-from ss.utility.learning.module.probability import Probability
+from ss.utility.learning.module.stochasticizer import Stochasticizer
 
 
 class BaseLearningHmmFilterTransitionMatrix(
@@ -28,7 +28,7 @@ class BaseLearningHmmFilterTransitionMatrix(
                 self._state_dim,
             )
         )  # (state_dim,)
-        self._initial_state_probability = Probability.create(
+        self._initial_state_stochasticizer = Stochasticizer.create(
             self._config.transition.initial_state.probability
         )
 
@@ -39,13 +39,14 @@ class BaseLearningHmmFilterTransitionMatrix(
             1, 1
         )  # (batch_size, state_dim)
         self._matrix_parameter: nn.Parameter
+        self._matrix_stochasticizer: Stochasticizer
 
     def get_estimated_previous_state(
         self, batch_size: int = 1
     ) -> torch.Tensor:
         if not self._inference:
             self._is_initialized = False
-            _estimated_previous_state = self._initial_state_probability(
+            _estimated_previous_state = self._initial_state_stochasticizer(
                 self._initial_state_parameter
             )
             return cast(torch.Tensor, _estimated_previous_state).repeat(
@@ -53,7 +54,7 @@ class BaseLearningHmmFilterTransitionMatrix(
             )
         if not self._is_initialized:
             self._is_initialized = True
-            _estimated_previous_state = self._initial_state_probability(
+            _estimated_previous_state = self._initial_state_stochasticizer(
                 self._initial_state_parameter
             )
             self._estimated_previous_state = cast(
@@ -69,15 +70,23 @@ class BaseLearningHmmFilterTransitionMatrix(
         return self._initial_state_parameter
 
     @property
+    def initial_state_stochasticizer(self) -> Stochasticizer:
+        return self._initial_state_stochasticizer
+
+    @property
     def initial_state(self) -> torch.Tensor:
         return cast(
             torch.Tensor,
-            self._initial_state_probability(self._initial_state_parameter),
+            self._initial_state_stochasticizer(self._initial_state_parameter),
         )
 
     @property
     def matrix_parameter(self) -> nn.Parameter:
         return self._matrix_parameter
+
+    @property
+    def matrix_stochasticizer(self) -> Stochasticizer:
+        return self._matrix_stochasticizer
 
     @property
     def matrix(self) -> torch.Tensor:
@@ -211,14 +220,14 @@ class LearningHmmFilterTransitionFullMatrix(
                 )
             )
         self._matrix_parameter = nn.Parameter(_weight)
-        self._matrix_probability = Probability.create(
-            self._config.transition.matrix.probability
+        self._matrix_stochasticizer = Stochasticizer.create(
+            self._config.transition.matrix.stochasticizer
         )
         # self._mask = torch.ones_like(self._weight)
 
     @property
     def matrix(self) -> torch.Tensor:
-        matrix: torch.Tensor = self._matrix_probability(
+        matrix: torch.Tensor = self._matrix_stochasticizer(
             self._dropout(self._matrix_parameter)
         )
         return matrix
@@ -264,8 +273,8 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
         if self._config.transition.matrix.initial_state_binding:
             _weight = self._initial_state_parameter
         self._matrix_parameter = nn.Parameter(_weight)
-        self._matrix_probability = Probability.create(
-            self._config.transition.matrix.probability
+        self._matrix_stochasticizer = Stochasticizer.create(
+            self._config.transition.matrix.stochasticizer
         )
         # self._mask = torch.ones_like(self._weight)
 
@@ -276,7 +285,7 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
             dtype=torch.float64,
             device=self._matrix_parameter.device,
         )
-        matrix[0, :] = self._matrix_probability(
+        matrix[0, :] = self._matrix_stochasticizer(
             self._dropout(self._matrix_parameter),
         )
         for i in range(1, self._state_dim):
@@ -324,8 +333,8 @@ class LearningHmmFilterTransitionIIDMatrix(
         self._config.transition.matrix.initial_state_binding = True
         _weight = self._initial_state_parameter
         self._matrix_parameter = nn.Parameter(_weight)
-        self._matrix_probability = Probability.create(
-            self._config.transition.matrix.probability
+        self._matrix_probability = Stochasticizer.create(
+            self._config.transition.matrix.stochasticizer
         )
 
     @property

@@ -6,7 +6,9 @@ from enum import StrEnum, auto
 import torch
 
 from ss.utility.learning.module import config as Config
-from ss.utility.learning.module.probability.config import ProbabilityConfig
+from ss.utility.learning.module.stochasticizer.config import (
+    StochasticizerConfig,
+)
 
 
 @dataclass
@@ -43,7 +45,9 @@ class EmissionMatrixConfig(Config.BaseLearningConfig):
 
     option: Option = Option.FULL_MATRIX
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
-    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
+    stochasticizer: StochasticizerConfig = field(
+        default_factory=StochasticizerConfig
+    )
 
 
 @dataclass

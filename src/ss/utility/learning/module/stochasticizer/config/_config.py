@@ -9,14 +9,14 @@ logger = Logging.get_logger(__name__)
 
 
 @dataclass
-class ProbabilityConfig(Config.BaseLearningConfig):
+class StochasticizerConfig(Config.BaseLearningConfig):
     """
-    Configuration of the probability module.
+    Configuration of the Stochasticizer module.
 
     Parameters
     ----------
     option : Option, default = Option.SOFTMAX
-        The option of the probability module.
+        The option of the Stochasticizer module.
     """
 
     class Option(StrEnum):

@@ -6,7 +6,9 @@ from enum import StrEnum, auto
 import torch
 
 from ss.utility.learning.module import config as Config
-from ss.utility.learning.module.probability.config import ProbabilityConfig
+from ss.utility.learning.module.stochasticizer.config import (
+    StochasticizerConfig,
+)
 
 
 @dataclass
@@ -54,7 +56,9 @@ class TransitionMatrixConfig(Config.BaseLearningConfig):
     option: Option = Option.FULL_MATRIX
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
     initial_state_binding: bool = False
-    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
+    stochasticizer: StochasticizerConfig = field(
+        default_factory=StochasticizerConfig
+    )
     skip_first_transition: bool = False
 
 
@@ -88,7 +92,9 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
                     assert_never(_invalid_initializer)  # type: ignore
 
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
-    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
+    probability: StochasticizerConfig = field(
+        default_factory=StochasticizerConfig
+    )
 
 
 @dataclass
@@ -120,7 +126,9 @@ class TransitionWeightConfig(Config.BaseLearningConfig):
                     assert_never(_invalid_initializer)  # type: ignore
 
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
-    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
+    stochasticizer: StochasticizerConfig = field(
+        default_factory=StochasticizerConfig
+    )
 
 
 @dataclass

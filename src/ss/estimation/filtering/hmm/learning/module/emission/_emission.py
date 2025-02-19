@@ -6,7 +6,7 @@ from torch import nn
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import Dropout
-from ss.utility.learning.module.probability import Probability
+from ss.utility.learning.module.stochasticizer import Stochasticizer
 
 
 class LearningHmmFilterEmissionProcess(
@@ -33,8 +33,8 @@ class LearningHmmFilterEmissionProcess(
                 )
             )
         self._matrix_parameter = nn.Parameter(matrix_parameter)
-        self._matrix_probability = Probability.create(
-            self._config.emission.matrix.probability
+        self._matrix_probability = Stochasticizer.create(
+            self._config.emission.matrix.stochasticizer
         )
 
         self._config.dropout.rate = (

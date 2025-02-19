@@ -4,48 +4,48 @@ import torch
 from torch import nn
 
 from ss.utility.learning.module import BaseLearningModule
-from ss.utility.learning.module.probability import config as Config
+from ss.utility.learning.module.stochasticizer import config as Config
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
 
-class Probability(BaseLearningModule[Config.ProbabilityConfig]):
+class Stochasticizer(BaseLearningModule[Config.StochasticizerConfig]):
     """
-    Probability module.
+    Stochasticizer module.
     """
 
     def __init__(
         self,
-        config: Config.ProbabilityConfig,
+        config: Config.StochasticizerConfig,
     ) -> None:
         super().__init__(config)
 
     @classmethod
     def create(
         cls,
-        config: Config.ProbabilityConfig,
-    ) -> "Probability":
+        config: Config.StochasticizerConfig,
+    ) -> "Stochasticizer":
         """
         Create a probability module.
 
         Parameters
         ----------
-        config : Config.ProbabilityConfig
+        config : Config.StochasticizerConfig
             The configuration of the probability module.
 
         Returns
         -------
-        Probability
-            The probability module.
+        Stochasticizer
+            The Stochasticizer module.
         """
         match config.option:
-            case Config.ProbabilityConfig.Option.SOFTMAX:
-                return SoftmaxProbability(config)
+            case Config.StochasticizerConfig.Option.SOFTMAX:
+                return SoftmaxStochasticizer(config)
 
     def get_parameter(self, name: str) -> nn.Parameter:
         """
-        Get the parameter of the probability module.
+        Get the parameter of the Stochasticizer module.
 
         Parameters
         ----------
@@ -61,18 +61,18 @@ class Probability(BaseLearningModule[Config.ProbabilityConfig]):
             case "temperature":
                 if (
                     not self.config.option
-                    == Config.ProbabilityConfig.Option.SOFTMAX
+                    == Config.StochasticizerConfig.Option.SOFTMAX
                 ):
                     logger.error(
                         f"temperature is not used for the option {self.config.option}."
                     )
-                return cast(SoftmaxProbability, self).temperature_parameter
+                return cast(SoftmaxStochasticizer, self).temperature_parameter
             case _:
                 return super().get_parameter(name)
 
 
-class SoftmaxProbability(Probability):
-    def __init__(self, config: Config.ProbabilityConfig) -> None:
+class SoftmaxStochasticizer(Stochasticizer):
+    def __init__(self, config: Config.StochasticizerConfig) -> None:
         super().__init__(config)
         self._temperature_parameter = nn.Parameter(
             torch.log(torch.tensor(self._config.temperature.initial_value)),

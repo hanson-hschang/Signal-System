@@ -7,7 +7,7 @@ from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
 from ss.utility.learning.module.dropout import Dropout
-from ss.utility.learning.module.probability import Probability
+from ss.utility.learning.module.stochasticizer import Stochasticizer
 from ss.utility.logging import Logging
 
 from ._transition_matrix import BaseLearningHmmFilterTransitionMatrix
@@ -34,8 +34,8 @@ class LearningHmmFilterTransitionLayer(
                 self._feature_dim,
             )
         )
-        self._coefficient_probability = Probability.create(
-            self._config.transition.coefficient.probability
+        self._coefficient_probability = Stochasticizer.create(
+            self._config.transition.coefficient.stochasticizer
         )
 
         self._dropout = Dropout(self._config.dropout)
