@@ -33,25 +33,25 @@ class TransitionMatrixConfig(Config.BaseLearningConfig):
 
         def initialize(self, dim: int, row_index: int = 0) -> torch.Tensor:
             match self:
-                case self.NORMAL_DISTRIBUTION:
+                case TransitionMatrixConfig.Initializer.NORMAL_DISTRIBUTION:
                     return torch.normal(
                         self.mean,
                         self.variance,
                         (dim,),
                         dtype=torch.float64,
                     )
-                case self.UNIFORM_DISTRIBUTION:
+                case TransitionMatrixConfig.Initializer.UNIFORM_DISTRIBUTION:
                     return self.min_value + (
                         self.max_value - self.min_value
                     ) * torch.rand(dim, dtype=torch.float64)
-                case self.IDENTITY:
+                case TransitionMatrixConfig.Initializer.IDENTITY:
                     row = self.log_zero_value * torch.ones(
                         dim, dtype=torch.float64
                     )
                     row[row_index] = 0.0
                     return torch.Tensor(row)
                 case _ as _invalid_initializer:
-                    assert_never(_invalid_initializer)  # type: ignore
+                    assert_never(_invalid_initializer)
 
     option: Option = Option.FULL_MATRIX
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
@@ -77,19 +77,23 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
 
         def initialize(self, dim: int) -> torch.Tensor:
             match self:
-                case self.NORMAL_DISTRIBUTION:
+                case (
+                    TransitionInitialStateConfig.Initializer.NORMAL_DISTRIBUTION
+                ):
                     return torch.normal(
                         self.mean,
                         self.variance,
                         (dim,),
                         dtype=torch.float64,
                     )
-                case self.UNIFORM_DISTRIBUTION:
+                case (
+                    TransitionInitialStateConfig.Initializer.UNIFORM_DISTRIBUTION
+                ):
                     return self.min_value + (
                         self.max_value - self.min_value
                     ) * torch.rand(dim, dtype=torch.float64)
                 case _ as _invalid_initializer:
-                    assert_never(_invalid_initializer)  # type: ignore
+                    assert_never(_invalid_initializer)
 
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
     stochasticizer: StochasticizerConfig = field(

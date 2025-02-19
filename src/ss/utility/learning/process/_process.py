@@ -69,10 +69,11 @@ class BaseLearningProcess:
 
     def _update_validation_loss(self, losses: NDArray) -> None:
         self._validation_loss_history["iteration"].append(self._iteration)
-        loss_mean, loss_std = losses.mean(), losses.std()
+        loss_mean, loss_std = float(losses.mean()), float(losses.std())
         self._validation_loss_history["loss_mean"].append(loss_mean)
         self._validation_loss_history["loss_std"].append(loss_std)
-        logger.info(f"Validation loss: {loss_mean = }, {loss_std = }")
+        logger.info(f"Validation loss: {loss_mean}" " \xB1 " f"{loss_std}")
+        # \xB1 is a unicode character for the plus-minus sign (±)
 
     def _update_training_loss(self, loss: float) -> None:
         self._training_loss_history["iteration"].append(self._iteration)
@@ -213,7 +214,7 @@ class BaseLearningProcess:
 
         finally:
             logger.info(
-                f"Training is terminated with reason: {training_config.termination.reason} triggered!"
+                f"Training is terminated with the reason: {training_config.termination.reason} triggered!"
             )
 
         self._checkpoint.finalize().save(

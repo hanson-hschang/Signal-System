@@ -64,15 +64,6 @@ def training(
         feature_dim_over_layers=(1,),
     )
     config.dropout.rate = 0.0
-    config.transition.matrix.stochasticizer.temperature.initial_value = 2.0
-    config.transition.initial_state.stochasticizer.temperature.initial_value = (
-        2.0
-    )
-    config.transition.coefficient.stochasticizer.temperature.initial_value = (
-        2.0
-    )
-    config.emission.matrix.stochasticizer.temperature.initial_value = 2.0
-    config.transition.matrix.stochasticizer.temperature.require_training = True
 
     # Prepare module
     learning_filter = LearningHmmFilter(config)
