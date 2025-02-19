@@ -1,7 +1,7 @@
 from typing import Generator, Optional, Type, TypeVar, Union, assert_never
 
 from contextlib import contextmanager
-from enum import StrEnum
+from enum import StrEnum, auto
 from pathlib import Path
 
 import torch
@@ -22,9 +22,9 @@ M = TypeVar("M", bound=torch.nn.Module)
 class DeviceManager(metaclass=SingletonMeta):
 
     class Device(StrEnum):
-        CUDA_GPU = "cuda"
-        CPU = "cpu"
-        MPS = "mps"
+        CUDA = auto()
+        CPU = auto()
+        MPS = auto()
 
         @property
         def torch_device(self) -> torch.device:
@@ -33,12 +33,12 @@ class DeviceManager(metaclass=SingletonMeta):
     def __init__(self, device: Optional[Device] = None) -> None:
         if device is None:
             device = (
-                DeviceManager.Device.CUDA_GPU
+                DeviceManager.Device.CUDA
                 if torch.cuda.is_available()
                 else DeviceManager.Device.CPU
             )
         match device:
-            case DeviceManager.Device.CUDA_GPU:
+            case DeviceManager.Device.CUDA:
                 if not torch.cuda.is_available():
                     device = DeviceManager.Device.CPU
                     logger.warning(
@@ -51,10 +51,10 @@ class DeviceManager(metaclass=SingletonMeta):
                 logger.warning(
                     "MPS is not yet supported currently. Switching to CPU."
                 )
-            case _ as _device:
-                assert_never(_device)
-        self._torch_device = torch.device(device)
+            case _ as _invalid_device:
+                assert_never(_invalid_device)
         self._device = device
+        self._torch_device = self._device.torch_device
         logger.info(f"Device: {self._device}")
 
     @property
@@ -84,7 +84,7 @@ class DeviceManager(metaclass=SingletonMeta):
             match self._device:
                 case DeviceManager.Device.MPS:
                     _DeviceMonitor = MpsMonitor
-                case DeviceManager.Device.CUDA_GPU:
+                case DeviceManager.Device.CUDA:
                     _DeviceMonitor = CudaGpuMonitor
                 case DeviceManager.Device.CPU:
                     _DeviceMonitor = CpuMonitor

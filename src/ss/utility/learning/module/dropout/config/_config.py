@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import StrEnum, auto
 
 from ss.utility.learning.module import config as Config
 from ss.utility.logging import Logging
@@ -19,34 +19,35 @@ class DropoutConfig(Config.BaseLearningConfig):
     """
 
     class Value(StrEnum):
-        ZERO = "ZERO"
-        LOG_ZERO = "LOG_ZERO"
+        ZERO = auto()
+        LOG_ZERO = auto()
 
         def __init__(self, value: str) -> None:
+            super().__init__()
             self._scaling: bool = True
             self._log_zero_scale: float = -1.0
 
         @property
         def scaling(self) -> bool:
-            if not (self is self.ZERO):
+            if not (self == DropoutConfig.Value.ZERO):
                 logger.error(f"scaling is not available for {self}.")
             return self._scaling
 
         @scaling.setter
         def scaling(self, scaling: bool) -> None:
-            if not (self is self.ZERO):
+            if not (self == DropoutConfig.Value.ZERO):
                 logger.error(f"scaling is not available for {self}.")
             self._scaling = scaling
 
         @property
         def log_zero_scale(self) -> float:
-            if not (self is self.LOG_ZERO):
+            if not (self == DropoutConfig.Value.LOG_ZERO):
                 logger.error(f"log_zero_scale is not available for {self}.")
             return self._log_zero_scale
 
         @log_zero_scale.setter
         def log_zero_scale(self, log_zero_scale: float) -> None:
-            if not (self is self.LOG_ZERO):
+            if not (self == DropoutConfig.Value.LOG_ZERO):
                 logger.error(f"log_zero_scale is not available for {self}.")
             self._log_zero_scale = log_zero_scale
 

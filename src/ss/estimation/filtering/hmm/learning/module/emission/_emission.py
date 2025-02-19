@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 from torch import nn
@@ -6,6 +6,7 @@ from torch import nn
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import Dropout
+from ss.utility.learning.module.probability import Probability
 
 
 class LearningHmmFilterEmissionProcess(
@@ -21,17 +22,20 @@ class LearningHmmFilterEmissionProcess(
             self._config.filter.discrete_observation_dim
         )
 
-        _weight = torch.empty(
+        matrix_parameter = torch.empty(
             (self._state_dim, self._discrete_observation_dim),
             dtype=torch.float64,
         )
         for i in range(self._state_dim):
-            _weight[i, :] = (
+            matrix_parameter[i, :] = (
                 self._config.emission.matrix.initializer.initialize(
                     self._discrete_observation_dim,
                 )
             )
-        self._matrix_weight = nn.Parameter(_weight)
+        self._matrix_parameter = nn.Parameter(matrix_parameter)
+        self._matrix_probability = Probability.create(
+            self._config.emission.matrix.probability
+        )
 
         self._config.dropout.rate = (
             self._config.dropout.rate
@@ -42,13 +46,14 @@ class LearningHmmFilterEmissionProcess(
         # self._mask = torch.ones_like(self._weight)
 
     @property
-    def matrix_weight(self) -> torch.Tensor:
-        return self._matrix_weight
+    def matrix_parameter(self) -> torch.Tensor:
+        return self._matrix_parameter
 
     @property
     def matrix(self) -> torch.Tensor:
-        weight = self._dropout(self._matrix_weight)
-        matrix = nn.functional.softmax(weight, dim=1)
+        matrix: torch.Tensor = self._matrix_probability(
+            self._dropout(self._matrix_parameter)
+        )
         return matrix
 
         # mask = self._dropout(self._mask).to(device=self._weight.device)

@@ -61,6 +61,22 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
     def config(self) -> Config.BLC:
         return self._config
 
+    def get_parameter(self, name: str) -> nn.Parameter:
+        """
+        Get training parameter of the module by name.
+
+        Parameters
+        ----------
+        name : str
+            The name of the parameter.
+
+        Returns
+        -------
+        parameter : nn.Parameter
+            The training parameter.
+        """
+        return super().get_parameter(name)
+
     def reset(self) -> None: ...
 
     @property

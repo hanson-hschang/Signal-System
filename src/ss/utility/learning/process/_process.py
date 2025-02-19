@@ -11,7 +11,7 @@ from typing import (
 )
 
 from collections import defaultdict
-from enum import StrEnum
+from enum import StrEnum, auto
 from pathlib import Path
 
 import numpy as np
@@ -34,9 +34,9 @@ logger = Logging.get_logger(__name__)
 class BaseLearningProcess:
 
     class Mode(StrEnum):
-        TRAINING = "TRAINING"
-        ANALYSIS = "ANALYSIS"
-        INFERENCE = "INFERENCE"
+        TRAINING = auto()
+        ANALYSIS = auto()
+        INFERENCE = auto()
 
     def __init__(
         self,

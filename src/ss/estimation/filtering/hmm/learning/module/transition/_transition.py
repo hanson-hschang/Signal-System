@@ -7,6 +7,7 @@ from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
 from ss.utility.learning.module.dropout import Dropout
+from ss.utility.learning.module.probability import Probability
 from ss.utility.logging import Logging
 
 from ._transition_matrix import BaseLearningHmmFilterTransitionMatrix
@@ -28,18 +29,26 @@ class LearningHmmFilterTransitionLayer(
             self._layer_id - 1
         )
 
-        self._weight = nn.Parameter(
-            torch.randn(
+        # self._weight_parameter = nn.Parameter(
+        #     torch.randn(
+        #         self._feature_dim,
+        #         dtype=torch.float64,
+        #     )
+        # )
+        self._weight_parameter = nn.Parameter(
+            self._config.transition.weight.initializer.initialize(
                 self._feature_dim,
-                dtype=torch.float64,
             )
         )
-
-        dropout_rate = (
-            self._config.dropout.rate if self._feature_dim > 1 else 0.0
+        self._weight_probability = Probability.create(
+            self._config.transition.weight.probability
         )
+
+        # dropout_rate = (
+        #     self._config.dropout.rate if self._feature_dim > 1 else 0.0
+        # )
         self._dropout = Dropout(self._config.dropout)
-        self._mask = torch.ones_like(self._weight)
+        self._mask = torch.ones_like(self._weight_parameter)
 
         self._blocks = nn.ModuleList()
         for feature_id in range(self._feature_dim):
@@ -58,10 +67,11 @@ class LearningHmmFilterTransitionLayer(
 
     @property
     def matrix(self) -> torch.Tensor:
-        weight = nn.functional.softmax(self._weight, dim=0)
+        weight = self._weight_probability(self._weight_parameter)
         transition_matrix = torch.zeros(
             (self._config.filter.state_dim, self._config.filter.state_dim),
-            dtype=weight.dtype,
+            dtype=self._weight_parameter.dtype,
+            device=self._weight_parameter.device,
         )
         for i, block in enumerate(self._blocks):
             transition_matrix += (
@@ -82,7 +92,7 @@ class LearningHmmFilterTransitionLayer(
         #     dim=0,
         # )
         weight = nn.functional.softmax(
-            self._dropout(self._weight),
+            self._dropout(self._weight_parameter),
             dim=0,
         )
 

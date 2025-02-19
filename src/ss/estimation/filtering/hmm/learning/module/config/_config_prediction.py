@@ -1,7 +1,7 @@
 from typing import Optional, assert_never
 
 from dataclasses import dataclass
-from enum import StrEnum
+from enum import StrEnum, auto
 
 import torch
 
@@ -15,9 +15,9 @@ logger = Logging.get_logger(__name__)
 class PredictionConfig(Config.BaseLearningConfig):
 
     class Option(StrEnum):
-        AS_IS = "AS_IS"
-        TOP_K = "TOP_K"
-        TOP_P = "TOP_P"
+        AS_IS = auto()
+        TOP_K = auto()
+        TOP_P = auto()
 
     temperature: Optional[float] = None
     option: Option = Option.AS_IS

@@ -6,6 +6,7 @@ from enum import StrEnum, auto
 import torch
 
 from ss.utility.learning.module import config as Config
+from ss.utility.learning.module.probability.config import ProbabilityConfig
 
 
 @dataclass
@@ -53,6 +54,8 @@ class TransitionMatrixConfig(Config.BaseLearningConfig):
     option: Option = Option.FULL_MATRIX
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
     initial_state_binding: bool = False
+    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
+    skip_first_transition: bool = False
 
 
 @dataclass
@@ -85,6 +88,39 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
                     assert_never(_invalid_initializer)  # type: ignore
 
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
+    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
+
+
+@dataclass
+class TransitionWeightConfig(Config.BaseLearningConfig):
+    class Initializer(StrEnum):
+        NORMAL_DISTRIBUTION = auto()
+        UNIFORM_DISTRIBUTION = auto()
+
+        def __init__(self, value: str) -> None:
+            self.mean: float = 0.0
+            self.variance: float = 1.0
+            self.min_value: float = 0.0
+            self.max_value: float = 1.0
+
+        def initialize(self, dim: int) -> torch.Tensor:
+            match self:
+                case self.NORMAL_DISTRIBUTION:
+                    return torch.normal(
+                        self.mean,
+                        self.variance,
+                        (dim,),
+                        dtype=torch.float64,
+                    )
+                case self.UNIFORM_DISTRIBUTION:
+                    return self.min_value + (
+                        self.max_value - self.min_value
+                    ) * torch.rand(dim, dtype=torch.float64)
+                case _ as _invalid_initializer:
+                    assert_never(_invalid_initializer)  # type: ignore
+
+    initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
+    probability: ProbabilityConfig = field(default_factory=ProbabilityConfig)
 
 
 @dataclass
@@ -96,4 +132,6 @@ class TransitionConfig(Config.BaseLearningConfig):
     initial_state: TransitionInitialStateConfig = field(
         default_factory=TransitionInitialStateConfig
     )
-    skip_first_transition: bool = False
+    weight: TransitionWeightConfig = field(
+        default_factory=TransitionWeightConfig
+    )
