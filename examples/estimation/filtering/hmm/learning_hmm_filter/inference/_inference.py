@@ -19,6 +19,8 @@ def inference(
     model_filename: Path,
     result_directory: Path,
 ) -> None:
+    model_filepath = model_folderpath / model_filename
+
     DeviceManager()
 
     # Prepare data
@@ -34,12 +36,11 @@ def inference(
     )  # (time_horizon,)
 
     # Load the module
-    module_filename = model_filename.with_suffix(
+    module_filename = model_filepath.with_suffix(
         LearningHmmFilter.FILE_EXTENSIONS[0]
     )
-    module_filepath = model_folderpath / module_filename
     learning_filter, _ = LearningHmmFilter.load(
-        module_filepath,
+        module_filename,
         safe_callables={
             torch.nn.functional.cross_entropy,
             torch.optim.AdamW,
@@ -53,24 +54,40 @@ def inference(
         logger.info("(layer 0) learned emission matrix = ")
         for k in range(emission_matrix.shape[0]):
             logger.info(f"    {emission_matrix[k]}")
-        transition_matrix_over_layers = [
-            transition_matrix.numpy()
-            for transition_matrix in learning_filter.transition_matrix
+        transition_matrices = [
+            [
+                _transition_matrix.numpy()
+                for _transition_matrix in _transition_layer_matrix
+            ]
+            for _transition_layer_matrix in learning_filter.transition_matrix
         ]
-        for i, transition_matrix in enumerate(
-            transition_matrix_over_layers, start=1
+        initial_states = [
+            [_initial_state.numpy() for _initial_state in _initial_state_layer]
+            for _initial_state_layer in learning_filter.initial_state
+        ]
+        for i, transition_layer in enumerate(
+            zip(transition_matrices, initial_states), start=1
         ):
-            logger.info(f"(layer {i}) learned transition matrix = ")
-            for k in range(transition_matrix.shape[0]):
-                logger.info(f"    {transition_matrix[k]}")
-            logger.info(
-                "    eigenvalues and the corresponded left eigenvectors of the learned transition matrix = "
-            )
-            eig_values, eig_vectors = np.linalg.eig(transition_matrix.T)
-            for k in range(eig_values.shape[0]):
+            for j, (transition_matrix, initial_state) in enumerate(
+                zip(*transition_layer)
+            ):
                 logger.info(
-                    f"        {eig_values[k]:+.03f}: {eig_vectors[:, k]}"
+                    f"(layer {i}, block {j}) learned initial state = {initial_state}"
                 )
+                logger.info(
+                    f"(layer {i}, block {j}) learned transition matrix = "
+                )
+                for k in range(transition_matrix.shape[0]):
+                    logger.info(f"    {transition_matrix[k]}")
+                logger.info(
+                    "    associated eigenvalues and left eigenvectors:"
+                )
+                eig_values, eig_vectors = np.linalg.eig(transition_matrix.T)
+                for k in range(eig_values.shape[0]):
+                    logger.info(
+                        f"        {eig_values[k]:+.03f}: {eig_vectors[:, k]}"
+                    )
+
         logger.info("")
 
     learning_filter.config.prediction.option = (

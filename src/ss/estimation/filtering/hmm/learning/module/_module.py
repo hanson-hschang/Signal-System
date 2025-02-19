@@ -112,10 +112,30 @@ class LearningHmmFilter(
         return self._emission_process.matrix.detach()
 
     @property
-    def transition_matrix(self) -> List[torch.Tensor]:
+    def transition_matrix(self) -> List[List[torch.Tensor]]:
         return [
-            transition_matrix.detach()
-            for transition_matrix in self._transition_process.matrix
+            [
+                transition_block.matrix.detach()
+                for transition_block in transition_layer.blocks
+            ]
+            for transition_layer in self._transition_process.layers
+        ]
+
+    @property
+    def initial_state(self) -> List[List[torch.Tensor]]:
+        return [
+            [
+                transition_block.initial_state.detach()
+                for transition_block in transition_layer.blocks
+            ]
+            for transition_layer in self._transition_process.layers
+        ]
+
+    @property
+    def coefficient(self) -> List[torch.Tensor]:
+        return [
+            layer.coefficient.detach()
+            for layer in self._transition_process.layers
         ]
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:

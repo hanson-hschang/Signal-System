@@ -132,6 +132,6 @@ class TransitionConfig(Config.BaseLearningConfig):
     initial_state: TransitionInitialStateConfig = field(
         default_factory=TransitionInitialStateConfig
     )
-    weight: TransitionWeightConfig = field(
+    coefficient: TransitionWeightConfig = field(
         default_factory=TransitionWeightConfig
     )

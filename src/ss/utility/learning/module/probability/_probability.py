@@ -1,6 +1,4 @@
-from typing import Literal, Self, Type, assert_never, cast
-
-from functools import partial
+from typing import cast
 
 import torch
 from torch import nn

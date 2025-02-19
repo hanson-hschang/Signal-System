@@ -29,26 +29,17 @@ class LearningHmmFilterTransitionLayer(
             self._layer_id - 1
         )
 
-        # self._weight_parameter = nn.Parameter(
-        #     torch.randn(
-        #         self._feature_dim,
-        #         dtype=torch.float64,
-        #     )
-        # )
-        self._weight_parameter = nn.Parameter(
-            self._config.transition.weight.initializer.initialize(
+        self._coefficient_parameter = nn.Parameter(
+            self._config.transition.coefficient.initializer.initialize(
                 self._feature_dim,
             )
         )
-        self._weight_probability = Probability.create(
-            self._config.transition.weight.probability
+        self._coefficient_probability = Probability.create(
+            self._config.transition.coefficient.probability
         )
 
-        # dropout_rate = (
-        #     self._config.dropout.rate if self._feature_dim > 1 else 0.0
-        # )
         self._dropout = Dropout(self._config.dropout)
-        self._mask = torch.ones_like(self._weight_parameter)
+        self._mask = torch.ones_like(self._coefficient_parameter)
 
         self._blocks = nn.ModuleList()
         for feature_id in range(self._feature_dim):
@@ -59,6 +50,17 @@ class LearningHmmFilterTransitionLayer(
             )
 
     @property
+    def weight_parameter(self) -> nn.Parameter:
+        return self._coefficient_parameter
+
+    @property
+    def coefficient(self) -> torch.Tensor:
+        coefficient: torch.Tensor = self._coefficient_probability(
+            self._coefficient_parameter
+        )
+        return coefficient
+
+    @property
     def blocks(self) -> List[BaseLearningHmmFilterTransitionMatrix]:
         return [
             cast(BaseLearningHmmFilterTransitionMatrix, block)
@@ -67,11 +69,11 @@ class LearningHmmFilterTransitionLayer(
 
     @property
     def matrix(self) -> torch.Tensor:
-        weight = self._weight_probability(self._weight_parameter)
+        weight = self.coefficient
         transition_matrix = torch.zeros(
             (self._config.filter.state_dim, self._config.filter.state_dim),
-            dtype=self._weight_parameter.dtype,
-            device=self._weight_parameter.device,
+            dtype=self._coefficient_parameter.dtype,
+            device=self._coefficient_parameter.device,
         )
         for i, block in enumerate(self._blocks):
             transition_matrix += (
@@ -92,7 +94,7 @@ class LearningHmmFilterTransitionLayer(
         #     dim=0,
         # )
         weight = nn.functional.softmax(
-            self._dropout(self._weight_parameter),
+            self._dropout(self._coefficient_parameter),
             dim=0,
         )
 
