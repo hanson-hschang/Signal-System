@@ -33,7 +33,7 @@ class LearningHmmFilterEmissionProcess(
                 )
             )
         self._matrix_parameter = nn.Parameter(matrix_parameter)
-        self._matrix_probability = Stochasticizer.create(
+        self._matrix_stochasticizer = Stochasticizer.create(
             self._config.emission.matrix.stochasticizer
         )
 
@@ -50,8 +50,12 @@ class LearningHmmFilterEmissionProcess(
         return self._matrix_parameter
 
     @property
+    def matrix_stochasticizer(self) -> Stochasticizer:
+        return self._matrix_stochasticizer
+
+    @property
     def matrix(self) -> torch.Tensor:
-        matrix: torch.Tensor = self._matrix_probability(
+        matrix: torch.Tensor = self._matrix_stochasticizer(
             self._dropout(self._matrix_parameter)
         )
         return matrix

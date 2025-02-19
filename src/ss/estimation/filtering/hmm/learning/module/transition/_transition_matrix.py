@@ -341,7 +341,7 @@ class LearningHmmFilterTransitionIIDMatrix(
 
         _weight = self._initial_state_parameter
         self._matrix_parameter = nn.Parameter(_weight)
-        self._matrix_probability = Stochasticizer.create(
+        self._matrix_stochasticizer = Stochasticizer.create(
             self._config.transition.matrix.stochasticizer
         )
 
@@ -352,7 +352,7 @@ class LearningHmmFilterTransitionIIDMatrix(
             dtype=torch.float64,
             device=self._matrix_parameter.device,
         )
-        matrix[0, :] = self._matrix_probability(
+        matrix[0, :] = self._matrix_stochasticizer(
             self._dropout(self._matrix_parameter)
         )
         for i in range(1, self._state_dim):

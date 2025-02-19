@@ -70,9 +70,9 @@ class Stochasticizer(BaseLearningModule[Config.StochasticizerConfig]):
             case _:
                 return super().get_parameter(name)
 
-    def get_value(self, name: str) -> torch.Tensor:
+    def get_tensor(self, name: str) -> torch.Tensor:
         """
-        Get the value of the parameter of the Stochasticizer module.
+        Get the tensor value of the parameter of the Stochasticizer module.
 
         Parameters
         ----------
@@ -95,7 +95,7 @@ class Stochasticizer(BaseLearningModule[Config.StochasticizerConfig]):
                     )
                 return cast(SoftmaxStochasticizer, self).temperature
             case _:
-                raise ValueError(f"Invalid parameter name: {name}")
+                raise ValueError(f"Invalid tensor name: {name}")
 
 
 class SoftmaxStochasticizer(Stochasticizer):
