@@ -7,12 +7,12 @@ from matplotlib.colorbar import Colorbar
 from matplotlib.colors import Normalize
 from numpy.typing import ArrayLike, NDArray
 
-from ss import figure as Figure
+from ss.figure.trajectory import SequenceTrajectoryFigure
 from ss.system.markov import one_hot_encoding
 from ss.utility.assertion.validator import Validator
 
 
-class HmmFilterFigure(Figure.SequenceTrajectoryFigure):
+class HmmFilterFigure(SequenceTrajectoryFigure):
     class _SignalTrajectoryValidator(Validator):
         def __init__(
             self,

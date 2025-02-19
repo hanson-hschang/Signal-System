@@ -1,21 +1,13 @@
-from typing import Any, Callable, Dict, Self, Tuple
+from typing import Any, Dict, Self, Tuple
 
 import numpy as np
 from matplotlib.axes import Axes
 from numpy.typing import ArrayLike, NDArray
 
-from ss import figure as Figure
-from ss.figure import show
-from ss.utility.assertion import is_positive_integer, is_positive_number
-from ss.utility.assertion.validator import Validator
-from ss.utility.callback import Callback
-from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.figure.trajectory import SequenceTrajectoryFigure
 
 
-class CostTrajectoryFigure(Figure.SequenceTrajectoryFigure):
+class CostTrajectoryFigure(SequenceTrajectoryFigure):
     """
     Figure for plotting the cost trajectory.
     """

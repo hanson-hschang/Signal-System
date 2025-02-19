@@ -7,7 +7,7 @@ from matplotlib.colorbar import Colorbar
 from matplotlib.colors import Normalize
 from numpy.typing import NDArray
 
-from ss import figure as Figure
+from ss.figure.trajectory import SequenceTrajectoryFigure
 from ss.system.markov import one_hot_encoding
 
 from ..utility import FilterResultTrajectory
@@ -53,7 +53,7 @@ def update_loss_ylim(
     )
 
 
-class FilterResultFigure(Figure.SequenceTrajectoryFigure):
+class FilterResultFigure(SequenceTrajectoryFigure):
     def __init__(
         self,
         time_trajectory: NDArray,

@@ -3,10 +3,10 @@ from typing import Any, Dict, Self, Tuple
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ss import figure as Figure
+from ss.figure.trajectory import TimeTrajectoryFigure
 
 
-class MassSpringDamperStateTrajectoryFigure(Figure.TimeTrajectoryFigure):
+class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
     """
     Figure for plotting the state trajectories of a mass-spring-damper system.
     """

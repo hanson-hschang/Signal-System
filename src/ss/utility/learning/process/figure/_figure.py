@@ -4,10 +4,10 @@ import numpy as np
 from matplotlib.axes import Axes
 from numpy.typing import NDArray
 
-from ss import figure as Figure
+from ss.figure.trajectory import SequenceTrajectoryFigure
 
 
-class IterationFigure(Figure.SequenceTrajectoryFigure):
+class IterationFigure(SequenceTrajectoryFigure):
     def __init__(
         self,
         training_loss_history: Dict[str, List],

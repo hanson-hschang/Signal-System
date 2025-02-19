@@ -7,6 +7,9 @@ from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import Dropout
 from ss.utility.learning.module.stochasticizer import Stochasticizer
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 class BaseLearningHmmFilterTransitionMatrix(
@@ -329,8 +332,13 @@ class LearningHmmFilterTransitionIIDMatrix(
         # _weight = self._config.transition.matrix.initializer.initialize(
         #     self._state_dim,
         # )
-        # if self._config.transition.matrix.initial_state_binding:
-        self._config.transition.matrix.initial_state_binding = True
+        if self._config.transition.matrix.initial_state_binding is not True:
+            self._config.transition.matrix.initial_state_binding = True
+            logger.warning(
+                "IID transition matrix requires initial state binding. "
+                "Automatically set initial state binding to True in the configuration."
+            )
+
         _weight = self._initial_state_parameter
         self._matrix_parameter = nn.Parameter(_weight)
         self._matrix_probability = Stochasticizer.create(
