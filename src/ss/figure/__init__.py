@@ -1,1 +1,1 @@
-from ._figure import show
+from ._figure import Figure, show

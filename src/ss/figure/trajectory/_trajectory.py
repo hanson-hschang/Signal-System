@@ -7,10 +7,11 @@ from matplotlib.axes import Axes
 from matplotlib.collections import QuadMesh
 from numpy.typing import ArrayLike, NDArray
 
+from ss.figure import Figure
 from ss.utility.assertion import is_positive_integer, is_positive_number
 
 
-class SequenceTrajectoryFigure:
+class SequenceTrajectoryFigure(Figure):
     def __init__(
         self,
         sequence_trajectory: ArrayLike,
@@ -47,6 +48,13 @@ class SequenceTrajectoryFigure:
             ]
         ), f"values of {fig_layout = } must be positive integers."
 
+        super().__init__(
+            sup_xlabel="sequence",
+            fig_size=fig_size,
+            fig_title=fig_title,
+            fig_layout=fig_layout,
+        )
+
         self._sequence_trajectory = sequence_trajectory
         self._sequence_length = sequence_trajectory.shape[0]
         self._number_of_systems = number_of_systems
@@ -54,31 +62,24 @@ class SequenceTrajectoryFigure:
         self._default_alpha = 0.2
         self._default_std_alpha = 0.5
 
-        self._fig_size = fig_size
-        self._fig_title = fig_title
-        self._fig_layout = fig_layout
+        # self._fig_size = fig_size
+        # self._fig_title = fig_title
+        # self._fig_layout = fig_layout
 
-        self._fig = plt.figure(figsize=self._fig_size)
-        self._grid_spec = gridspec.GridSpec(
-            *self._fig_layout, figure=self._fig
-        )
-        self._subplots: List[List[Axes]] = []
-        for row in range(self._fig_layout[0]):
-            self._subplots.append([])
-            for col in range(self._fig_layout[1]):
-                self._subplots[row].append(
-                    self._fig.add_subplot(self._grid_spec[row, col])
-                )
+        # self._fig = plt.figure(figsize=self._fig_size)
+        # self._grid_spec = gridspec.GridSpec(
+        #     *self._fig_layout, figure=self._fig
+        # )
+        # self._subplots: List[List[Axes]] = []
+        # for row in range(self._fig_layout[0]):
+        #     self._subplots.append([])
+        #     for col in range(self._fig_layout[1]):
+        #         self._subplots[row].append(
+        #             self._fig.add_subplot(self._grid_spec[row, col])
+        #         )
 
-        self._sup_xlabel = "sequence"
+        # self._sup_xlabel = "sequence"
         self._color_map = plt.get_cmap("Greys")
-
-    def plot(self) -> Self:
-        if self._fig_title is not None:
-            self._fig.suptitle(self._fig_title)
-        self._fig.supxlabel(self._sup_xlabel)
-        self._fig.tight_layout()
-        return self
 
     def _plot_signal_trajectory(
         self,

@@ -92,7 +92,7 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
                     assert_never(_invalid_initializer)  # type: ignore
 
     initializer: Initializer = Initializer.NORMAL_DISTRIBUTION
-    probability: StochasticizerConfig = field(
+    stochasticizer: StochasticizerConfig = field(
         default_factory=StochasticizerConfig
     )
 

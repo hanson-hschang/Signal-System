@@ -10,12 +10,10 @@ from ss.estimation.filtering.hmm import HmmFilter
 from ss.estimation.filtering.hmm.learning import dataset as Dataset
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.estimation.filtering.hmm.learning.module import config as Config
-from ss.estimation.filtering.hmm.learning.process import (
-    LearningHmmFilterProcess,
-)
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
+from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 
@@ -76,6 +74,24 @@ def analysis(
             # types of extra arguments
         },
     )
+
+    np.set_printoptions(precision=3, suppress=True)
+    with BaseLearningProcess.inference_mode(learning_filter):
+        emission_matrix = learning_filter.emission_matrix.numpy()
+        logger.info("(layer 0) learned emission matrix = ")
+        for k in range(emission_matrix.shape[0]):
+            logger.info(f"    {emission_matrix[k]}")
+        transition_matrix = learning_filter.transition_matrix[0][0].numpy()
+
+    Figure.StochasticMatrixFigure(
+        stochastic_matrix=transition_matrix,
+        fig_title="Transition Matrix",
+    ).plot()
+
+    Figure.StochasticMatrixFigure(
+        stochastic_matrix=emission_matrix,
+        fig_title="Emission Matrix",
+    ).plot()
 
     # Convert the natural logarithm to the log_base logarithm
     log_base = np.e
@@ -163,4 +179,5 @@ def analysis(
         ),
         loss_scaling=scaling,
     ).plot()
+
     Figure.show()

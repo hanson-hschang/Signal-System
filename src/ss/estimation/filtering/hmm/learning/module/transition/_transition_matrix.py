@@ -32,7 +32,7 @@ class BaseLearningHmmFilterTransitionMatrix(
             )
         )  # (state_dim,)
         self._initial_state_stochasticizer = Stochasticizer.create(
-            self._config.transition.initial_state.probability
+            self._config.transition.initial_state.stochasticizer
         )
 
         self._is_initialized = False
