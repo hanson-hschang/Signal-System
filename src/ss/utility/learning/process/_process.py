@@ -72,8 +72,8 @@ class BaseLearningProcess:
         loss_mean, loss_std = float(losses.mean()), float(losses.std())
         self._validation_loss_history["loss_mean"].append(loss_mean)
         self._validation_loss_history["loss_std"].append(loss_std)
-        logger.info(f"Validation loss: {loss_mean}" " \xB1 " f"{loss_std}")
-        # \xB1 is a unicode character for the plus-minus sign (±)
+        logger.info(f"Validation loss: {loss_mean}" " \xb1 " f"{loss_std}")
+        # \xb1 is a unicode character for the plus-minus sign (±)
 
     def _update_training_loss(self, loss: float) -> None:
         self._training_loss_history["iteration"].append(self._iteration)
