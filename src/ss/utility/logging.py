@@ -72,6 +72,10 @@ class Logger(logging.Logger):
     ) -> tqdm:
         return tqdm(iterable, total=total)
 
+    # This is a temporary solution to indent the log messages
+    def indent(self, level: int = 1) -> str:
+        return "    " * level
+
     def error(
         self,
         message: object,

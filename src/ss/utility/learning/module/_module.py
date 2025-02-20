@@ -156,7 +156,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
             #     config = cast(Config.BLC, model_info.pop("config"))
             # if "__config__" in model_info:
             config = cast(Config.BLC, model_info.pop("__config__"))
-            module = cls(config.reload())
+            module = cls(type(config).reload(config))
             # model_state_dict and module_state_dict are for backward compatibility
             # if "model_state_dict" in model_info:
             #     module_state_dict = model_info.pop("model_state_dict")
@@ -165,8 +165,9 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
             # if "__module_state_dict__" in model_info:
             module_state_dict = model_info.pop("__module_state_dict__")
             module.load_state_dict(module_state_dict)
-            logger.info(f"Load the module from the file: {filepath.name}")
-            logger.info("")
+
+        logger.info("")
+        logger.info(f"Module loaded from the file: {filepath.name}")
         return module, model_info
 
 

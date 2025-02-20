@@ -75,19 +75,20 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
     all_classes = subclasses.union({base_class})
 
     # Add all classes and their fields as safe globals
+    logger.debug("")
     logger.debug(
         "Add the following classes and their fields as safe globals for torch.load method:"
     )
     safe_callables = SafeCallables()
     for cls in all_classes:
         logger.debug(
-            f"    { cls.__qualname__ } "
+            logger.indent() + f"{ cls.__qualname__ } "
             f"( from { resolve_module_name(cls.__module__) } module )"
         )
         unregistered_fields = get_nondefault_type_fields(cls)
         for field_name, field_type in unregistered_fields.items():
             logger.debug(
-                f"        { field_name }: "
+                logger.indent(2) + f"{ field_name }: "
                 f"{ field_type.__qualname__ } "
                 f"( from { resolve_module_name(field_type.__module__) } module )"
             )

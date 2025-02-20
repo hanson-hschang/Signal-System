@@ -1,4 +1,4 @@
-from ._descriptor import ReadOnlyDescriptor
+from ._descriptor import Descriptor, ReadOnlyDescriptor
 from ._descriptor_ndarray import (
     MultiSystemNDArrayDescriptor,
     MultiSystemNdArrayReadOnlyDescriptor,
