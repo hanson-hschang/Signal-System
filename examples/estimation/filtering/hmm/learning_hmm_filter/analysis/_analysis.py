@@ -1,5 +1,3 @@
-from typing import Callable
-
 from pathlib import Path
 
 import numpy as np
@@ -7,9 +5,7 @@ import torch
 from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm import HmmFilter
-from ss.estimation.filtering.hmm.learning import dataset as Dataset
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
-from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
@@ -98,6 +94,7 @@ def analysis(
     scaling = 1.0 / np.log(log_base)
 
     # Compute the loss trajectory of the filter and learning_filter
+    logger.info("")
     logger.info(
         "Computing an example loss trajectory of the filter and learning_filter"
     )
@@ -110,6 +107,8 @@ def analysis(
             observation_trajectory=example_observation_trajectory,
         )
     )
+
+    logger.info("")
     logger.info(
         "Computing the average loss of the learning_filter over layers"
     )
@@ -119,17 +118,20 @@ def analysis(
         observation_trajectory=observation_trajectory,
     )
     loss_mean_over_layer = loss_mean_over_layer * scaling
-    logger.info(f"{loss_mean_over_layer = }")
+    logger.info(f"empirical average loss (over layers):")
+    for l, loss in enumerate(loss_mean_over_layer):
+        logger.info(f"    layer {l}: {float(loss)}")
 
     # Compute the random guess loss
     random_guess_loss = -np.log(1 / discrete_observation_dim) * scaling
 
     # Compute the empirical optimal loss
+    logger.info("")
     logger.info(
         "Computing the empirical optimal loss (the cross-entropy loss of the hmm-filter)"
     )
     number_of_systems = int(data.meta_info["number_of_systems"])
-    empirical_optimal_loss = (
+    empirical_optimal_loss = float(
         compute_optimal_loss(
             filter.duplicate(number_of_systems),
             observation_trajectory,

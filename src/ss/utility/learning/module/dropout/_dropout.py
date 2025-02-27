@@ -38,9 +38,7 @@ class Dropout(BaseLearningModule[Config.DropoutConfig]):
             case self._config.Value.ZERO:
                 result = _x * mask
                 result = (
-                    result / (1 - rate)
-                    if self._config.value.scaling
-                    else result
+                    result / (1 - rate) if self._config.scaling else result
                 )
 
             case self._config.Value.LOG_ZERO:
@@ -65,8 +63,7 @@ class Dropout(BaseLearningModule[Config.DropoutConfig]):
 
                 # Calculate the result of the dropout
                 result = (
-                    mask * _x
-                    + (1 - mask) * norm * self._config.value.log_zero_scale
+                    mask * _x + (1 - mask) * norm * self._config.log_zero_scale
                 )
             case _ as _invalid_value:
                 assert_never(_invalid_value)

@@ -38,15 +38,16 @@ class TransitionMatrixConfig(Config.BaseLearningConfig):
                         self.mean,
                         self.variance,
                         (dim,),
-                        dtype=torch.float64,
+                        # dtype=torch.float64,
                     )
                 case TransitionMatrixConfig.Initializer.UNIFORM_DISTRIBUTION:
                     return self.min_value + (
                         self.max_value - self.min_value
-                    ) * torch.rand(dim, dtype=torch.float64)
+                    ) * torch.rand(dim)
                 case TransitionMatrixConfig.Initializer.IDENTITY:
                     row = self.log_zero_value * torch.ones(
-                        dim, dtype=torch.float64
+                        dim,
+                        # dtype=torch.float64
                     )
                     row[row_index] = 0.0
                     return torch.Tensor(row)
@@ -84,14 +85,14 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig):
                         self.mean,
                         self.variance,
                         (dim,),
-                        dtype=torch.float64,
+                        # dtype=torch.float64,
                     )
                 case (
                     TransitionInitialStateConfig.Initializer.UNIFORM_DISTRIBUTION
                 ):
                     return self.min_value + (
                         self.max_value - self.min_value
-                    ) * torch.rand(dim, dtype=torch.float64)
+                    ) * torch.rand(dim)
                 case _ as _invalid_initializer:
                     assert_never(_invalid_initializer)
 
@@ -120,12 +121,12 @@ class TransitionCoefficientConfig(Config.BaseLearningConfig):
                         self.mean,
                         self.variance,
                         (dim,),
-                        dtype=torch.float64,
+                        # dtype=torch.float64,
                     )
                 case self.UNIFORM_DISTRIBUTION:
                     return self.min_value + (
                         self.max_value - self.min_value
-                    ) * torch.rand(dim, dtype=torch.float64)
+                    ) * torch.rand(dim)
                 case _ as _invalid_initializer:
                     assert_never(_invalid_initializer)  # type: ignore
 

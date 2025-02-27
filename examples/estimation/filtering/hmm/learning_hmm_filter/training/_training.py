@@ -64,6 +64,10 @@ def training(
         feature_dim_over_layers=(1,),
     )
     config.dropout.rate = 0.0
+    config.emission.matrix.probability_parameter.dropout.rate = 0.0
+    config.emission.matrix.probability_parameter.transformer.temperature.require_training = (
+        True
+    )
 
     # Prepare module
     learning_filter = LearningHmmFilter(config)

@@ -23,17 +23,16 @@ class BaseLearningConfig:
         # for different versions due to inconsistent arguments. Instead, use the
         # meta method self.__dict__.
 
-        # return self.__class__(**self.__dict__)
-
         if level == 0:
             logger.debug("")
             logger.debug("Loading configuration...")
         config_init_arguments: Dict[str, Any] = {}
         config_private_attributes: Dict[str, Any] = {}
         indent_level = level + 1
+
         logger.debug(logger.indent(indent_level) + f"{name} = " + cls.__name__)
         for key, value in config.__dict__.items():
-            # The following condition did not check the dunder attributes
+            # TODO: The following condition did not check the dunder attributes
             is_init_argument = True
             if key.startswith("_"):
                 key = key[1:]
@@ -42,9 +41,9 @@ class BaseLearningConfig:
             if isinstance(value, BaseLearningConfig):
                 value = type(value).reload(value, name=key, level=level + 1)
 
+            # TODO: Did not check the condition that the key exists
+            # in the old version but not in the new version
             if is_init_argument:
-                # Did not check the condition that the key exists
-                # in the old version but not in the new version
                 config_init_arguments[key] = value
             else:
                 config_private_attributes[key] = value

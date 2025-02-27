@@ -151,7 +151,6 @@ class LearningHmmFilterTransitionProcess(
         with torch.no_grad():
             self._predicted_next_state_over_layers: torch.Tensor = torch.zeros(
                 (self._batch_size, self._layer_dim, self._state_dim),
-                dtype=torch.float64,
             )
 
     def _check_batch_size(self, batch_size: int) -> None:

@@ -6,7 +6,10 @@ from torch import nn
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import Dropout
-from ss.utility.learning.module.stochasticizer import Stochasticizer
+from ss.utility.learning.module.probability.generator import (
+    ProbabilityGenerator,
+)
+from ss.utility.learning.parameter.probability import ProbabilityParameter
 
 
 class LearningHmmFilterEmissionProcess(
@@ -22,42 +25,67 @@ class LearningHmmFilterEmissionProcess(
             self._config.filter.discrete_observation_dim
         )
 
-        matrix_parameter = torch.empty(
-            (self._state_dim, self._discrete_observation_dim),
-            dtype=torch.float64,
-        )
-        for i in range(self._state_dim):
-            matrix_parameter[i, :] = (
-                self._config.emission.matrix.initializer.initialize(
-                    self._discrete_observation_dim,
-                )
-            )
-        self._matrix_parameter = nn.Parameter(matrix_parameter)
-        self._matrix_stochasticizer = Stochasticizer.create(
-            self._config.emission.matrix.stochasticizer
-        )
+        # matrix_parameter = torch.empty(
+        #     (self._state_dim, self._discrete_observation_dim),
+        #     dtype=torch.float64,
+        # )
+        # for i in range(self._state_dim):
+        #     matrix_parameter[i, :] = (
+        #         self._config.emission.matrix.initializer(
+        #             self._discrete_observation_dim,
+        #         )
+        #     )
 
-        self._config.dropout.rate = (
-            self._config.dropout.rate
-            if self._discrete_observation_dim > 1
-            else 0.0
+        # self._matrix = self._config.emission.matrix.create(
+        #     (self._state_dim, self._discrete_observation_dim),
+        # )
+
+        # self._matrix_parameter = nn.Parameter(
+        #     self._config.emission.matrix.initializer(
+        #         (self._state_dim, self._discrete_observation_dim),
+        #     )
+        # )
+
+        self._matrix_parameter = ProbabilityParameter(
+            self._config.emission.matrix.probability_parameter,
+            (self._state_dim, self._discrete_observation_dim),
         )
-        self._dropout = Dropout(self._config.dropout)
+        # self._matrix_stochasticizer = Stochasticizer.create(
+        #     self._config.emission.matrix.stochasticizer
+        # )
+        # self._probability_generator = ProbabilityGenerator.create(
+        #     self._config.emission.matrix.probability.generator
+        # )
+
+        # self._config.dropout.rate = (
+        #     self._config.dropout.rate
+        #     if self._discrete_observation_dim > 1
+        #     else 0.0
+        # )
+        # self._dropout = Dropout(self._config.dropout)
         # self._mask = torch.ones_like(self._weight)
 
     @property
-    def matrix_parameter(self) -> torch.Tensor:
+    def matrix_parameter(self) -> ProbabilityParameter:
         return self._matrix_parameter
 
-    @property
-    def matrix_stochasticizer(self) -> Stochasticizer:
-        return self._matrix_stochasticizer
+    # @property
+    # def matrix_stochasticizer(self) -> Stochasticizer:
+    #     return self._matrix_stochasticizer
+
+    # @property
+    # def probability_generator(self) -> ProbabilityGenerator:
+    #     return self._probability_generator
 
     @property
     def matrix(self) -> torch.Tensor:
-        matrix: torch.Tensor = self._matrix_stochasticizer(
-            self._dropout(self._matrix_parameter)
-        )
+        # matrix: torch.Tensor = self._matrix_stochasticizer(
+        #     self._dropout(self._matrix_parameter)
+        # )
+        # matrix: torch.Tensor = self._probability_generator(
+        #     self._dropout(self._matrix_parameter)
+        # )
+        matrix: torch.Tensor = self._matrix_parameter()
         return matrix
 
         # mask = self._dropout(self._mask).to(device=self._weight.device)

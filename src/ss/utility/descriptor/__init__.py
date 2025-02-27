@@ -1,4 +1,9 @@
-from ._descriptor import Descriptor, ReadOnlyDescriptor
+from ._descriptor import (
+    ConditionDescriptor,
+    ConditionReadOnlyDescriptor,
+    Descriptor,
+    ReadOnlyDescriptor,
+)
 from ._descriptor_ndarray import (
     MultiSystemNDArrayDescriptor,
     MultiSystemNdArrayReadOnlyDescriptor,

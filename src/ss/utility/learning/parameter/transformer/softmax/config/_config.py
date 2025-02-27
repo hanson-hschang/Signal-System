@@ -1,0 +1,45 @@
+from typing import Generic, TypeVar, cast
+
+from dataclasses import dataclass, field
+
+from ss.utility.learning.parameter.initializer import InitializerProtocol
+from ss.utility.learning.parameter.initializer.normal_distribution import (
+    NormalDistributionInitializer,
+)
+from ss.utility.learning.parameter.positive.config import (
+    PositiveParameterConfig,
+)
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer.exp.config import (
+    ExpTransformerConfig,
+)
+
+TC = TypeVar("TC", bound=TransformerConfig, default=ExpTransformerConfig)
+
+
+@dataclass
+class TemperatureConfig(PositiveParameterConfig[TC], Generic[TC]):
+    initializer: InitializerProtocol = field(
+        default_factory=lambda: NormalDistributionInitializer.basic_config(
+            mean=0.0, std=0.0
+        )
+    )
+    require_training: bool = False
+
+    def __post_init__(self) -> None:
+        self.dropout.rate = 0.0
+
+
+@dataclass
+class SoftmaxTransformerConfig(TransformerConfig):
+    temperature: TemperatureConfig = field(
+        default_factory=lambda: cast(TemperatureConfig, TemperatureConfig())
+    )
+    # How to remove the cast above? Does not seem right with it...
+    # There is one try shown in the following commented out code. It has no error running but has some trouble loading the module.
+
+
+# Do not do the following. It will need to add operator.getitem and TC(???) as safe globals when loading.
+# @dataclass
+# class SoftmaxTransformerConfig(TransformerConfig, Generic[TC]):
+#     temperature: TemperatureConfig[TC] = field(default_factory=TemperatureConfig[TC])

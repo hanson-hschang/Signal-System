@@ -62,13 +62,15 @@ class LearningHmmFilter(
         with torch.no_grad():
             self._estimated_state = (
                 torch.ones(
-                    (self._batch_size, self._state_dim), dtype=torch.float64
+                    (self._batch_size, self._state_dim),
+                    # dtype=torch.float64
                 )
                 / self._state_dim
             )  # (batch_size, state_dim)
             self._predicted_next_state = (
                 torch.ones(
-                    (self._batch_size, self._state_dim), dtype=torch.float64
+                    (self._batch_size, self._state_dim),
+                    # dtype=torch.float64
                 )
                 / self._state_dim
             )  # (batch_size, state_dim)

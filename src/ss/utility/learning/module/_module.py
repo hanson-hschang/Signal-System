@@ -5,6 +5,7 @@ from typing import (
     Generator,
     Generic,
     Optional,
+    ParamSpec,
     Set,
     Tuple,
     Type,
@@ -48,7 +49,7 @@ BLM = TypeVar("BLM", bound="BaseLearningModule")
 class BaseLearningModule(nn.Module, Generic[Config.BLC]):
     FILE_EXTENSIONS = (".pt", ".pth")
 
-    def __init__(self, config: Config.BLC) -> None:
+    def __init__(self, config: Config.BLC, **kwargs: Any) -> None:
         super().__init__()
         assert issubclass(
             type(config), Config.BaseLearningConfig
@@ -109,8 +110,11 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         try:
             training = self.training
             self.eval()
+            no_grad = torch.no_grad()
+            no_grad.__enter__()
             yield
         finally:
+            no_grad.__exit__(None, None, None)
             self.train(training)
 
     def save(

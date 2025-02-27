@@ -37,7 +37,7 @@ class BaseLearningHmmFilterTransitionMatrix(
 
         self._is_initialized = False
         self._estimated_previous_state = (
-            torch.ones(self._state_dim, dtype=torch.float64) / self._state_dim
+            torch.ones(self._state_dim) / self._state_dim
         ).repeat(
             1, 1
         )  # (batch_size, state_dim)
@@ -128,13 +128,13 @@ class BaseLearningHmmFilterTransitionMatrix(
 
         estimated_state_trajectory = torch.zeros(
             (batch_size, horizon, self._state_dim),
-            dtype=torch.float64,
+            # dtype=torch.float64,
             device=self._device_manager.device,
         )
 
         predicted_next_state_trajectory = torch.zeros(
             (batch_size, horizon, self._state_dim),
-            dtype=torch.float64,
+            # dtype=torch.float64,
             device=self._device_manager.device,
         )
 
@@ -150,7 +150,7 @@ class BaseLearningHmmFilterTransitionMatrix(
             (
                 torch.eye(
                     self._state_dim,
-                    dtype=torch.float64,
+                    # dtype=torch.float64,
                     device=self._device_manager.device,
                 )
                 if self._config.transition.matrix.skip_first_transition
@@ -214,7 +214,7 @@ class LearningHmmFilterTransitionFullMatrix(
         super().__init__(config, feature_id)
         _weight = torch.empty(
             (self._state_dim, self._state_dim),
-            dtype=torch.float64,
+            # dtype=torch.float64,
         )
         for i in range(self._state_dim):
             _weight[i, :] = (
@@ -285,7 +285,7 @@ class LearningHmmFilterTransitionSpatialInvariantMatrix(
     def matrix(self) -> torch.Tensor:
         matrix = torch.empty(
             (self._state_dim, self._state_dim),
-            dtype=torch.float64,
+            # dtype=torch.float64,
             device=self._matrix_parameter.device,
         )
         matrix[0, :] = self._matrix_stochasticizer(
@@ -349,7 +349,7 @@ class LearningHmmFilterTransitionIIDMatrix(
     def matrix(self) -> torch.Tensor:
         matrix = torch.empty(
             (self._state_dim, self._state_dim),
-            dtype=torch.float64,
+            # dtype=torch.float64,
             device=self._matrix_parameter.device,
         )
         matrix[0, :] = self._matrix_stochasticizer(

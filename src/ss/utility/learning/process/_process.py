@@ -108,15 +108,15 @@ class BaseLearningProcess:
         with self._module.evaluation_mode():
             logger.info("Evaluating model...")
             losses = []
-            with torch.no_grad():
-                for data_batch in logger.progress_bar(
-                    data_loader, total=len(data_loader)
-                ):
-                    losses.append(
-                        self._evaluate_one_batch(
-                            self._device_manager.load_data_batch(data_batch)
-                        ).item()
-                    )
+            # with torch.no_grad():
+            for data_batch in logger.progress_bar(
+                data_loader, total=len(data_loader)
+            ):
+                losses.append(
+                    self._evaluate_one_batch(
+                        self._device_manager.load_data_batch(data_batch)
+                    ).item()
+                )
         return np.array(losses)
 
     def _train_one_batch(
@@ -229,9 +229,13 @@ class BaseLearningProcess:
     ) -> None:
         logger.info("Testing...")
         testing_losses = self.evaluate_model(testing_data_loader)
-        loss_mean, loss_std = testing_losses.mean(), testing_losses.std()
+        loss_mean, loss_std = float(testing_losses.mean()), float(
+            testing_losses.std()
+        )
         logger.info(
-            f"Testing is completed with loss: {loss_mean = }, {loss_std = }"
+            f"Testing is completed with loss: {loss_mean}"
+            " \xb1 "
+            f"{loss_std}"
         )
 
     def _save_checkpoint_info(self) -> CheckpointInfo:
