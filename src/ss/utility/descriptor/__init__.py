@@ -1,7 +1,9 @@
 from ._descriptor import (
     ConditionDescriptor,
     ConditionReadOnlyDescriptor,
+    DataclassDescriptor,
     Descriptor,
+    ReadOnlyDataclassDescriptor,
     ReadOnlyDescriptor,
 )
 from ._descriptor_ndarray import (

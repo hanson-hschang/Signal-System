@@ -5,3 +5,4 @@ from ._utility import (
     compute_optimal_loss,
     get_estimation_model,
 )
+from ._utility_info import module_info

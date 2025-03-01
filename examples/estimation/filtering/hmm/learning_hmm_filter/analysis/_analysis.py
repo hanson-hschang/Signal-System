@@ -1,3 +1,5 @@
+from typing import cast
+
 from pathlib import Path
 
 import numpy as np
@@ -9,17 +11,11 @@ from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device import DeviceManager
-from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 
 from . import figure as Figure
-from .utility import (
-    compute_layer_loss_trajectory,
-    compute_loss_trajectory,
-    compute_optimal_loss,
-    get_estimation_model,
-)
+from . import utility as Utility
 
 logger = Logging.get_logger(__name__)
 
@@ -51,14 +47,14 @@ def analysis(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
         ),
-        estimation_model=get_estimation_model(
+        estimation_model=Utility.get_estimation_model(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
             future_time_steps=1,
         ),
     )
 
-    # Load the module
+    # Load module
     module_filename = model_filepath.with_suffix(
         LearningHmmFilter.FILE_EXTENSIONS[0]
     )
@@ -71,13 +67,8 @@ def analysis(
         },
     )
 
-    np.set_printoptions(precision=3, suppress=True)
-    with BaseLearningProcess.inference_mode(learning_filter):
-        emission_matrix = learning_filter.emission_matrix.numpy()
-        logger.info("(layer 0) learned emission matrix = ")
-        for k in range(emission_matrix.shape[0]):
-            logger.info(f"    {emission_matrix[k]}")
-        transition_matrix = learning_filter.transition_matrix[0][0].numpy()
+    # Display module information
+    Utility.module_info(learning_filter)
 
     Figure.StochasticMatrixFigure(
         stochastic_matrix=transition_matrix,
@@ -101,7 +92,7 @@ def analysis(
     example_time_trajectory = time_trajectory
     example_observation_trajectory = observation_trajectory[0]
     filter_result_trajectory, learning_filter_result_trajectory = (
-        compute_loss_trajectory(
+        Utility.compute_loss_trajectory(
             filter=filter,
             learning_filter=learning_filter,
             observation_trajectory=example_observation_trajectory,
@@ -112,8 +103,7 @@ def analysis(
     logger.info(
         "Computing the average loss of the learning_filter over layers"
     )
-
-    _, loss_mean_over_layer = compute_layer_loss_trajectory(
+    _, loss_mean_over_layer = Utility.compute_layer_loss_trajectory(
         learning_filter=learning_filter,
         observation_trajectory=observation_trajectory,
     )
@@ -132,7 +122,7 @@ def analysis(
     )
     number_of_systems = int(data.meta_info["number_of_systems"])
     empirical_optimal_loss = float(
-        compute_optimal_loss(
+        Utility.compute_optimal_loss(
             filter.duplicate(number_of_systems),
             observation_trajectory,
         )

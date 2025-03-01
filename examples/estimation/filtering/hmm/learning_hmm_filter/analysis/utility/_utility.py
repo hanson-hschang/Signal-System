@@ -1,4 +1,4 @@
-from typing import Any, Generator, Optional, Tuple, cast
+from typing import Any, Generator, Optional, Tuple
 
 from collections import deque
 from dataclasses import dataclass
@@ -9,7 +9,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm import HmmFilter
-from ss.estimation.filtering.hmm.learning import module as Module
+from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.system.markov import one_hot_encoding
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
@@ -166,7 +166,7 @@ def compute_optimal_loss(
 
 
 def compute_layer_loss_trajectory(
-    learning_filter: Module.LearningHmmFilter,
+    learning_filter: LearningHmmFilter,
     observation_trajectory: NDArray,
 ) -> Tuple[NDArray, NDArray]:
     """
@@ -191,7 +191,7 @@ def compute_layer_loss_trajectory(
     if observation_trajectory.ndim == 2:
         observation_trajectory = observation_trajectory[np.newaxis, ...]
     number_of_systems, _, time_horizon = observation_trajectory.shape
-    layer_dim = learning_filter.layer_dim + 1
+    layer_dim = learning_filter.layer_dim
     loss_trajectory = np.empty(
         (number_of_systems, layer_dim, time_horizon - 1)
     )
@@ -200,9 +200,9 @@ def compute_layer_loss_trajectory(
     )
 
     with BaseLearningProcess.inference_mode(learning_filter):
-        observation_queue = FixLengthObservationQueue(
-            max_length=128,
-        )
+        # observation_queue = FixLengthObservationQueue(
+        #     max_length=128,
+        # )
         learning_filter.reset()
         for k, (observation, next_observation) in logger.progress_bar(
             enumerate(
@@ -237,7 +237,7 @@ class FilterResultTrajectory:
 
 def compute_loss_trajectory(
     filter: HmmFilter,
-    learning_filter: Module.LearningHmmFilter,
+    learning_filter: LearningHmmFilter,
     observation_trajectory: NDArray,
 ) -> Tuple[FilterResultTrajectory, FilterResultTrajectory]:
     """
@@ -274,9 +274,9 @@ def compute_loss_trajectory(
     )
 
     with BaseLearningProcess.inference_mode(learning_filter):
-        observation_queue = FixLengthObservationQueue(
-            max_length=128,
-        )
+        # observation_queue = FixLengthObservationQueue(
+        #     max_length=128,
+        # )
 
         learning_filter.reset()
         for k, (observation, next_observation) in logger.progress_bar(

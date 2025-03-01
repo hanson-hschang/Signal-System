@@ -3,20 +3,18 @@ from typing import Sequence, assert_never
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
-import torch
-
-from ss.utility.assertion.validator import (
-    NumberValidator,
-    PositiveNumberValidator,
-)
-from ss.utility.descriptor import ConditionDescriptor
+# from ss.utility.assertion.validator import (
+#     NumberValidator,
+#     PositiveNumberValidator,
+# )
+# from ss.utility.descriptor import ConditionDescriptor
 from ss.utility.learning.module.config import BaseLearningConfig
 
 # from ss.utility.learning.module.stochasticizer.config import (
 #     StochasticizerConfig,
 # )
-from ss.utility.learning.module.probability.config import ProbabilityConfig
-from ss.utility.learning.parameter.initializer import Initializer
+# from ss.utility.learning.module.probability.config import ProbabilityConfig
+# from ss.utility.learning.parameter.initializer import Initializer
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
@@ -24,6 +22,14 @@ from ss.utility.learning.parameter.probability.config import (
 
 @dataclass
 class EmissionMatrixConfig(BaseLearningConfig):
+
+    probability_parameter: ProbabilityParameterConfig = field(
+        default_factory=lambda: ProbabilityParameterConfig()
+    )
+
+
+@dataclass
+class EmissionLayerConfig(BaseLearningConfig):
 
     class Option(StrEnum):
         FULL_MATRIX = auto()
@@ -190,9 +196,10 @@ class EmissionMatrixConfig(BaseLearningConfig):
     #                 assert_never(_invalid_option)
 
     option: Option = Option.FULL_MATRIX
-    probability_parameter: ProbabilityParameterConfig = field(
-        default_factory=lambda: ProbabilityParameterConfig()
-    )
+    matrix: EmissionMatrixConfig = field(default_factory=EmissionMatrixConfig)
+    # probability_parameter: ProbabilityParameterConfig = field(
+    #     default_factory=lambda: ProbabilityParameterConfig()
+    # )
     # initializer: InitializerConfig = field(default_factory=InitializerConfig)
     # stochasticizer: StochasticizerConfig = field(
     #     default_factory=StochasticizerConfig
@@ -203,6 +210,6 @@ class EmissionMatrixConfig(BaseLearningConfig):
 
 
 @dataclass
-class EmissionConfig(BaseLearningConfig):
+class EmissionProcessConfig(BaseLearningConfig):
 
-    matrix: EmissionMatrixConfig = field(default_factory=EmissionMatrixConfig)
+    layer: EmissionLayerConfig = field(default_factory=EmissionLayerConfig)

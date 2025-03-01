@@ -127,9 +127,11 @@ class DropoutConfig(Config.BaseLearningConfig):
 
     value: Value = Value.ZERO
     rate: RateDescriptor = field(default=RateDescriptor(), init=False)
-    scaling: ScalingDescriptor = field(default=ScalingDescriptor(), init=False)
+    scaling: ScalingDescriptor = field(
+        default=ScalingDescriptor(), init=False, repr=False
+    )
     log_zero_scale: LogZeroScaleDescriptor = field(
-        default=LogZeroScaleDescriptor(), init=False
+        default=LogZeroScaleDescriptor(), init=False, repr=False
     )
 
     def __post_init__(self) -> None:

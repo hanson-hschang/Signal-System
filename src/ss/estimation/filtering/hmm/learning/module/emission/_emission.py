@@ -1,29 +1,30 @@
-from typing import Optional, cast
+from typing import Optional
 
 import torch
-from torch import nn
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
-from ss.utility.learning.module.dropout import Dropout
-from ss.utility.learning.module.probability.generator import (
-    ProbabilityGenerator,
-)
+
+# from ss.utility.learning.module.dropout import Dropout
+# from ss.utility.learning.module.probability.generator import (
+#     ProbabilityGenerator,
+# )
 from ss.utility.learning.parameter.probability import ProbabilityParameter
+
+# from torch import nn
 
 
 class LearningHmmFilterEmissionProcess(
-    BaseLearningModule[Config.LearningHmmFilterConfig]
+    BaseLearningModule[Config.EmissionProcessConfig]
 ):
     def __init__(
         self,
-        config: Config.LearningHmmFilterConfig,
+        config: Config.EmissionProcessConfig,
+        filter_config: Config.FilterConfig,
     ) -> None:
         super().__init__(config)
-        self._state_dim = self._config.filter.state_dim
-        self._discrete_observation_dim = (
-            self._config.filter.discrete_observation_dim
-        )
+        self._state_dim = filter_config.state_dim
+        self._discrete_observation_dim = filter_config.discrete_observation_dim
 
         # matrix_parameter = torch.empty(
         #     (self._state_dim, self._discrete_observation_dim),
@@ -47,7 +48,7 @@ class LearningHmmFilterEmissionProcess(
         # )
 
         self._matrix_parameter = ProbabilityParameter(
-            self._config.emission.matrix.probability_parameter,
+            self._config.layer.matrix.probability_parameter,
             (self._state_dim, self._discrete_observation_dim),
         )
         # self._matrix_stochasticizer = Stochasticizer.create(

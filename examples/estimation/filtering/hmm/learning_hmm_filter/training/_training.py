@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict
 
 from pathlib import Path
 
@@ -61,12 +61,36 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        feature_dim_over_layers=(1,),
+        block_dims=(1,),
     )
-    config.dropout.rate = 0.0
-    config.emission.matrix.probability_parameter.dropout.rate = 0.0
-    config.emission.matrix.probability_parameter.transformer.temperature.require_training = (
-        True
+
+    # Modify module configuration
+    ## Update emission process' matrix configuration
+    emission_matrix_parameter = (
+        config.emission.layer.matrix.probability_parameter
+    )
+    emission_matrix_parameter.dropout.rate = 0.1
+    emission_matrix_parameter.transformer.temperature.require_training = True
+
+    ## Update transition process' initial state configuration
+    initial_state_parameter = (
+        config.transition.layers[0]
+        .blocks[0]
+        .initial_state.probability_parameter
+    )
+    initial_state_parameter.dropout.rate = 0.1
+    initial_state_parameter.transformer.temperature.require_training = True
+
+    ## Update transition process' matrix configuration
+    transition_matrix_parameter = (
+        config.transition.layers[0].blocks[0].matrix.probability_parameter
+    )
+    transition_matrix_parameter.dropout.rate = 0.1
+    transition_matrix_parameter.transformer.temperature.require_training = True
+
+    ## Update transition process' option
+    config.transition.layers[0].blocks[0].option = (
+        config.transition.layers[0].blocks[0].Option.FULL_MATRIX
     )
 
     # Prepare module

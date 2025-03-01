@@ -33,8 +33,10 @@ class NormalDistributionInitializer(Initializer):
             value = NonnegativeIntegerValidator(value).get_value()
             super().__set__(obj, value)
 
-    mean: MeanDescriptor = field(default=MeanDescriptor(), init=False)
-    std: StdDescriptor = field(default=StdDescriptor(), init=False)
+    mean: MeanDescriptor = field(
+        default=MeanDescriptor(), init=False, repr=False
+    )
+    std: StdDescriptor = field(default=StdDescriptor(), init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._mean: float = 0.0

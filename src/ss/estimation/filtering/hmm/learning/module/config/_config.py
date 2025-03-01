@@ -7,11 +7,15 @@ from ss.utility.learning.module import config as Config
 from ss.utility.learning.module.dropout.config import DropoutConfig
 from ss.utility.logging import Logging
 
-from ._config_emission import EmissionConfig
+from ._config_emission import EmissionProcessConfig
 from ._config_estimation import EstimationConfig
 from ._config_filter import FilterConfig
 from ._config_prediction import PredictionConfig
-from ._config_transition import TransitionConfig
+from ._config_transition import (
+    TransitionBlockConfig,
+    TransitionLayerConfig,
+    TransitionProcessConfig,
+)
 
 logger = Logging.get_logger(__name__)
 
@@ -27,19 +31,23 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         The dimension of the state.
     discrete_observation_dim : int
         The dimension of the discrete observation.
-    feature_dim_over_layers : Tuple[int, ...]
-        The dimension of features for each layer.
+    block_dim_over_layers : Tuple[int, ...]
+        The dimension of blocks for each layer.
         The length of the tuple is the number of layers.
-        The values of the tuple (positive integers) are the dimension of features for each layer.
+        The values of the tuple (positive integers) are the dimension of blocks for each layer.
     """
 
     # state_dim: int
     # discrete_observation_dim: int
     # feature_dim_over_layers: Tuple[int, ...]
-    filter: FilterConfig = field(default_factory=FilterConfig)
-    dropout: DropoutConfig = field(default_factory=DropoutConfig)
-    transition: TransitionConfig = field(default_factory=TransitionConfig)
-    emission: EmissionConfig = field(default_factory=EmissionConfig)
+    filter: FilterConfig = field(default_factory=lambda: FilterConfig())
+    # dropout: DropoutConfig = field(default_factory=DropoutConfig)
+    transition: TransitionProcessConfig = field(
+        default_factory=lambda: TransitionProcessConfig()
+    )
+    emission: EmissionProcessConfig = field(
+        default_factory=EmissionProcessConfig
+    )
     estimation: EstimationConfig = field(default_factory=EstimationConfig)
     prediction: PredictionConfig = field(default_factory=PredictionConfig)
 
@@ -66,12 +74,29 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         cls,
         state_dim: int,
         discrete_observation_dim: int,
-        feature_dim_over_layers: Tuple[int, ...],
+        block_dims: int | Tuple[int, ...],
     ) -> Self:
-        return cls(
-            filter=FilterConfig(
-                state_dim=state_dim,
-                discrete_observation_dim=discrete_observation_dim,
-                feature_dim_over_layers=feature_dim_over_layers,
+        filter_config = FilterConfig()
+        filter_config.state_dim = state_dim
+        filter_config.discrete_observation_dim = discrete_observation_dim
+
+        config = cls(filter=filter_config)
+        # config.transition.layers = [TransitionLayerConfig()]
+        # print(type(config.transition.layers[0]))
+
+        _block_dims = (
+            (block_dims,)
+            if isinstance(block_dims, int)
+            else tuple(
+                PositiveIntegerValidator(block_dim).get_value()
+                for block_dim in block_dims
             )
         )
+
+        for block_dim in _block_dims:
+            layer = TransitionLayerConfig()
+            for _ in range(block_dim):
+                layer.blocks.append(TransitionBlockConfig())
+            config.transition.layers.append(layer)
+
+        return config

@@ -42,12 +42,14 @@ class LearningHmmFilter(
         self._discrete_observation_dim = (
             self._config.filter.discrete_observation_dim
         )
-        self._layer_dim = self._config.filter.layer_dim
+        self._layer_dim = self._config.transition.layer_dim + 1
 
         # Define the learnable emission process and transition process
-        self._emission_process = LearningHmmFilterEmissionProcess(self._config)
+        self._emission_process = LearningHmmFilterEmissionProcess(
+            self._config.emission, self._config.filter
+        )
         self._transition_process = LearningHmmFilterTransitionProcess(
-            self._config
+            self._config.transition, self._config.filter
         )
 
         # Initialize the estimated next state, and next observation for the inference mode
@@ -114,14 +116,8 @@ class LearningHmmFilter(
         return self._emission_process.matrix.detach()
 
     @property
-    def transition_matrix(self) -> List[List[torch.Tensor]]:
-        return [
-            [
-                transition_block.matrix.detach()
-                for transition_block in transition_layer.blocks
-            ]
-            for transition_layer in self._transition_process.layers
-        ]
+    def transition_matrix(self) -> List[torch.Tensor]:
+        return [matrix.detach() for matrix in self._transition_process.matrix]
 
     @property
     def initial_state(self) -> List[List[torch.Tensor]]:

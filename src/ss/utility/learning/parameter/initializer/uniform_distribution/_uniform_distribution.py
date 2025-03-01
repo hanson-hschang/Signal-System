@@ -33,8 +33,8 @@ class UniformDistributionInitializer(Initializer):
             value = NumberValidator(value).get_value()
             super().__set__(obj, value)
 
-    min: MinDescriptor = field(default=MinDescriptor(), init=False)
-    max: MaxDescriptor = field(default=MaxDescriptor(), init=False)
+    min: MinDescriptor = field(default=MinDescriptor(), init=False, repr=False)
+    max: MaxDescriptor = field(default=MaxDescriptor(), init=False, repr=False)
 
     def __post_init__(self) -> None:
         self._min: float = 0.0
