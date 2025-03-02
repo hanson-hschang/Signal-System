@@ -9,9 +9,6 @@ from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
-# self._transformer: T = self._config.Transformer(
-#     self._config.transformer, self._shape
-# )
 
 C = TypeVar("C", bound=Config.ManifoldParameterConfig)
 T = TypeVar("T", bound=Transformer, default=Transformer)
@@ -28,7 +25,6 @@ class ManifoldParameter(Parameter[C], Generic[C, T]):
 
     def _init_transformer(self) -> T:
         raise NotImplementedError
-        # return cast(T, Transformer(self._config.transformer, self._shape))
 
     @property
     def transformer(self) -> T:

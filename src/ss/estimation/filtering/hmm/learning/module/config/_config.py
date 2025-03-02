@@ -24,50 +24,22 @@ logger = Logging.get_logger(__name__)
 class LearningHmmFilterConfig(Config.BaseLearningConfig):
     """
     Configuration of the `LearningHmmFilter` class.
-
-    Properties
-    ----------
-    state_dim : int
-        The dimension of the state.
-    discrete_observation_dim : int
-        The dimension of the discrete observation.
-    block_dim_over_layers : Tuple[int, ...]
-        The dimension of blocks for each layer.
-        The length of the tuple is the number of layers.
-        The values of the tuple (positive integers) are the dimension of blocks for each layer.
     """
 
-    # state_dim: int
-    # discrete_observation_dim: int
-    # feature_dim_over_layers: Tuple[int, ...]
     filter: FilterConfig = field(default_factory=lambda: FilterConfig())
     # dropout: DropoutConfig = field(default_factory=DropoutConfig)
+    emission: EmissionProcessConfig = field(
+        default_factory=lambda: EmissionProcessConfig()
+    )
     transition: TransitionProcessConfig = field(
         default_factory=lambda: TransitionProcessConfig()
     )
-    emission: EmissionProcessConfig = field(
-        default_factory=EmissionProcessConfig
+    estimation: EstimationConfig = field(
+        default_factory=lambda: EstimationConfig()
     )
-    estimation: EstimationConfig = field(default_factory=EstimationConfig)
-    prediction: PredictionConfig = field(default_factory=PredictionConfig)
-
-    # def __post_init__(self) -> None:
-    #     self.state_dim = PositiveIntegerValidator(self.state_dim).get_value()
-    #     self.discrete_observation_dim = PositiveIntegerValidator(
-    #         self.discrete_observation_dim
-    #     ).get_value()
-    #     for feature_dim in self.feature_dim_over_layers:
-    #         assert type(feature_dim) == int, (
-    #             f"feature_dim_over_layers must be a tuple of integers. "
-    #             f"feature_dim_over_layers given is {self.feature_dim_over_layers}."
-    #         )
-
-    # @property
-    # def layer_dim(self) -> int:
-    #     return len(self.feature_dim_over_layers)
-
-    # def get_feature_dim(self, layer_id: int) -> int:
-    #     return self.feature_dim_over_layers[layer_id]
+    prediction: PredictionConfig = field(
+        default_factory=lambda: PredictionConfig()
+    )
 
     @classmethod
     def basic_config(
@@ -75,15 +47,28 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         state_dim: int,
         discrete_observation_dim: int,
         block_dims: int | Tuple[int, ...],
+        dropout_rate: float = 0.0,
     ) -> Self:
-        filter_config = FilterConfig()
-        filter_config.state_dim = state_dim
-        filter_config.discrete_observation_dim = discrete_observation_dim
+        """
+        Create a basic configuration of the `LearningHmmFilter` module.
 
-        config = cls(filter=filter_config)
-        # config.transition.layers = [TransitionLayerConfig()]
-        # print(type(config.transition.layers[0]))
+        Arguments
+        ----------
+        state_dim : int
+            The dimension of the state.
+        discrete_observation_dim : int
+            The dimension of the discrete observation.
+        block_dims : int | Tuple[int, ...]
+            The dimension of blocks for each layer.
+            The length of the tuple is the number of layers.
+            The values of the tuple (positive integers) are the dimension of blocks for each layer.
 
+        Returns
+        -------
+        config: LearningHmmFilterConfig
+            The basic configuration of the `LearningHmmFilter` module.
+        """
+        # Validate block_dims
         _block_dims = (
             (block_dims,)
             if isinstance(block_dims, int)
@@ -93,10 +78,31 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
             )
         )
 
+        # Prepare filter configuration
+        filter_config = FilterConfig()
+        filter_config.state_dim = state_dim
+        filter_config.discrete_observation_dim = discrete_observation_dim
+
+        # Prepare module configuration
+        config = cls(filter=filter_config)
+
+        # Update transition process' configuration
         for block_dim in _block_dims:
             layer = TransitionLayerConfig()
             for _ in range(block_dim):
                 layer.blocks.append(TransitionBlockConfig())
             config.transition.layers.append(layer)
+
+        # Update dropout configuration
+        config.emission.block.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+        for layer in config.transition.layers:
+            layer.coefficient.probability_parameter.dropout.rate = dropout_rate
+            for block in layer.blocks:
+                block.initial_state.probability_parameter.dropout.rate = (
+                    dropout_rate
+                )
+                block.matrix.probability_parameter.dropout.rate = dropout_rate
 
         return config

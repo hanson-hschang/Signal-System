@@ -5,17 +5,17 @@ import torch
 
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.estimation.filtering.hmm.learning.module.emission import (
-    LearningHmmFilterEmissionProcess,
+    EmissionProcess,
 )
 from ss.estimation.filtering.hmm.learning.module.transition import (
-    LearningHmmFilterTransitionProcess,
+    TransitionProcess,
 )
 from ss.estimation.filtering.hmm.learning.module.transition.block import (
-    BaseLearningHmmFilterTransitionBlock,
-    LearningHmmFilterTransitionFullMatrix,
+    BaseTransitionBlock,
+    TransitionFullMatrix,
 )
 from ss.estimation.filtering.hmm.learning.module.transition.layer import (
-    LearningHmmFilterTransitionLayer,
+    TransitionLayer,
 )
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
@@ -24,7 +24,7 @@ logger = Logging.get_logger(__name__)
 
 
 def emission_process_info(
-    emission_process: LearningHmmFilterEmissionProcess,
+    emission_process: EmissionProcess,
     layer_dim: int,
 ) -> None:
     emission_matrix = emission_process.matrix.numpy()
@@ -45,10 +45,10 @@ def emission_process_info(
 
 
 def transition_block_info(
-    transition_block: BaseLearningHmmFilterTransitionBlock,
+    transition_block: BaseTransitionBlock,
     block_dim: int,
 ) -> None:
-    start_index = len("LearningHmmFilterTransition")
+    start_index = len("Transition")
     block_type_name = type(transition_block).__name__[start_index:]
 
     logger.info(
@@ -82,9 +82,7 @@ def transition_block_info(
     for k in range(transition_matrix.shape[0]):
         _transition_matrix_temperature = (
             transition_matrix_temperature[k]
-            if isinstance(
-                transition_block, LearningHmmFilterTransitionFullMatrix
-            )
+            if isinstance(transition_block, TransitionFullMatrix)
             else transition_matrix_temperature
         )
         logger.info(
@@ -93,13 +91,18 @@ def transition_block_info(
 
 
 def transition_layer_info(
-    transition_layer: LearningHmmFilterTransitionLayer,
+    transition_layer: TransitionLayer,
     layer_dim: int,
 ) -> None:
     block_dim = transition_layer.block_dim
     logger.info(
         f"(layer {transition_layer.id} / {layer_dim}) learned transition process ({block_dim} block(s)):"
     )
+
+    transition_matrix = transition_layer.matrix.detach().numpy()
+    logger.info(f"    equivalent transition matrix:")
+    for k in range(transition_matrix.shape[0]):
+        logger.info(f"        {transition_matrix[k]}")
 
     coefficient = transition_layer.coefficient.detach().numpy()
     coefficient_temperature = (
@@ -121,7 +124,7 @@ def transition_layer_info(
 
 
 def transition_process_info(
-    transition_process: LearningHmmFilterTransitionProcess,
+    transition_process: TransitionProcess,
     layer_dim: int,
 ) -> None:
     for transition_layer in transition_process.layers:

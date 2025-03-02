@@ -1,6 +1,4 @@
 from ._descriptor import (
-    ConditionDescriptor,
-    ConditionReadOnlyDescriptor,
     DataclassDescriptor,
     Descriptor,
     ReadOnlyDataclassDescriptor,

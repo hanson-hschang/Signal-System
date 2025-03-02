@@ -1,1 +1,1 @@
-from ._layer import LearningHmmFilterTransitionLayer
+from ._layer import TransitionLayer

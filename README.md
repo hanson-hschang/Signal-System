@@ -31,18 +31,19 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 
 Before installation, create a Python virtual environment to manage dependencies and ensure a clean installation of the **Signal & System** package.
 
-1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment. This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage the environments.)
+1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment.
+This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage environments.)
 
     ```properties
-    # Change directory to your working folder
-    cd path_to_your_working_folder
+    # Change directory to your <working_directory>
+    cd <working_directory>
 
-    # Create a virtual environment of name `myenv`
+    # Create a virtual environment of name <venv>
     # with Python version 3.13
-    conda create --name myenv python=3.13
+    conda create --name <venv> python=3.13
 
     # Activate the virtual environment
-    conda activate myenv
+    conda activate <venv>
 
     # Note: Exit the virtual environment
     conda deactivate

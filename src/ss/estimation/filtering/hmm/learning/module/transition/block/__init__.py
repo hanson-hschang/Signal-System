@@ -1,6 +1,6 @@
 from ._block import (
-    BaseLearningHmmFilterTransitionBlock,
-    LearningHmmFilterTransitionFullMatrix,
-    LearningHmmFilterTransitionIID,
-    LearningHmmFilterTransitionSpatialInvariantMatrix,
+    BaseTransitionBlock,
+    TransitionFullMatrix,
+    TransitionIID,
+    TransitionSpatialInvariantMatrix,
 )

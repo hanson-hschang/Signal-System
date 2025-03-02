@@ -105,6 +105,7 @@ class BaseLearningProcess:
     def evaluate_model(
         self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
     ) -> NDArray:
+
         with self._module.evaluation_mode():
             logger.info("Evaluating model...")
             losses = []

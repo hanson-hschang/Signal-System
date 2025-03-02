@@ -61,40 +61,28 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        block_dims=(1,),
+        block_dims=(2,),
     )
 
     # Modify module configuration
-    ## Update emission process' matrix configuration
-    emission_matrix_parameter = (
-        config.emission.layer.matrix.probability_parameter
+    transition_layer_config = config.transition.layers[0]
+    transition_layer_config.blocks[0].option = (
+        Config.TransitionBlockConfig.Option.FULL_MATRIX
     )
-    emission_matrix_parameter.dropout.rate = 0.1
-    emission_matrix_parameter.transformer.temperature.require_training = True
-
-    ## Update transition process' initial state configuration
-    initial_state_parameter = (
-        config.transition.layers[0]
-        .blocks[0]
-        .initial_state.probability_parameter
-    )
-    initial_state_parameter.dropout.rate = 0.1
-    initial_state_parameter.transformer.temperature.require_training = True
-
-    ## Update transition process' matrix configuration
-    transition_matrix_parameter = (
-        config.transition.layers[0].blocks[0].matrix.probability_parameter
-    )
-    transition_matrix_parameter.dropout.rate = 0.1
-    transition_matrix_parameter.transformer.temperature.require_training = True
-
-    ## Update transition process' option
-    config.transition.layers[0].blocks[0].option = (
-        config.transition.layers[0].blocks[0].Option.FULL_MATRIX
+    transition_layer_config.blocks[1].option = (
+        Config.TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX
     )
 
     # Prepare module
     learning_filter = LearningHmmFilter(config)
+
+    # Uncomment the following code block to initialize one of
+    # the learning filter's transition matrix to a identity matrix
+
+    # with learning_filter.evaluation_mode():
+    #     learning_filter.transition_process.layers[0].blocks[0].matrix = torch.eye(
+    #         learning_filter.state_dim
+    #     )
 
     # Define learning process
     class LearningProcess(LearningHmmFilterProcess):

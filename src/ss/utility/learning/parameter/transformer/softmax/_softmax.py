@@ -22,9 +22,6 @@ class SoftmaxTransformer(
     ) -> None:
         super().__init__(config, shape)
         self._temperature = self._init_temperature()
-        # self._temperature: PP = PositiveParameter(
-        #     self._config.temperature, temperature_shape
-        # )
 
     def _init_temperature(self) -> PP:
         temperature_shape = (
@@ -44,5 +41,16 @@ class SoftmaxTransformer(
         )
 
     def inverse(self, value: torch.Tensor) -> torch.Tensor:
-        parameter_value: torch.Tensor = torch.log(value) * self._temperature()
+        # might not be the best way to handle this
+        negative_mask = value < 0
+        if negative_mask.any():
+            raise ValueError("value must be non-negative.")
+        zero_mask = value == 0
+        log_nonzero_min = torch.log(value[~zero_mask].min())
+        log_zero_value = log_nonzero_min - self._config.log_zero_offset
+        value = value.masked_fill(zero_mask, torch.exp(log_zero_value))
+        with self._temperature.evaluation_mode():
+            parameter_value: torch.Tensor = (
+                torch.log(value) * self._temperature()
+            )
         return parameter_value

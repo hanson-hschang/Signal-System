@@ -5,7 +5,7 @@ from torch import nn
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.estimation.filtering.hmm.learning.module.transition.block import (
-    BaseLearningHmmFilterTransitionBlock,
+    BaseTransitionBlock,
 )
 from ss.utility.learning.module import BaseLearningModule, reset_module
 from ss.utility.learning.parameter.probability import ProbabilityParameter
@@ -14,9 +14,7 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-class LearningHmmFilterTransitionLayer(
-    BaseLearningModule[Config.TransitionLayerConfig]
-):
+class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
     def __init__(
         self,
         config: Config.TransitionLayerConfig,
@@ -33,22 +31,10 @@ class LearningHmmFilterTransitionLayer(
             (self._state_dim, self._block_dim),
         )
 
-        # self._coefficient_parameter = nn.Parameter(
-        #     self._config.transition.coefficient.initializer.initialize(
-        #         self._feature_dim,
-        #     )
-        # )
-        # self._coefficient_probability = Stochasticizer.create(
-        #     self._config.transition.coefficient.stochasticizer
-        # )
-
-        # self._dropout = Dropout(self._config.dropout)
-        # self._mask = torch.ones_like(self._coefficient_parameter)
-
         self._blocks = nn.ModuleList()
         for block_id in range(self._block_dim):
             self._blocks.append(
-                BaseLearningHmmFilterTransitionBlock.create(
+                BaseTransitionBlock.create(
                     self._config.blocks[block_id], block_id, filter_config
                 )
             )
@@ -71,11 +57,8 @@ class LearningHmmFilterTransitionLayer(
         return coefficient
 
     @property
-    def blocks(self) -> List[BaseLearningHmmFilterTransitionBlock]:
-        return [
-            cast(BaseLearningHmmFilterTransitionBlock, block)
-            for block in self._blocks
-        ]
+    def blocks(self) -> List[BaseTransitionBlock]:
+        return [cast(BaseTransitionBlock, block) for block in self._blocks]
 
     @property
     def matrix(self) -> torch.Tensor:
@@ -86,7 +69,7 @@ class LearningHmmFilterTransitionLayer(
         )
         for i, block in enumerate(self._blocks):
             transition_matrix += (
-                cast(BaseLearningHmmFilterTransitionBlock, block).matrix
+                cast(BaseTransitionBlock, block).matrix
                 * coefficient[:, i : i + 1]
             )
         return transition_matrix
@@ -94,18 +77,6 @@ class LearningHmmFilterTransitionLayer(
     def forward(
         self, input_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # mask = ~self._dropout(self._mask).to(
-        #     dtype=torch.bool,
-        #     device=self._weight.device,
-        # )
-        # weight = nn.functional.softmax(
-        #     self._weight.masked_fill(mask, float("-inf")),
-        #     dim=0,
-        # )
-        # weight = nn.functional.softmax(
-        #     self._dropout(self._coefficient_parameter),
-        #     dim=0,
-        # )
         coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
         # (1, 1, state_dim, block_dim)
 

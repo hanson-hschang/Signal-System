@@ -2,6 +2,8 @@ from typing import Generic, TypeVar, cast
 
 from dataclasses import dataclass, field
 
+from ss.utility.assertion.validator import IntegerValidator
+from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.parameter.initializer import InitializerProtocol
 from ss.utility.learning.parameter.initializer.normal_distribution import (
     NormalDistributionInitializer,
@@ -32,6 +34,15 @@ class TemperatureConfig(PositiveParameterConfig[TC], Generic[TC]):
 
 @dataclass
 class SoftmaxTransformerConfig(TransformerConfig):
+
+    class LogZeroOffsetDescriptor(DataclassDescriptor[int]):
+        def __set__(self, instance: object, value: int) -> None:
+            value = IntegerValidator(value).get_value()
+            if value < 0:
+                raise ValueError("log_zero_offset must be a positive int.")
+            super().__set__(instance, value)
+
+    log_zero_offset: LogZeroOffsetDescriptor = LogZeroOffsetDescriptor(10)
     temperature: TemperatureConfig = field(
         default_factory=lambda: cast(TemperatureConfig, TemperatureConfig())
     )

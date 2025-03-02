@@ -3,15 +3,18 @@ from typing import List, Tuple, assert_never
 import torch
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.emission import (
+    EmissionProcess,
+)
+from ss.estimation.filtering.hmm.learning.module.transition import (
+    TransitionProcess,
+)
 from ss.utility.descriptor import (
     BatchTensorReadOnlyDescriptor,
     ReadOnlyDescriptor,
 )
 from ss.utility.learning import module as Module
 from ss.utility.logging import Logging
-
-from .emission import LearningHmmFilterEmissionProcess
-from .transition import LearningHmmFilterTransitionProcess
 
 logger = Logging.get_logger(__name__)
 
@@ -20,7 +23,7 @@ class LearningHmmFilter(
     Module.BaseLearningModule[Config.LearningHmmFilterConfig]
 ):
     """
-    `LearningHmmFilter` class for learning the hidden Markov model and estimating the next observation.
+    `LearningHmmFilter` module for learning the hidden Markov model and estimating the next observation.
     """
 
     def __init__(
@@ -28,12 +31,12 @@ class LearningHmmFilter(
         config: Config.LearningHmmFilterConfig,
     ) -> None:
         """
-        Initialize the `LearningHmmFilter` class
+        Initialize the `LearningHmmFilter` module.
 
         Arguments:
         ----------
-            config : LearningHmmFilterParameters
-                dataclass containing the configuration for the `LearningHmmFilter` class
+        config : LearningHmmFilterConfig
+            dataclass containing the configuration for the module `LearningHmmFilter` class
         """
         super().__init__(config)
 
@@ -45,10 +48,10 @@ class LearningHmmFilter(
         self._layer_dim = self._config.transition.layer_dim + 1
 
         # Define the learnable emission process and transition process
-        self._emission_process = LearningHmmFilterEmissionProcess(
+        self._emission_process = EmissionProcess(
             self._config.emission, self._config.filter
         )
-        self._transition_process = LearningHmmFilterTransitionProcess(
+        self._transition_process = TransitionProcess(
             self._config.transition, self._config.filter
         )
 
@@ -63,17 +66,11 @@ class LearningHmmFilter(
         self._batch_size = batch_size
         with torch.no_grad():
             self._estimated_state = (
-                torch.ones(
-                    (self._batch_size, self._state_dim),
-                    # dtype=torch.float64
-                )
+                torch.ones((self._batch_size, self._state_dim))
                 / self._state_dim
             )  # (batch_size, state_dim)
             self._predicted_next_state = (
-                torch.ones(
-                    (self._batch_size, self._state_dim),
-                    # dtype=torch.float64
-                )
+                torch.ones((self._batch_size, self._state_dim))
                 / self._state_dim
             )  # (batch_size, state_dim)
             self._predicted_next_observation_probability: torch.Tensor = (
@@ -100,15 +97,15 @@ class LearningHmmFilter(
     state_dim = ReadOnlyDescriptor[int]()
     discrete_observation_dim = ReadOnlyDescriptor[int]()
     layer_dim = ReadOnlyDescriptor[int]()
-    estimation_shape = ReadOnlyDescriptor[tuple]()
+    estimation_shape = ReadOnlyDescriptor[Tuple[int, ...]]()
     batch_size = ReadOnlyDescriptor[int]()
 
     @property
-    def emission_process(self) -> LearningHmmFilterEmissionProcess:
+    def emission_process(self) -> EmissionProcess:
         return self._emission_process
 
     @property
-    def transition_process(self) -> LearningHmmFilterTransitionProcess:
+    def transition_process(self) -> TransitionProcess:
         return self._transition_process
 
     @property

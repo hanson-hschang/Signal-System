@@ -1,1 +1,1 @@
-from ._emission import LearningHmmFilterEmissionProcess
+from ._emission import EmissionProcess

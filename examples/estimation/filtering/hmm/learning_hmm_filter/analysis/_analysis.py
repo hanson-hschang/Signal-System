@@ -70,6 +70,11 @@ def analysis(
     # Display module information
     Utility.module_info(learning_filter)
 
+    learned_transition_matrix = (
+        learning_filter.transition_matrix[0].detach().numpy()
+    )
+    learned_emission_matrix = learning_filter.emission_matrix.detach().numpy()
+
     Figure.StochasticMatrixFigure(
         stochastic_matrix=transition_matrix,
         fig_title="Transition Matrix",
@@ -78,6 +83,16 @@ def analysis(
     Figure.StochasticMatrixFigure(
         stochastic_matrix=emission_matrix,
         fig_title="Emission Matrix",
+    ).plot()
+
+    Figure.StochasticMatrixFigure(
+        stochastic_matrix=learned_transition_matrix,
+        fig_title="Learned Transition Matrix",
+    ).plot()
+
+    Figure.StochasticMatrixFigure(
+        stochastic_matrix=learned_emission_matrix,
+        fig_title="Learned Emission Matrix",
     ).plot()
 
     # Convert the natural logarithm to the log_base logarithm

@@ -14,7 +14,7 @@ class ParameterConfig(BaseLearningConfig):
     Configuration of the parameter module.
     """
 
-    dropout: DropoutConfig = field(default_factory=DropoutConfig)
+    dropout: DropoutConfig = field(default_factory=lambda: DropoutConfig())
     initializer: InitializerProtocol = field(
         default_factory=NormalDistributionInitializer
     )

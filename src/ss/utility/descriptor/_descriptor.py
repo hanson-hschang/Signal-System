@@ -1,47 +1,43 @@
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, Optional, Type, TypeVar
 
 T = TypeVar("T")
 O = TypeVar("O", bound=object, default=object)
 
 
-class ConditionReadOnlyDescriptor(Generic[T, O]):
-    def __set_name__(self, obj_type: type, name: str) -> None:
+class ReadOnlyDescriptor(Generic[T, O]):
+    def __set_name__(self, owner: Type[O], name: str) -> None:
         self.name = name
         self.private_name = "_" + name
 
-    def __get__(self, obj: O, obj_type: type) -> T:
-        value: T = getattr(obj, self.private_name)
+    def __get__(self, instance: Optional[O], owner: Type[O]) -> T:
+        value: T = getattr(instance, self.private_name)
         return value
 
 
-class ConditionDescriptor(ConditionReadOnlyDescriptor[T, O]):
+class Descriptor(ReadOnlyDescriptor[T, O]):
     def __set__(self, obj: O, value: T) -> None:
         setattr(obj, self.private_name, value)
-
-
-class ReadOnlyDescriptor(ConditionReadOnlyDescriptor[T, Any]): ...
-
-
-class Descriptor(ConditionDescriptor[T, Any]): ...
 
 
 class ReadOnlyDataclassDescriptor(Generic[T, O]):
     def __init__(self, value: Optional[T] = None) -> None:
         self._default_value = value
 
-    def __set_name__(self, obj_type: type, name: str) -> None:
+    def __set_name__(self, owner: Type[O], name: str) -> None:
         self.name = name
         self.private_name = "_" + name
 
-    def __get__(self, obj: O, obj_type: type) -> T:
-        if obj is None:
+    def __get__(self, instance: Optional[O], owner: Type[O]) -> T:
+        if instance is None:
             if self._default_value is None:
                 raise AttributeError(f"'{self.name}' is not set.")
             return self._default_value
-        value: T = getattr(obj, self.private_name)
+        if not hasattr(instance, self.private_name):
+            setattr(instance, self.private_name, self._default_value)
+        value: T = getattr(instance, self.private_name)
         return value
 
 
 class DataclassDescriptor(ReadOnlyDataclassDescriptor[T, O]):
-    def __set__(self, obj: O, value: T) -> None:
-        setattr(obj, self.private_name, value)
+    def __set__(self, instance: O, value: T) -> None:
+        setattr(instance, self.private_name, value)
