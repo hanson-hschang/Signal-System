@@ -70,10 +70,10 @@ def analysis(
     # Display module information
     Utility.module_info(learning_filter)
 
-    learned_transition_matrix = (
-        learning_filter.transition_matrix[0].detach().numpy()
-    )
-    learned_emission_matrix = learning_filter.emission_matrix.detach().numpy()
+    # learned_transition_matrix = (
+    #     learning_filter.transition_matrix[0].detach().numpy()
+    # )
+    # learned_emission_matrix = learning_filter.emission_matrix.detach().numpy()
 
     # Figure.StochasticMatrixFigure(
     #     stochastic_matrix=transition_matrix,
@@ -95,74 +95,65 @@ def analysis(
     #     fig_title="Learned Emission Matrix",
     # ).plot()
 
-    # Convert the natural logarithm to the log_base logarithm
-    log_base = np.e
-    scaling = 1.0 / np.log(log_base)
+    # Loss analysis
 
-    # Compute the loss trajectory of the filter and learning_filter
-    logger.info("")
-    logger.info(
-        "Computing an example loss trajectory of the filter and learning_filter"
-    )
-    example_time_trajectory = time_trajectory
-    example_observation_trajectory = observation_trajectory[0]
-    filter_result_trajectory, learning_filter_result_trajectory = (
-        Utility.compute_loss_trajectory(
-            filter=filter,
-            learning_filter=learning_filter,
-            observation_trajectory=example_observation_trajectory,
-        )
-    )
+    ## Convert the natural logarithm to the log_base logarithm
+    loss_conversion = Utility.LossConversion()
 
-    logger.info("")
-    logger.info(
-        "Computing the average loss of the learning_filter over layers"
-    )
-    _, loss_mean_over_layer = Utility.compute_layer_loss_trajectory(
-        learning_filter=learning_filter,
-        observation_trajectory=observation_trajectory,
-    )
-    loss_mean_over_layer = loss_mean_over_layer * scaling
-    logger.info(f"empirical average loss (over layers):")
-    for l, loss in enumerate(loss_mean_over_layer):
-        logger.info(f"    layer {l}: {float(loss)}")
+    ## Compute the random guess loss
+    random_guess_loss = loss_conversion(-np.log(1 / discrete_observation_dim))
 
-    # Compute the random guess loss
-    random_guess_loss = -np.log(1 / discrete_observation_dim) * scaling
-
-    # Compute the empirical optimal loss
-    logger.info("")
-    logger.info(
-        "Computing the empirical optimal loss (the cross-entropy loss of the hmm-filter)"
-    )
-    number_of_systems = int(data.meta_info["number_of_systems"])
-    empirical_optimal_loss = float(
+    ## Compute the empirical optimal loss
+    empirical_optimal_loss = loss_conversion(
         Utility.compute_optimal_loss(
             filter.duplicate(number_of_systems),
             observation_trajectory,
         )
-        * scaling
     )
     logger.info(f"{empirical_optimal_loss = }")
 
-    # Plot the training and validation loss together with the optimal loss
+    ## Compute the average loss of the learning_filter over layers
+    loss_mean_over_layer = loss_conversion(
+        Utility.compute_layer_loss_trajectory(
+            learning_filter=learning_filter,
+            observation_trajectory=observation_trajectory,
+        )
+    )
+    logger.info(f"empirical average loss (over layers):")
+    for l, loss in enumerate(loss_mean_over_layer):
+        logger.info(f"    layer {l}: {float(loss)}")
+
+    ## Compute an example loss trajectory of the filter and learning_filter
+    filter_result_trajectory, learning_filter_result_trajectory = (
+        Utility.compute_loss_trajectory(
+            filter=filter,
+            learning_filter=learning_filter,
+            observation_trajectory=(
+                example_observation_trajectory := observation_trajectory[0]
+            ),
+        )
+    )
+
+    # Analysis visualization
+
+    ## Plot the training and validation loss together with the optimal loss
     checkpoint_info = CheckpointInfo.load(model_filepath.with_suffix(".hdf5"))
     loss_figure = Figure.IterationFigure(
         training_loss_history=checkpoint_info["__training_loss_history__"],
         validation_loss_history=checkpoint_info["__validation_loss_history__"],
-        scaling=scaling,
+        scaling=loss_conversion.scaling,
     ).plot()
     Figure.add_loss_line(
         loss_figure.loss_plot_ax,
         random_guess_loss,
         "random guess loss: {:.3f}",
-        log_base=log_base,
+        log_base=loss_conversion.log_base,
     )
     Figure.add_loss_line(
         loss_figure.loss_plot_ax,
         empirical_optimal_loss,
         "optimal loss: {:.3f}\n(based on HMM-filter)",
-        log_base=log_base,
+        log_base=loss_conversion.log_base,
         text_offset=(64, -48),
     )
     for l, loss in enumerate(loss_mean_over_layer):
@@ -170,21 +161,21 @@ def analysis(
             loss_figure.loss_plot_ax,
             loss,
             f"loss on layer {l}" + ": {:.3f}",
-            log_base=log_base,
+            log_base=loss_conversion.log_base,
         )
     Figure.update_loss_ylim(
         loss_figure.loss_plot_ax, (empirical_optimal_loss, random_guess_loss)
     )
 
-    # Plot the filter result comparison
+    ## Plot the filter result comparison
     Figure.FilterResultFigure(
-        time_trajectory=example_time_trajectory,
+        time_trajectory=time_trajectory,
         observation_trajectory=example_observation_trajectory,
         filter_result_trajectory_dict=dict(
             filter=filter_result_trajectory,
             learning_filter=learning_filter_result_trajectory,
         ),
-        loss_scaling=scaling,
+        loss_scaling=loss_conversion.scaling,
     ).plot()
 
     Figure.show()
