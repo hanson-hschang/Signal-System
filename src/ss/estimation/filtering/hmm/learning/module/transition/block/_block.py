@@ -17,8 +17,8 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
-        block_id: int,
         filter_config: Config.FilterConfig,
+        block_id: int,
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
@@ -174,18 +174,20 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
     def create(
         cls,
         config: Config.TransitionBlockConfig,
-        block_id: int,
         filter_config: Config.FilterConfig,
+        block_id: int,
     ) -> "BaseTransitionBlock":
         match config.option:
             case Config.TransitionBlockConfig.Option.FULL_MATRIX:
-                return TransitionFullMatrix(config, block_id, filter_config)
+                return TransitionFullMatrix(config, filter_config, block_id)
             case Config.TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX:
                 return TransitionSpatialInvariantMatrix(
-                    config, block_id, filter_config
+                    config,
+                    filter_config,
+                    block_id,
                 )
             case Config.TransitionBlockConfig.Option.IID:
-                return TransitionIID(config, block_id, filter_config)
+                return TransitionIID(config, filter_config, block_id)
             case _ as _invalid_block_option:
                 assert_never(_invalid_block_option)
 
@@ -194,10 +196,10 @@ class TransitionFullMatrix(BaseTransitionBlock):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
-        feature_id: int,
         filter_config: Config.FilterConfig,
+        block_id: int,
     ) -> None:
-        super().__init__(config, feature_id, filter_config)
+        super().__init__(config, filter_config, block_id)
         self._matrix_parameter = ProbabilityParameter(
             self._config.matrix.probability_parameter,
             (self._state_dim, self._state_dim),
@@ -217,10 +219,10 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
-        feature_id: int,
         filter_config: Config.FilterConfig,
+        block_id: int,
     ) -> None:
-        super().__init__(config, feature_id, filter_config)
+        super().__init__(config, filter_config, block_id)
         self._matrix_parameter = ProbabilityParameter(
             self._config.matrix.probability_parameter,
             (self._state_dim,),
@@ -265,10 +267,10 @@ class TransitionIID(BaseTransitionBlock):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
-        feature_id: int,
         filter_config: Config.FilterConfig,
+        block_id: int,
     ) -> None:
-        super().__init__(config, feature_id, filter_config)
+        super().__init__(config, filter_config, block_id)
 
         if self._config.matrix.initial_state_binding is not True:
             self._config.matrix.initial_state_binding = True

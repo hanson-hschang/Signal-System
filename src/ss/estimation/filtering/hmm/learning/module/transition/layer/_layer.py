@@ -18,8 +18,8 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
     def __init__(
         self,
         config: Config.TransitionLayerConfig,
-        layer_id: int,
         filter_config: Config.FilterConfig,
+        layer_id: int,
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
@@ -35,7 +35,9 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         for block_id in range(self._block_dim):
             self._blocks.append(
                 BaseTransitionBlock.create(
-                    self._config.blocks[block_id], block_id, filter_config
+                    self._config.blocks[block_id],
+                    filter_config,
+                    block_id,
                 )
             )
 
@@ -86,15 +88,15 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         average_predicted_next_state_trajectory = torch.zeros_like(
             input_state_trajectory
         )  # (batch_size, horizon, state_dim)
-        for i, block in enumerate(self._blocks):
+        for b, block in enumerate(self._blocks):
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 block(input_state_trajectory)
             )  # (batch_size, horizon, state_dim), (batch_size, horizon, state_dim)
             average_estimated_state_trajectory += (
-                estimated_state_trajectory * coefficient[:, :, :, i]
+                estimated_state_trajectory * coefficient[:, :, :, b]
             )
             average_predicted_next_state_trajectory += (
-                predicted_next_state_trajectory * coefficient[:, :, :, i]
+                predicted_next_state_trajectory * coefficient[:, :, :, b]
             )
         return (
             average_estimated_state_trajectory,

@@ -30,8 +30,8 @@ class TransitionProcess(BaseLearningModule[Config.TransitionProcessConfig]):
             self._layers.append(
                 TransitionLayer(
                     self._config.layers[l],
-                    l + 1,
                     filter_config,
+                    l + 1,
                 )
             )
         with self.evaluation_mode():
@@ -88,7 +88,7 @@ class TransitionProcess(BaseLearningModule[Config.TransitionProcessConfig]):
         for l, layer in enumerate(self._layers, start=1):
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 layer(likelihood_state_trajectory)
-            )
+            )  # (batch_size, horizon, state_dim), (batch_size, horizon, state_dim)
             if self._inference:
                 # Update layer l (transition layer l) predicted next state result
                 self._predicted_next_state_over_layers[:, l, :] = (

@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm import HmmFilter
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
+from ss.estimation.filtering.hmm.learning.module.config import EstimationConfig
 from ss.system.markov import one_hot_encoding
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
@@ -195,8 +196,8 @@ def compute_layer_loss_trajectory(
     loss_trajectory = np.empty(
         (number_of_systems, layer_dim, time_horizon - 1)
     )
-    learning_filter.set_estimation_option(
-        learning_filter.config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+    learning_filter.estimation_option = (
+        EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
     )
 
     with BaseLearningProcess.inference_mode(learning_filter):
@@ -216,9 +217,18 @@ def compute_layer_loss_trajectory(
             # learning_filter.reset()
             # observation_queue.append(observation)
             # learning_filter.update(torch.tensor(observation_queue.to_numpy()))
+
             learning_filter.update(torch.tensor(observation))
             learning_filter.estimate()
             layer_output = learning_filter.estimation.numpy()
+            # predicted_next_observation_probability = (
+            #     learning_filter.predicted_next_observation_probability.numpy()
+            # )
+            # for i in range(2048):
+            #     assert np.allclose(
+            #         layer_output[i, 1, :],
+            #         predicted_next_observation_probability[i]
+            #     ), (layer_output[i, 1, :], predicted_next_observation_probability[i])
             for l in range(layer_dim):
                 loss_trajectory[:, l, k] = cross_entropy(
                     input_probability=layer_output[:, l, :],
@@ -269,8 +279,8 @@ def compute_loss_trajectory(
     learning_filter_estimated_next_observation_probability = np.empty(
         (discrete_observation_dim, time_horizon - 1)
     )
-    learning_filter.set_estimation_option(
-        learning_filter.config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
+    learning_filter.estimation_option = (
+        EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
     )
 
     with BaseLearningProcess.inference_mode(learning_filter):

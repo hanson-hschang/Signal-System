@@ -56,15 +56,15 @@ class LearningHmmFilter(
         )
 
         # Initialize the estimated next state, and next observation for the inference mode
-        with self.evaluation_mode():
-            self._init_batch_size(batch_size=1)
+        self._init_batch_size(batch_size=1)
 
     def _init_batch_size(
         self, batch_size: int, is_initialized: bool = False
     ) -> None:
         self._is_initialized = is_initialized
         self._batch_size = batch_size
-        with torch.no_grad():
+
+        with self.evaluation_mode():
             self._estimated_state = (
                 torch.ones((self._batch_size, self._state_dim))
                 / self._state_dim
@@ -129,9 +129,36 @@ class LearningHmmFilter(
     @property
     def coefficient(self) -> List[torch.Tensor]:
         return [
-            layer.coefficient.detach()
-            for layer in self._transition_process.layers
+            transition_layer.coefficient.detach()
+            for transition_layer in self._transition_process.layers
         ]
+
+    @property
+    def estimation_option(self) -> Config.EstimationConfig.Option:
+        return self._config.estimation.option
+
+    @estimation_option.setter
+    def estimation_option(
+        self,
+        estimation_option: Config.EstimationConfig.Option,
+    ) -> None:
+        self._config.estimation.option = estimation_option
+        self._init_batch_size(batch_size=self._batch_size)
+
+    # def set_estimation_option(
+    #     self,
+    #     estimation_option: Config.EstimationConfig.Option,
+    # ) -> None:
+    #     """
+    #     Set the estimation option for the `LearningHiddenMarkovModelFilter` class.
+
+    #     Arguments
+    #     ---------
+    #     estimation_option : LearningHiddenMarkovModelFilterEstimationOption
+    #         The option for the estimation.
+    #     """
+    #     self._config.estimation.option = estimation_option
+    #     self._init_batch_size(batch_size=self._batch_size)
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
@@ -149,8 +176,8 @@ class LearningHmmFilter(
         """
 
         _, predicted_next_state_trajectory, emission_matrix = self._forward(
-            observation_trajectory
-        )  # (batch_size, horizon, discrete_observation_dim)
+            observation_trajectory  # (batch_size, horizon, discrete_observation_dim)
+        )
 
         predicted_next_observation_trajectory = self._emission_process(
             predicted_next_state_trajectory,  # (batch_size, horizon, state_dim)
@@ -220,21 +247,6 @@ class LearningHmmFilter(
             return
         self._init_batch_size(batch_size, is_initialized=True)
 
-    def set_estimation_option(
-        self,
-        estimation_option: Config.EstimationConfig.Option,
-    ) -> None:
-        """
-        Set the estimation option for the `LearningHiddenMarkovModelFilter` class.
-
-        Arguments
-        ---------
-        estimation_option : LearningHiddenMarkovModelFilterEstimationOption
-            The option for the estimation.
-        """
-        self._config.estimation.option = estimation_option
-        self._init_batch_size(batch_size=self._batch_size)
-
     @torch.inference_mode()
     def update(self, observation_trajectory: torch.Tensor) -> None:
         """
@@ -296,8 +308,8 @@ class LearningHmmFilter(
                 Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
             ):
                 estimation: torch.Tensor = self._emission_process(
-                    self._transition_process.predicted_next_state_over_layers
-                )
+                    self._transition_process.predicted_next_state_over_layers  # (batch_size, layer_dim, state_dim)
+                )  # (batch_size, layer_dim, discrete_observation_dim)
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
             case (
@@ -305,17 +317,17 @@ class LearningHmmFilter(
             ):
                 estimation = (
                     self._transition_process.predicted_next_state_over_layers
-                )
+                )  # (batch_size, layer_dim, state_dim)
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
             case Config.EstimationConfig.Option.ESTIMATED_STATE:
-                estimation = self._estimated_state
+                estimation = self.estimated_state
             case Config.EstimationConfig.Option.PREDICTED_NEXT_STATE:
-                estimation = self._predicted_next_state
+                estimation = self.predicted_next_state
             case (
                 self._config.estimation.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY
             ):
-                estimation = self._predicted_next_observation_probability
+                estimation = self.predicted_next_observation_probability
             case _ as _invalid_estimation_option:
                 assert_never(_invalid_estimation_option)
         return estimation
