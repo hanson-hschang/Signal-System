@@ -40,6 +40,22 @@ class BaseLearningConfig:
 
             if isinstance(value, BaseLearningConfig):
                 value = type(value).reload(value, name=key, level=level + 1)
+            elif isinstance(value, (tuple, list)):
+                _value = [
+                    (
+                        type(item).reload(
+                            item, name=key + f"[{i}]", level=level + 1
+                        )
+                        if isinstance(item, BaseLearningConfig)
+                        else item
+                    )
+                    for i, item in enumerate(value)
+                ]
+                value = tuple(_value) if isinstance(value, tuple) else _value
+            else:
+                logger.debug(
+                    logger.indent(indent_level + 1) + key + " = " + str(value)
+                )
 
             # TODO: Did not check the condition that the key exists
             # in the old version but not in the new version
@@ -47,11 +63,6 @@ class BaseLearningConfig:
                 config_init_arguments[key] = value
             else:
                 config_private_attributes[key] = value
-
-            if not isinstance(value, BaseLearningConfig):
-                logger.debug(
-                    logger.indent(indent_level + 1) + key + " = " + str(value)
-                )
 
         # Create a new instance of the configuration class
         config = cls(**config_init_arguments)
