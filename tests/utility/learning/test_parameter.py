@@ -44,13 +44,40 @@ class SimpleConfig(Config.BaseLearningConfig):
 class SimpleModule(BaseLearningModule[SimpleConfig]):
     def __init__(self, config: SimpleConfig) -> None:
         super().__init__(config)
-        self.parameter_1 = Parameter(self._config.parameter_1, (3, 4))
-        self.parameter_2 = Parameter(self._config.parameter_2, (4, 4))
-        self.parameter_3 = Parameter(self._config.parameter_3, (3, 4))
+        self._parameter_1 = Parameter(self._config.parameter_1, (3, 4))
+        self._parameter_2 = Parameter(self._config.parameter_2, (4, 4))
+        self._parameter_3 = Parameter(self._config.parameter_3, (3, 4))
+
+    @property
+    def parameter_1(self) -> torch.Tensor:
+        parameter: torch.Tensor = self._parameter_1()
+        return parameter
+
+    @parameter_1.setter
+    def parameter_1(self, value: torch.Tensor) -> None:
+        self._parameter_1.set_value(value)
+
+    @property
+    def parameter_2(self) -> torch.Tensor:
+        parameter: torch.Tensor = self._parameter_2()
+        return parameter
+
+    @parameter_2.setter
+    def parameter_2(self, value: torch.Tensor) -> None:
+        self._parameter_2.set_value(value)
+
+    @property
+    def parameter_3(self) -> torch.Tensor:
+        parameter: torch.Tensor = self._parameter_3()
+        return parameter
+
+    @parameter_3.setter
+    def parameter_3(self, value: torch.Tensor) -> None:
+        self._parameter_3.set_value(value)
 
     def forward(self) -> torch.Tensor:
         return torch.matmul(
-            self.parameter_1() + self.parameter_3(), self.parameter_2()
+            self._parameter_1() + self._parameter_3(), self._parameter_2()
         )
 
 
@@ -79,8 +106,8 @@ class TestParameter:
         )
         simple_module = SimpleModule(simple_config)
         with simple_module.evaluation_mode():
-            parameter_1: torch.Tensor = simple_module.parameter_1()
-            parameter_2: torch.Tensor = simple_module.parameter_2()
+            parameter_1: torch.Tensor = simple_module.parameter_1
+            parameter_2: torch.Tensor = simple_module.parameter_2
         assert np.allclose(parameter_1.detach().numpy(), np.full((3, 4), 3.0))
         assert parameter_2.min() >= 1.0
         assert parameter_2.max() <= 2.0
@@ -89,28 +116,30 @@ class TestParameter:
         assert simple_module.parameter_1.shape == (3, 4)
         assert simple_module.parameter_2.shape == (4, 4)
 
-        parameter_1: torch.Tensor = simple_module.parameter_1()
-        parameter_2: torch.Tensor = simple_module.parameter_2()
+        parameter_1: torch.Tensor = simple_module.parameter_1
+        parameter_2: torch.Tensor = simple_module.parameter_2
         result: torch.Tensor = simple_module()
         assert parameter_1.shape == (3, 4)
         assert parameter_2.shape == (4, 4)
         assert result.shape == (3, 4)
 
     def test_parameter_set_value(self, simple_module: SimpleModule) -> None:
-        simple_module.parameter_1.set_value(torch.full((3, 4), 1.0))
-        simple_module.parameter_2.set_value(torch.full((4, 4), 2.0))
+        simple_module.parameter_1 = torch.full((3, 4), 1.0)
+        simple_module.parameter_2 = torch.full((4, 4), 2.0)
         with simple_module.evaluation_mode():
-            parameter_1: torch.Tensor = simple_module.parameter_1()
-            parameter_2: torch.Tensor = simple_module.parameter_2()
+            parameter_1: torch.Tensor = simple_module.parameter_1
+            parameter_2: torch.Tensor = simple_module.parameter_2
         assert np.allclose(parameter_1.detach().numpy(), np.full((3, 4), 1.0))
         assert np.allclose(parameter_2.detach().numpy(), np.full((4, 4), 2.0))
 
     def test_parameter_binding(self, simple_module: SimpleModule) -> None:
-        simple_module.parameter_1.binding(simple_module.parameter_3.parameter)
-        simple_module.parameter_3.set_value(torch.full((3, 4), 1.0))
-        simple_module.parameter_2.set_value(torch.eye(4))
+        Parameter.binding(
+            simple_module._parameter_1, simple_module._parameter_3
+        )
+        simple_module.parameter_3 = torch.full((3, 4), 1.0)
+        simple_module.parameter_2 = torch.eye(4)
         with simple_module.evaluation_mode():
-            parameter_1: torch.Tensor = simple_module.parameter_1()
+            parameter_1: torch.Tensor = simple_module.parameter_1
             result: torch.Tensor = simple_module()
         assert np.allclose(parameter_1.detach().numpy(), np.full((3, 4), 1.0))
         assert np.allclose(result.detach().numpy(), np.full((3, 4), 2.0))
@@ -130,19 +159,46 @@ class ComplexConfig(Config.BaseLearningConfig):
 class ComplexModule(BaseLearningModule[ComplexConfig]):
     def __init__(self, config: ComplexConfig) -> None:
         super().__init__(config)
-        self.parameter = Parameter[ParameterConfig](
+        self._parameter = Parameter[ParameterConfig](
             self._config.parameter, (3, 4)
         )
-        self.positive_parameter = PositiveParameter[PositiveParameterConfig](
+        self._positive_parameter = PositiveParameter[PositiveParameterConfig](
             self._config.positive_parameter, (3, 4)
         )
-        self.probability_parameter = ProbabilityParameter[
+        self._probability_parameter = ProbabilityParameter[
             ProbabilityParameterConfig
         ](self._config.probability_parameter, (3, 4))
 
+    @property
+    def parameter(self) -> torch.Tensor:
+        parameter: torch.Tensor = self._parameter()
+        return parameter
+
+    @parameter.setter
+    def parameter(self, value: torch.Tensor) -> None:
+        self._parameter.set_value(value)
+
+    @property
+    def positive_parameter(self) -> torch.Tensor:
+        positive_parameter: torch.Tensor = self._positive_parameter()
+        return positive_parameter
+
+    @positive_parameter.setter
+    def positive_parameter(self, value: torch.Tensor) -> None:
+        self._positive_parameter.set_value(value)
+
+    @property
+    def probability_parameter(self) -> torch.Tensor:
+        probability_parameter: torch.Tensor = self._probability_parameter()
+        return probability_parameter
+
+    @probability_parameter.setter
+    def probability_parameter(self, value: torch.Tensor) -> None:
+        self._probability_parameter.set_value(value)
+
     def forward(self) -> torch.Tensor:
-        result: torch.Tensor = self.parameter() + torch.mul(
-            self.positive_parameter(), self.probability_parameter()
+        result: torch.Tensor = self._parameter() + torch.mul(
+            self._positive_parameter(), self._probability_parameter()
         )
         return result
 
@@ -174,12 +230,8 @@ class TestManifoldParameter:
     ) -> None:
         complex_module = ComplexModule(complex_config)
         with complex_module.evaluation_mode():
-            positive_parameter: torch.Tensor = (
-                complex_module.positive_parameter()
-            )
-            probability_parameter: torch.Tensor = (
-                complex_module.probability_parameter()
-            )
+            positive_parameter = complex_module.positive_parameter
+            probability_parameter = complex_module.probability_parameter
         assert positive_parameter.min() >= 0.0
         assert probability_parameter.min() >= 0.0
         assert probability_parameter.max() <= 1.0
@@ -189,11 +241,9 @@ class TestManifoldParameter:
 
     def test_parameter_shape(self, complex_module: ComplexModule) -> None:
 
-        parameter: torch.Tensor = complex_module.parameter()
-        positive_parameter: torch.Tensor = complex_module.positive_parameter()
-        probability_parameter: torch.Tensor = (
-            complex_module.probability_parameter()
-        )
+        parameter = complex_module.parameter
+        positive_parameter = complex_module.positive_parameter
+        probability_parameter = complex_module.probability_parameter
         result: torch.Tensor = complex_module()
         assert parameter.shape == (3, 4)
         assert positive_parameter.shape == (3, 4)
@@ -201,17 +251,11 @@ class TestManifoldParameter:
         assert result.shape == (3, 4)
 
     def test_parameter_set_value(self, complex_module: ComplexModule) -> None:
-        complex_module.positive_parameter.set_value(torch.full((3, 4), 5.0))
-        complex_module.probability_parameter.set_value(
-            torch.full((3, 4), 0.25)
-        )
+        complex_module.positive_parameter = torch.full((3, 4), 5.0)
+        complex_module.probability_parameter = torch.full((3, 4), 0.25)
         with complex_module.evaluation_mode():
-            positive_parameter: torch.Tensor = (
-                complex_module.positive_parameter()
-            )
-            probability_parameter: torch.Tensor = (
-                complex_module.probability_parameter()
-            )
+            positive_parameter = complex_module.positive_parameter
+            probability_parameter = complex_module.probability_parameter
         assert np.allclose(
             positive_parameter.detach().numpy(), np.full((3, 4), 5.0)
         )
@@ -220,14 +264,13 @@ class TestManifoldParameter:
         )
 
     def test_parameter_binding(self, complex_module: ComplexModule) -> None:
-        complex_module.probability_parameter.binding(
-            complex_module.positive_parameter.parameter
+        Parameter.binding(
+            complex_module._probability_parameter,
+            complex_module._positive_parameter,
         )
-        complex_module.positive_parameter.set_value(torch.full((3, 4), 1.0))
+        complex_module.positive_parameter = torch.full((3, 4), 1.0)
         with complex_module.evaluation_mode():
-            probability_parameter: torch.Tensor = (
-                complex_module.probability_parameter()
-            )
+            probability_parameter = complex_module.probability_parameter
         assert np.allclose(
             probability_parameter.detach().numpy(), np.full((3, 4), 0.25)
         )

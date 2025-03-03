@@ -29,12 +29,7 @@ def emission_process_info(
 ) -> None:
     emission_matrix = emission_process.matrix.numpy()
     emission_matrix_temperature = (
-        cast(
-            torch.Tensor,
-            emission_process.matrix_parameter.transformer.temperature(),
-        )
-        .detach()
-        .numpy()
+        emission_process.matrix_parameter.transformer.temperature.detach().numpy()
     )
     logger.info(f"(layer 0 / {layer_dim}) learned emission process:")
     logger.info(f"    emission matrix:")
@@ -56,12 +51,7 @@ def transition_block_info(
     )
     initial_state = transition_block.initial_state.detach().numpy()
     initial_state_temperature = (
-        cast(
-            torch.Tensor,
-            transition_block.initial_state_parameter.transformer.temperature(),
-        )
-        .detach()
-        .numpy()
+        transition_block.initial_state_parameter.transformer.temperature.detach().numpy()
     )
     logger.info("        initial state:")
     logger.info(
@@ -70,12 +60,7 @@ def transition_block_info(
 
     transition_matrix = transition_block.matrix.detach().numpy()
     transition_matrix_temperature = (
-        cast(
-            torch.Tensor,
-            transition_block.matrix_parameter.transformer.temperature(),
-        )
-        .detach()
-        .numpy()
+        transition_block.matrix_parameter.transformer.temperature.detach().numpy()
     )
 
     logger.info(f"        transition matrix:")
@@ -106,12 +91,7 @@ def transition_layer_info(
 
     coefficient = transition_layer.coefficient.detach().numpy()
     coefficient_temperature = (
-        cast(
-            torch.Tensor,
-            transition_layer.coefficient_parameter.transformer.temperature(),
-        )
-        .detach()
-        .numpy()
+        transition_layer.coefficient_parameter.transformer.temperature.detach().numpy()
     )
     logger.info(f"    block coefficient(s) for each state:")
     for k in range(coefficient.shape[0]):

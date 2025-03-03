@@ -24,7 +24,7 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         self._state_dim = filter_config.state_dim
         self._block_id = block_id
 
-        self._initial_state_parameter = ProbabilityParameter(
+        self._initial_state = ProbabilityParameter(
             self._config.initial_state.probability_parameter,
             (self._state_dim,),
         )
@@ -35,7 +35,7 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         ).repeat(
             1, 1
         )  # (batch_size, state_dim)
-        self._matrix_parameter: ProbabilityParameter
+        self._matrix: ProbabilityParameter
 
     @property
     def id(self) -> int:
@@ -73,19 +73,20 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
 
     @property
     def initial_state_parameter(self) -> ProbabilityParameter:
-        return self._initial_state_parameter
+        return self._initial_state
 
     @property
     def initial_state(self) -> torch.Tensor:
-        return cast(torch.Tensor, self._initial_state_parameter())
+        initial_state: torch.Tensor = self._initial_state()
+        return initial_state
 
     @initial_state.setter
     def initial_state(self, initial_state: torch.Tensor) -> None:
-        self._initial_state_parameter.set_value(initial_state)
+        self._initial_state.set_value(initial_state)
 
     @property
     def matrix_parameter(self) -> ProbabilityParameter:
-        return self._matrix_parameter
+        return self._matrix
 
     @property
     def matrix(self) -> torch.Tensor:
@@ -213,19 +214,19 @@ class TransitionFullMatrix(BaseTransitionBlock):
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)
-        self._matrix_parameter = ProbabilityParameter(
+        self._matrix = ProbabilityParameter(
             self._config.matrix.probability_parameter,
             (self._state_dim, self._state_dim),
         )
 
     @property
     def matrix(self) -> torch.Tensor:
-        matrix: torch.Tensor = self._matrix_parameter()
+        matrix: torch.Tensor = self._matrix()
         return matrix
 
     @matrix.setter
     def matrix(self, matrix: torch.Tensor) -> None:
-        self._matrix_parameter.set_value(matrix)
+        self._matrix.set_value(matrix)
 
 
 class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
@@ -236,22 +237,20 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)
-        self._matrix_parameter = ProbabilityParameter(
+        self._matrix = ProbabilityParameter(
             self._config.matrix.probability_parameter,
             (self._state_dim,),
         )
 
         if self._config.matrix.initial_state_binding:
-            self._matrix_parameter.binding(
-                self._initial_state_parameter.parameter
-            )
-            self._matrix_parameter.transformer.temperature.binding(
-                self._initial_state_parameter.transformer.temperature.parameter
+            self._matrix.bind_with(self._initial_state)
+            self._matrix.transformer.temperature_parameter.bind_with(
+                self._initial_state.transformer.temperature_parameter
             )
 
     @property
     def matrix(self) -> torch.Tensor:
-        row_probability: torch.Tensor = self._matrix_parameter()
+        row_probability: torch.Tensor = self._matrix()
         matrix = torch.empty(
             (self._state_dim, self._state_dim),
             device=row_probability.device,
@@ -273,7 +272,7 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
                     "The matrix must have the same shifted row probability."
                 )
         row_probability = matrix[0, :]
-        self._matrix_parameter.set_value(row_probability)
+        self._matrix.set_value(row_probability)
 
 
 class TransitionIID(BaseTransitionBlock):
@@ -291,18 +290,18 @@ class TransitionIID(BaseTransitionBlock):
                 "transition IID matrix requires initial state binding. "
                 "Automatically set initial state binding to True in the configuration."
             )
-        self._matrix_parameter = ProbabilityParameter(
+        self._matrix = ProbabilityParameter(
             self._config.matrix.probability_parameter,
             (self._state_dim,),
         )
-        self._matrix_parameter.binding(self._initial_state_parameter.parameter)
-        self._matrix_parameter.transformer.temperature.binding(
-            self._initial_state_parameter.transformer.temperature.parameter
+        self._matrix.bind_with(self._initial_state)
+        self._matrix.transformer.temperature_parameter.bind_with(
+            self._initial_state.transformer.temperature_parameter
         )
 
     @property
     def matrix(self) -> torch.Tensor:
-        row_probability: torch.Tensor = self._matrix_parameter()
+        row_probability: torch.Tensor = self._matrix()
         matrix = torch.empty(
             (self._state_dim, self._state_dim),
             device=row_probability.device,
@@ -328,4 +327,4 @@ class TransitionIID(BaseTransitionBlock):
             "Changing the matrix also modifies the initial state."
         )
         row_probability = matrix[0, :]
-        self._matrix_parameter.set_value(row_probability)
+        self._matrix.set_value(row_probability)

@@ -17,23 +17,23 @@ class EmissionProcess(BaseLearningModule[Config.EmissionProcessConfig]):
         self._state_dim = filter_config.state_dim
         self._discrete_observation_dim = filter_config.discrete_observation_dim
 
-        self._matrix_parameter = ProbabilityParameter(
+        self._matrix = ProbabilityParameter(
             self._config.block.matrix.probability_parameter,
             (self._state_dim, self._discrete_observation_dim),
         )
 
     @property
     def matrix_parameter(self) -> ProbabilityParameter:
-        return self._matrix_parameter
+        return self._matrix
 
     @property
     def matrix(self) -> torch.Tensor:
-        matrix: torch.Tensor = self._matrix_parameter()
+        matrix: torch.Tensor = self._matrix()
         return matrix
 
     @matrix.setter
     def matrix(self, matrix: torch.Tensor) -> None:
-        self._matrix_parameter.set_value(matrix)
+        self._matrix.set_value(matrix)
 
     def forward(
         self,

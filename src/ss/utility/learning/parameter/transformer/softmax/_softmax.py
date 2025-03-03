@@ -32,8 +32,13 @@ class SoftmaxTransformer(
         )
 
     @property
-    def temperature(self) -> PP:
+    def temperature_parameter(self) -> PP:
         return self._temperature
+
+    @property
+    def temperature(self) -> torch.Tensor:
+        temperature: torch.Tensor = self._temperature()[..., 0]
+        return temperature
 
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
         return torch.nn.functional.softmax(

@@ -1,4 +1,4 @@
-from typing import Callable, Protocol, Sequence, Tuple, TypeVar
+from typing import Callable, Protocol, Sequence, Tuple, TypeVar, Union
 
 import torch
 from torch import nn
@@ -25,7 +25,7 @@ class Parameter(BaseLearningModule[PC]):
         self._shape = shape
         self._initializer = self._config.initializer
         self._dropout = Dropout(self._config.dropout)
-        self._parameter = nn.Parameter(
+        self._pytorch_parameter = nn.Parameter(
             self._initializer(self._shape),
             requires_grad=self._config.require_training,
         )
@@ -35,28 +35,45 @@ class Parameter(BaseLearningModule[PC]):
         return self._shape
 
     @property
-    def parameter(self) -> nn.Parameter:
-        return self._parameter
+    def pytorch_parameter(self) -> nn.Parameter:
+        return self._pytorch_parameter
 
-    def binding(self, parameter: nn.Parameter) -> None:
-        if not self._parameter.shape == parameter.shape:
+    def bind_with(self, parameter: Union[nn.Parameter, "Parameter"]) -> None:
+        if not self.shape == parameter.shape:
             logger.error(
                 f"Parameter binding shape mismatch. "
-                f"Expected: {self._parameter.shape}. "
+                f"Expected: {self.shape}. "
                 f"Given: {parameter.shape}."
             )
-        self._parameter = parameter
+        self._pytorch_parameter = (
+            parameter.pytorch_parameter
+            if isinstance(parameter, Parameter)
+            else parameter
+        )
+
+    @staticmethod
+    def binding(
+        parameter_1: Union[nn.Parameter, "Parameter"],
+        parameter_2: Union[nn.Parameter, "Parameter"],
+    ) -> None:
+        if isinstance(parameter_1, Parameter):
+            parameter_1.bind_with(parameter_2)
+            return
+        if isinstance(parameter_2, Parameter):
+            parameter_2.bind_with(parameter_1)
+            return
+        parameter_1 = parameter_2
 
     def forward(self) -> torch.Tensor:
-        value: torch.Tensor = self._dropout(self._parameter)
+        value: torch.Tensor = self._dropout(self._pytorch_parameter)
         return value
 
     def set_value(self, value: torch.Tensor) -> None:
-        if not self._parameter.shape == value.shape:
+        if not self.shape == value.shape:
             logger.error(
                 f"shape mismatch. "
-                f"Expected: {self._parameter.shape}. "
+                f"Expected: {self.shape}. "
                 f"Given: {value.shape}."
             )
         with self.evaluation_mode():
-            self._parameter.copy_(value)
+            self._pytorch_parameter.copy_(value)
