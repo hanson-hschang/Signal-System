@@ -1,13 +1,13 @@
-from typing import Optional, Tuple, assert_never, cast
+from typing import Tuple, assert_never
 
 import torch
-from torch import nn
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
-from ss.utility.learning.module import BaseLearningModule
-from ss.utility.learning.parameter.probability import (
-    ProbabilityParameter,
+from ss.estimation.filtering.hmm.learning.module.transition import (
+    step as TransitionStep,
 )
+from ss.utility.learning.module import BaseLearningModule
+from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -50,7 +50,10 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
 
     @property
     def predicted_state(self) -> torch.Tensor:
-        return self._prediction_step(self.estimated_previous_state)
+        transition_matrix = self.matrix  # (state_dim, state_dim)
+        return TransitionStep.prediction(
+            self.estimated_previous_state, transition_matrix
+        )
 
     def get_estimated_previous_state(
         self, batch_size: int = 1
@@ -96,31 +99,6 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
     def matrix(self, matrix: torch.Tensor) -> None:
         raise NotImplementedError
 
-    def _prediction_step(
-        self,
-        previous_estimated_state: torch.Tensor,
-        transition_matrix: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
-        if transition_matrix is None:
-            transition_matrix = self.matrix
-        predicted_state = torch.matmul(
-            previous_estimated_state, transition_matrix
-        )
-        return predicted_state
-
-    def _update_step(
-        self,
-        prior_state: torch.Tensor,
-        likelihood_state: torch.Tensor,
-    ) -> torch.Tensor:
-        # update step based on likelihood_state (conditional probability)
-        posterior_state = nn.functional.normalize(
-            prior_state * likelihood_state,
-            p=1,
-            dim=1,
-        )  # (batch_size, state_dim)
-        return posterior_state
-
     def forward(
         self, likelihood_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -144,7 +122,7 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         )  # (batch_size, state_dim)
 
         # prediction step based on model process (predicted probability)
-        predicted_state = self._prediction_step(
+        predicted_state = TransitionStep.prediction(
             estimated_previous_state,
             (
                 torch.eye(
@@ -159,13 +137,13 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         for k in range(horizon):
 
             # update step based on input_state (conditional probability)
-            estimated_state = self._update_step(
+            estimated_state = TransitionStep.update(
                 predicted_state,
                 likelihood_state_trajectory[:, k, :],
             )  # (batch_size, state_dim)
 
             # prediction step based on model process (predicted probability)
-            predicted_next_state = self._prediction_step(
+            predicted_next_state = TransitionStep.prediction(
                 estimated_state, transition_matrix
             )  # (batch_size, state_dim)
 

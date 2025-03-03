@@ -80,6 +80,10 @@ class TransitionLayerConfig(Config.BaseLearningConfig):
     coefficient: TransitionCoefficientConfig = field(
         default_factory=lambda: TransitionCoefficientConfig()
     )
+    initial_state: TransitionInitialStateConfig = field(
+        default_factory=lambda: TransitionInitialStateConfig()
+    )
+    block_initial_state_binding: bool = True
 
     @property
     def block_dim(self) -> int:
