@@ -5,7 +5,6 @@ from typing import (
     Generator,
     Generic,
     Optional,
-    ParamSpec,
     Set,
     Tuple,
     Type,
@@ -155,18 +154,8 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
                 filepath,
                 map_location=DeviceManager.Device.CPU,
             )
-            # config is for backward compatibility
-            # if "config" in model_info:
-            #     config = cast(Config.BLC, model_info.pop("config"))
-            # if "__config__" in model_info:
             config = cast(Config.BLC, model_info.pop("__config__"))
             module = cls(type(config).reload(config))
-            # model_state_dict and module_state_dict are for backward compatibility
-            # if "model_state_dict" in model_info:
-            #     module_state_dict = model_info.pop("model_state_dict")
-            # if "module_state_dict" in model_info:
-            #     module_state_dict = model_info.pop("module_state_dict")
-            # if "__module_state_dict__" in model_info:
             module_state_dict = model_info.pop("__module_state_dict__")
             module.load_state_dict(module_state_dict)
 

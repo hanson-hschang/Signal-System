@@ -61,16 +61,7 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        block_dims=(2,),
-    )
-
-    # Modify module configuration
-    transition_layer_config = config.transition.layers[0]
-    transition_layer_config.blocks[0].option = (
-        Config.TransitionBlockConfig.Option.FULL_MATRIX
-    )
-    transition_layer_config.blocks[1].option = (
-        Config.TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX
+        block_dims=(1,),
     )
 
     # Prepare module

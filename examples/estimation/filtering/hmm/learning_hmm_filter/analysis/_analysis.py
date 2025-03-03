@@ -110,7 +110,7 @@ def analysis(
             observation_trajectory,
         )
     )
-    logger.info(f"{empirical_optimal_loss = }")
+    logger.info(f"empirical optimal loss = {float(empirical_optimal_loss)}")
 
     ## Compute the average loss of the learning_filter over layers
     loss_mean_over_layer = loss_conversion(

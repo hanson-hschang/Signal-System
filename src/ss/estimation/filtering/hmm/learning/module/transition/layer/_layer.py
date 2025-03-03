@@ -58,6 +58,10 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         coefficient: torch.Tensor = self._coefficient_parameter()
         return coefficient
 
+    @coefficient.setter
+    def coefficient(self, coefficient: torch.Tensor) -> None:
+        self._coefficient_parameter.set_value(coefficient)
+
     @property
     def blocks(self) -> List[BaseTransitionBlock]:
         return [cast(BaseTransitionBlock, block) for block in self._blocks]

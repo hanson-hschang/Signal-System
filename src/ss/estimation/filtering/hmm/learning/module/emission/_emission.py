@@ -31,6 +31,10 @@ class EmissionProcess(BaseLearningModule[Config.EmissionProcessConfig]):
         matrix: torch.Tensor = self._matrix_parameter()
         return matrix
 
+    @matrix.setter
+    def matrix(self, matrix: torch.Tensor) -> None:
+        self._matrix_parameter.set_value(matrix)
+
     def forward(
         self,
         state_probability_trajectory: torch.Tensor,

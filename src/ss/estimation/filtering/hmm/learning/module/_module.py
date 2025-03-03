@@ -145,21 +145,6 @@ class LearningHmmFilter(
         self._config.estimation.option = estimation_option
         self._init_batch_size(batch_size=self._batch_size)
 
-    # def set_estimation_option(
-    #     self,
-    #     estimation_option: Config.EstimationConfig.Option,
-    # ) -> None:
-    #     """
-    #     Set the estimation option for the `LearningHiddenMarkovModelFilter` class.
-
-    #     Arguments
-    #     ---------
-    #     estimation_option : LearningHiddenMarkovModelFilterEstimationOption
-    #         The option for the estimation.
-    #     """
-    #     self._config.estimation.option = estimation_option
-    #     self._init_batch_size(batch_size=self._batch_size)
-
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
         forward method for the `LearningHmmFilter` class
@@ -303,7 +288,7 @@ class LearningHmmFilter(
 
     @torch.inference_mode()
     def _estimate(self) -> torch.Tensor:
-        match self._config.estimation.option:
+        match self.estimation_option:
             case (
                 Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
             ):

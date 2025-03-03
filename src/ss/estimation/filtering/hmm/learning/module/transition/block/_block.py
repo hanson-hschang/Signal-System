@@ -41,6 +41,17 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
     def id(self) -> int:
         return self._block_id
 
+    @property
+    def estimated_previous_state(self) -> torch.Tensor:
+        batch_size, _ = self._estimated_previous_state.shape
+        if batch_size == 1:
+            return self._estimated_previous_state.squeeze(0)
+        return self._estimated_previous_state
+
+    @property
+    def predicted_state(self) -> torch.Tensor:
+        return self._prediction_step(self.estimated_previous_state)
+
     def get_estimated_previous_state(
         self, batch_size: int = 1
     ) -> torch.Tensor:
@@ -56,6 +67,8 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         return self._estimated_previous_state
 
     def reset(self) -> None:
+        self._is_initialized = False
+        self.get_estimated_previous_state()
         self._is_initialized = False
 
     @property

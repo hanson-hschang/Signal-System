@@ -1,4 +1,4 @@
-from typing import Tuple, TypeVar, cast
+from typing import Tuple, TypeVar
 
 import numpy as np
 import torch
@@ -12,6 +12,7 @@ from ss.utility.logging import Logging
 
 from ._utility import (
     FilterResultTrajectory,
+    FixLengthObservationQueue,
     cross_entropy,
     observation_generator,
 )
