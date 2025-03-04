@@ -40,6 +40,12 @@ class SoftmaxTransformer(
         temperature: torch.Tensor = self._temperature()[..., 0]
         return temperature
 
+    @temperature.setter
+    def temperature(self, value: torch.Tensor) -> None:
+        if value.ndim == (len(self._shape) - 1):
+            value = value.unsqueeze(-1)
+        self._temperature.set_value(value)
+
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
         return torch.nn.functional.softmax(
             parameter / self._temperature(), dim=-1

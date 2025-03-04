@@ -4,6 +4,9 @@ import torch
 from torch import nn
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.transition import (
+    step as TransitionStep,
+)
 from ss.estimation.filtering.hmm.learning.module.transition.block import (
     BaseTransitionBlock,
 )
@@ -26,11 +29,6 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         self._layer_id = layer_id
         self._block_dim = self._config.block_dim
 
-        self._coefficient_parameter = ProbabilityParameter(
-            self._config.coefficient.probability_parameter,
-            (self._state_dim, self._block_dim),
-        )
-
         self._blocks = nn.ModuleList()
         for block_id in range(self._block_dim):
             self._blocks.append(
@@ -40,6 +38,30 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
                     block_id,
                 )
             )
+
+        self._block_initial_state_binding = (
+            self._config.block_initial_state_binding
+        )
+        self._initial_state: ProbabilityParameter
+
+        if self._block_initial_state_binding:
+            self._initial_state = ProbabilityParameter(
+                self._config.initial_state.probability_parameter,
+                (self._state_dim,),
+            )
+            for block in self._blocks:
+                cast(
+                    BaseTransitionBlock, block
+                ).initial_state_parameter.bind_with(self._initial_state)
+
+        self._coefficient_parameter = ProbabilityParameter(
+            self._config.coefficient.probability_parameter,
+            (
+                (self._state_dim, self._block_dim)
+                if self._block_initial_state_binding
+                else (self._block_dim,)
+            ),
+        )
 
     @property
     def id(self) -> int:
