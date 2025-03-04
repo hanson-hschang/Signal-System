@@ -3,11 +3,11 @@ import torch.nn as nn
 
 
 def prediction(
-    previous_estimated_state: torch.Tensor,
+    estimated_state: torch.Tensor,
     transition_matrix: torch.Tensor,
 ) -> torch.Tensor:
-    predicted_state = torch.matmul(previous_estimated_state, transition_matrix)
-    return predicted_state
+    predicted_next_state = torch.matmul(estimated_state, transition_matrix)
+    return predicted_next_state
 
 
 def update(

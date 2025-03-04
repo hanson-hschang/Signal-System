@@ -28,15 +28,10 @@ def emission_process_info(
     layer_dim: int,
 ) -> None:
     emission_matrix = emission_process.matrix.numpy()
-    emission_matrix_temperature = (
-        emission_process.matrix_parameter.transformer.temperature.detach().numpy()
-    )
     logger.info(f"(layer 0 / {layer_dim}) learned emission process:")
     logger.info(f"    emission matrix:")
     for k in range(emission_matrix.shape[0]):
-        logger.info(
-            f"        {emission_matrix[k]} with temperature = {emission_matrix_temperature[k]}"
-        )
+        logger.info(f"        {emission_matrix[k]}")
 
 
 def transition_block_info(
@@ -50,29 +45,13 @@ def transition_block_info(
         f"    (block {transition_block.id+1} / {block_dim}) learned transition block ({block_type_name}):"
     )
     initial_state = transition_block.initial_state.detach().numpy()
-    initial_state_temperature = (
-        transition_block.initial_state_parameter.transformer.temperature.detach().numpy()
-    )
     logger.info("        initial state:")
-    logger.info(
-        f"            {initial_state} with temperature = {initial_state_temperature}"
-    )
+    logger.info(f"            {initial_state}")
 
     transition_matrix = transition_block.matrix.detach().numpy()
-    transition_matrix_temperature = (
-        transition_block.matrix_parameter.transformer.temperature.detach().numpy()
-    )
-
     logger.info(f"        transition matrix:")
     for k in range(transition_matrix.shape[0]):
-        _transition_matrix_temperature = (
-            transition_matrix_temperature[k]
-            if isinstance(transition_block, TransitionFullMatrix)
-            else transition_matrix_temperature
-        )
-        logger.info(
-            f"            {transition_matrix[k]} with temperature = {_transition_matrix_temperature}"
-        )
+        logger.info(f"            {transition_matrix[k]}")
 
 
 def transition_layer_info(
@@ -83,21 +62,20 @@ def transition_layer_info(
     logger.info(
         f"(layer {transition_layer.id} / {layer_dim}) learned transition process ({block_dim} block(s)):"
     )
-
-    transition_matrix = transition_layer.matrix.detach().numpy()
-    logger.info(f"    equivalent transition matrix:")
-    for k in range(transition_matrix.shape[0]):
-        logger.info(f"        {transition_matrix[k]}")
-
     coefficient = transition_layer.coefficient.detach().numpy()
-    coefficient_temperature = (
-        transition_layer.coefficient_parameter.transformer.temperature.detach().numpy()
-    )
-    logger.info(f"    block coefficient(s) for each state:")
-    for k in range(coefficient.shape[0]):
-        logger.info(
-            f"        state {k+1}: {coefficient[k]} with temperature = {coefficient_temperature[k]}"
-        )
+    if transition_layer.block_initial_state_binding:
+        transition_matrix = transition_layer.matrix.detach().numpy()
+        logger.info(f"    equivalent transition matrix:")
+        for k in range(transition_matrix.shape[0]):
+            logger.info(f"        {transition_matrix[k]}")
+    else:
+        if transition_layer.block_dim > 1:
+            logger.info(f"    block coefficient(s) for each state:")
+            logger.info(f"        {coefficient}")
+        # for k in range(coefficient.shape[0]):
+        #     logger.info(
+        #         f"        state {k+1}: {coefficient[k]}"
+        #     )
 
     for transition_block in transition_layer.blocks:
         transition_block_info(transition_block, block_dim)
@@ -124,8 +102,8 @@ def module_info(learning_filter: LearningHmmFilter) -> None:
     layer_dim = learning_filter.layer_dim - 1
     np.set_printoptions(precision=3, suppress=True)
     with BaseLearningProcess.inference_mode(learning_filter):
-        emission_process_info(learning_filter.emission_process, layer_dim)
-        transition_process_info(learning_filter.transition_process, layer_dim)
+        emission_process_info(learning_filter.emission, layer_dim)
+        transition_process_info(learning_filter.transition, layer_dim)
 
     logger.info(
         f"total number of parameters: {sum(p.numel() for p in learning_filter.parameters())}"

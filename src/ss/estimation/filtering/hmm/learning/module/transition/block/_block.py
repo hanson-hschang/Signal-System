@@ -30,7 +30,7 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         )
 
         self._is_initialized = False
-        self._estimated_previous_state = (
+        self._estimated_state = (
             torch.ones(self._state_dim) / self._state_dim
         ).repeat(
             1, 1
@@ -42,36 +42,32 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         return self._block_id
 
     @property
-    def estimated_previous_state(self) -> torch.Tensor:
-        batch_size, _ = self._estimated_previous_state.shape
+    def estimated_state(self) -> torch.Tensor:
+        batch_size, _ = self._estimated_state.shape
         if batch_size == 1:
-            return self._estimated_previous_state.squeeze(0)
-        return self._estimated_previous_state
+            return self._estimated_state.squeeze(0)
+        return self._estimated_state
 
     @property
-    def predicted_state(self) -> torch.Tensor:
+    def predicted_next_state(self) -> torch.Tensor:
         transition_matrix = self.matrix  # (state_dim, state_dim)
         return TransitionStep.prediction(
-            self.estimated_previous_state, transition_matrix
+            self.estimated_state, transition_matrix
         )
 
-    def get_estimated_previous_state(
-        self, batch_size: int = 1
-    ) -> torch.Tensor:
+    def get_estimated_state(self, batch_size: int = 1) -> torch.Tensor:
         if not self._inference:
             self._is_initialized = False
-            estimated_previous_state = self.initial_state.repeat(batch_size, 1)
-            return estimated_previous_state
+            estimated_state = self.initial_state.repeat(batch_size, 1)
+            return estimated_state
         if not self._is_initialized:
             self._is_initialized = True
-            self._estimated_previous_state = self.initial_state.repeat(
-                batch_size, 1
-            )
-        return self._estimated_previous_state
+            self._estimated_state = self.initial_state.repeat(batch_size, 1)
+        return self._estimated_state
 
     def reset(self) -> None:
         self._is_initialized = False
-        self.get_estimated_previous_state()
+        self.get_estimated_state()
         self._is_initialized = False
 
     @property
@@ -117,13 +113,13 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
 
         transition_matrix = self.matrix  # (state_dim, state_dim)
 
-        estimated_previous_state = self.get_estimated_previous_state(
+        estimated_state = self.get_estimated_state(
             batch_size
         )  # (batch_size, state_dim)
 
         # prediction step based on model process (predicted probability)
-        predicted_state = TransitionStep.prediction(
-            estimated_previous_state,
+        predicted_next_state = TransitionStep.prediction(
+            estimated_state,
             (
                 torch.eye(
                     self._state_dim,
@@ -135,11 +131,13 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
         )  # (batch_size, state_dim)
 
         for k in range(horizon):
+            likelihood_state = likelihood_state_trajectory[
+                :, k, :
+            ]  # (batch_size, state_dim)
 
             # update step based on input_state (conditional probability)
             estimated_state = TransitionStep.update(
-                predicted_state,
-                likelihood_state_trajectory[:, k, :],
+                predicted_next_state, likelihood_state
             )  # (batch_size, state_dim)
 
             # prediction step based on model process (predicted probability)
@@ -150,14 +148,11 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
             estimated_state_trajectory[:, k, :] = estimated_state
             predicted_next_state_trajectory[:, k, :] = predicted_next_state
 
-            estimated_previous_state = estimated_state
-            predicted_state = predicted_next_state
-
         if self._inference:
-            self._estimated_previous_state = (
-                predicted_state
+            self._estimated_state = (
+                predicted_next_state
                 if self._config.skip_first_transition
-                else estimated_previous_state
+                else estimated_state
             )
 
         return estimated_state_trajectory, predicted_next_state_trajectory

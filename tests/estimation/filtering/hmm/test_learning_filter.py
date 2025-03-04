@@ -61,23 +61,26 @@ class TestLearningHmmFilter:
     def learning_filter(
         self, config: Config.LearningHmmFilterConfig
     ) -> LearningHmmFilter:
+        config.transition.layers[0].block_initial_state_binding = False
         learning_filter = LearningHmmFilter(config=config)
-        transition_layer = learning_filter.transition_process.layers[0]
+        transition_layer = learning_filter.transition.layers[0]
         with learning_filter.evaluation_mode():
-            transition_layer.coefficient = torch.tensor(
-                [[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]]
-            )
+            transition_layer.coefficient = torch.tensor([0.75, 0.25])
             transition_layer.blocks[0].initial_state = torch.tensor(
                 [1.0, 0.0, 0.0]
             )
             transition_layer.blocks[1].initial_state = torch.tensor(
                 [0.0, 1.0, 0.0]
             )
-            identity = torch.eye(learning_filter.state_dim)
-            transition_layer.blocks[0].matrix = identity
-            shifted_identity = torch.roll(identity, shifts=1, dims=1)
+            identity = np.identity(learning_filter.state_dim)
+            transition_layer.blocks[0].matrix = torch.tensor(
+                np.fliplr(identity).copy()
+            )
+            shifted_identity = torch.roll(
+                torch.tensor(identity), shifts=1, dims=1
+            )
             transition_layer.blocks[1].matrix = shifted_identity
-            learning_filter.emission_process.matrix = torch.tensor(
+            learning_filter.emission.matrix = torch.tensor(
                 [[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]]
             )
         return learning_filter
@@ -91,18 +94,18 @@ class TestLearningHmmFilter:
     ) -> None:
         assert learning_filter.state_dim == 3
         assert learning_filter.discrete_observation_dim == 2
-        assert learning_filter.emission_process.matrix.shape == (3, 2)
-        transition_layer = learning_filter.transition_process.layers[0]
+        assert learning_filter.emission.matrix.shape == (3, 2)
+        transition_layer = learning_filter.transition.layers[0]
         transition_block_1 = transition_layer.blocks[0]
         transition_block_2 = transition_layer.blocks[1]
         for block in [transition_block_1, transition_block_2]:
             assert block.matrix.shape == (3, 3)
             assert block.initial_state.shape == (3,)
-        emission_matrix = learning_filter.emission_process.matrix
+        emission_matrix = learning_filter.emission.matrix
         with learning_filter.evaluation_mode():
             assert_allclose(
                 transition_layer.coefficient,
-                np.array([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]]),
+                np.array([0.75, 0.25]),
             )
             assert_allclose(
                 transition_block_1.initial_state,
@@ -114,11 +117,13 @@ class TestLearningHmmFilter:
             )
             assert_allclose(
                 transition_layer.matrix,
-                np.array([[1.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.5, 0.0, 0.5]]),
+                np.array(
+                    [[0.0, 0.25, 0.75], [0.0, 0.75, 0.25], [1.0, 0.0, 0.0]]
+                ),
             )
             assert_allclose(
                 transition_block_1.matrix,
-                np.identity(3),
+                np.fliplr(np.identity(3)),
             )
             assert_allclose(
                 transition_block_2.matrix,
@@ -139,46 +144,42 @@ class TestLearningHmmFilter:
             Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
         )
         with BaseLearningProcess.inference_mode(learning_filter):
-            transition_block_1 = learning_filter.transition_process.layers[
-                0
-            ].blocks[0]
-            transition_block_2 = learning_filter.transition_process.layers[
-                0
-            ].blocks[1]
+            transition_block_1 = learning_filter.transition.layers[0].blocks[0]
+            transition_block_2 = learning_filter.transition.layers[0].blocks[1]
 
             learning_filter.reset()
             assert_allclose(
-                transition_block_1.estimated_previous_state,
+                transition_block_1.estimated_state,
                 np.array([1.0, 0.0, 0.0]),
             )
             assert_allclose(
-                transition_block_2.estimated_previous_state,
+                transition_block_2.estimated_state,
                 np.array([0.0, 1.0, 0.0]),
             )
             assert_allclose(
-                transition_block_1.predicted_state,
-                np.array([1.0, 0.0, 0.0]),
+                transition_block_1.predicted_next_state,
+                np.array([0.0, 0.0, 1.0]),
             )
             assert_allclose(
-                transition_block_2.predicted_state,
+                transition_block_2.predicted_next_state,
                 np.array([0.0, 0.0, 1.0]),
             )
 
             learning_filter.update(observation_trajectory[0])
             assert_allclose(
-                transition_block_1.estimated_previous_state,
-                np.array([1.0, 0.0, 0.0]),
-            )
-            assert_allclose(
-                transition_block_2.estimated_previous_state,
+                transition_block_1.estimated_state,
                 np.array([0.0, 0.0, 1.0]),
             )
             assert_allclose(
-                transition_block_1.predicted_state,
+                transition_block_2.estimated_state,
+                np.array([0.0, 0.0, 1.0]),
+            )
+            assert_allclose(
+                transition_block_1.predicted_next_state,
                 np.array([1.0, 0.0, 0.0]),
             )
             assert_allclose(
-                transition_block_2.predicted_state,
+                transition_block_2.predicted_next_state,
                 np.array([1.0, 0.0, 0.0]),
             )
             assert_allclose(
@@ -188,22 +189,44 @@ class TestLearningHmmFilter:
 
             learning_filter.update(observation_trajectory[1])
             assert_allclose(
-                transition_block_1.estimated_previous_state,
+                transition_block_1.estimated_state,
                 np.array([1.0, 0.0, 0.0]),
             )
             assert_allclose(
-                transition_block_2.estimated_previous_state,
+                transition_block_2.estimated_state,
                 np.array([1.0, 0.0, 0.0]),
             )
             assert_allclose(
-                transition_block_1.predicted_state,
-                np.array([1.0, 0.0, 0.0]),
+                transition_block_1.predicted_next_state,
+                np.array([0.0, 0.0, 1.0]),
             )
             assert_allclose(
-                transition_block_2.predicted_state,
+                transition_block_2.predicted_next_state,
                 np.array([0.0, 1.0, 0.0]),
             )
-            # assert_allclose(
-            #     learning_filter.estimate(),
-            #     np.array([[1.0 / 6.0, 5.0 / 6.0], [1.0, 0.0]]),
-            # )
+            assert_allclose(
+                learning_filter.estimate(),
+                np.array([[5.0 / 6.0, 1.0 / 6.0], [3.0 / 8.0, 5.0 / 8.0]]),
+            )
+
+            learning_filter.update(observation_trajectory[2])
+            assert_allclose(
+                transition_block_1.estimated_state,
+                np.array([0.0, 0.0, 1.0]),
+            )
+            assert_allclose(
+                transition_block_2.estimated_state,
+                np.array([0.0, 1.0, 0.0]),
+            )
+            assert_allclose(
+                transition_block_1.predicted_next_state,
+                np.array([1.0, 0.0, 0.0]),
+            )
+            assert_allclose(
+                transition_block_2.predicted_next_state,
+                np.array([0.0, 0.0, 1.0]),
+            )
+            assert_allclose(
+                learning_filter.estimate(),
+                np.array([[1.0 / 6.0, 5.0 / 6.0], [7.0 / 8.0, 1.0 / 8.0]]),
+            )

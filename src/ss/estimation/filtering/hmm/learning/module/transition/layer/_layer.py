@@ -10,6 +10,7 @@ from ss.estimation.filtering.hmm.learning.module.transition import (
 from ss.estimation.filtering.hmm.learning.module.transition.block import (
     BaseTransitionBlock,
 )
+from ss.utility.descriptor import ReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
 from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.logging import Logging
@@ -26,7 +27,7 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
-        self._layer_id = layer_id
+        self._id = layer_id
         self._block_dim = self._config.block_dim
 
         self._blocks = nn.ModuleList()
@@ -54,7 +55,7 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
                     BaseTransitionBlock, block
                 ).initial_state_parameter.bind_with(self._initial_state)
 
-        self._coefficient_parameter = ProbabilityParameter(
+        self._coefficient = ProbabilityParameter(
             self._config.coefficient.probability_parameter,
             (
                 (self._state_dim, self._block_dim)
@@ -63,26 +64,35 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
             ),
         )
 
-    @property
-    def id(self) -> int:
-        return self._layer_id
-
-    @property
-    def block_dim(self) -> int:
-        return self._block_dim
+    id = ReadOnlyDescriptor[int]()
+    block_dim = ReadOnlyDescriptor[int]()
+    block_initial_state_binding = ReadOnlyDescriptor[bool]()
 
     @property
     def coefficient_parameter(self) -> ProbabilityParameter:
-        return self._coefficient_parameter
+        return self._coefficient
 
     @property
     def coefficient(self) -> torch.Tensor:
-        coefficient: torch.Tensor = self._coefficient_parameter()
+        coefficient: torch.Tensor = self._coefficient()
         return coefficient
 
     @coefficient.setter
     def coefficient(self, coefficient: torch.Tensor) -> None:
-        self._coefficient_parameter.set_value(coefficient)
+        self._coefficient.set_value(coefficient)
+
+    @property
+    def initial_state_parameter(self) -> ProbabilityParameter:
+        return self._initial_state
+
+    @property
+    def initial_state(self) -> torch.Tensor:
+        initial_state: torch.Tensor = self._initial_state()
+        return initial_state
+
+    @initial_state.setter
+    def initial_state(self, initial_state: torch.Tensor) -> None:
+        self._initial_state.set_value(initial_state)
 
     @property
     def blocks(self) -> List[BaseTransitionBlock]:
@@ -97,8 +107,7 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         )
         for i, block in enumerate(self._blocks):
             transition_matrix += (
-                cast(BaseTransitionBlock, block).matrix
-                * coefficient[:, i : i + 1]
+                cast(BaseTransitionBlock, block).matrix * coefficient[i]
             )
         return transition_matrix
 
@@ -106,7 +115,7 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         self, input_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
-        # (1, 1, state_dim, block_dim)
+        # (1, 1, block_dim)
 
         average_estimated_state_trajectory = torch.zeros_like(
             input_state_trajectory
@@ -119,10 +128,10 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
                 block(input_state_trajectory)
             )  # (batch_size, horizon, state_dim), (batch_size, horizon, state_dim)
             average_estimated_state_trajectory += (
-                estimated_state_trajectory * coefficient[:, :, :, b]
+                estimated_state_trajectory * coefficient[:, :, b]
             )
             average_predicted_next_state_trajectory += (
-                predicted_next_state_trajectory * coefficient[:, :, :, b]
+                predicted_next_state_trajectory * coefficient[:, :, b]
             )
         return (
             average_estimated_state_trajectory,

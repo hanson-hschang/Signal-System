@@ -48,10 +48,10 @@ class LearningHmmFilter(
         self._layer_dim = self._config.transition.layer_dim + 1
 
         # Define the learnable emission process and transition process
-        self._emission_process = EmissionProcess(
+        self._emission = EmissionProcess(
             self._config.emission, self._config.filter
         )
-        self._transition_process = TransitionProcess(
+        self._transition = TransitionProcess(
             self._config.transition, self._config.filter
         )
 
@@ -74,7 +74,7 @@ class LearningHmmFilter(
                 / self._state_dim
             )  # (batch_size, state_dim)
             self._predicted_next_observation_probability: torch.Tensor = (
-                self._emission_process(
+                self._emission(
                     self._predicted_next_state,  # (batch_size, state_dim)
                 )
             )  # (batch_size, discrete_observation_dim)
@@ -101,20 +101,20 @@ class LearningHmmFilter(
     batch_size = ReadOnlyDescriptor[int]()
 
     @property
-    def emission_process(self) -> EmissionProcess:
-        return self._emission_process
+    def emission(self) -> EmissionProcess:
+        return self._emission
 
     @property
-    def transition_process(self) -> TransitionProcess:
-        return self._transition_process
+    def transition(self) -> TransitionProcess:
+        return self._transition
 
     @property
     def emission_matrix(self) -> torch.Tensor:
-        return self._emission_process.matrix.detach()
+        return self._emission.matrix.detach()
 
     @property
     def transition_matrix(self) -> List[torch.Tensor]:
-        return [matrix.detach() for matrix in self._transition_process.matrix]
+        return [matrix.detach() for matrix in self._transition.matrix]
 
     @property
     def initial_state(self) -> List[List[torch.Tensor]]:
@@ -123,14 +123,14 @@ class LearningHmmFilter(
                 transition_block.initial_state.detach()
                 for transition_block in transition_layer.blocks
             ]
-            for transition_layer in self._transition_process.layers
+            for transition_layer in self._transition.layers
         ]
 
     @property
     def coefficient(self) -> List[torch.Tensor]:
         return [
             transition_layer.coefficient.detach()
-            for transition_layer in self._transition_process.layers
+            for transition_layer in self._transition.layers
         ]
 
     @property
@@ -164,7 +164,7 @@ class LearningHmmFilter(
             observation_trajectory  # (batch_size, horizon, discrete_observation_dim)
         )
 
-        predicted_next_observation_trajectory = self._emission_process(
+        predicted_next_observation_trajectory = self._emission(
             predicted_next_state_trajectory,  # (batch_size, horizon, state_dim)
             emission_matrix,  # (state_dim, observation_dim)
         )  # (batch_size, horizon, observation_dim)
@@ -199,7 +199,7 @@ class LearningHmmFilter(
 
         # Get emission_matrix
         emission_matrix = (
-            self._emission_process.matrix
+            self._emission.matrix
         )  # (state_dim, discrete_observation_dim)
 
         # Get emission based on each observation in the trajectory
@@ -210,7 +210,7 @@ class LearningHmmFilter(
         (
             estimated_state_trajectory,  # (batch_size, horizon, state_dim)
             predicted_next_state_trajectory,  # (batch_size, horizon, state_dim)
-        ) = self._transition_process(input_state_trajectory)
+        ) = self._transition(input_state_trajectory)
 
         return (
             estimated_state_trajectory,
@@ -220,8 +220,8 @@ class LearningHmmFilter(
 
     def reset(self) -> None:
         self._is_initialized = False
-        self._emission_process.reset()
-        self._transition_process.reset()
+        self._emission.reset()
+        self._transition.reset()
 
     def _check_batch_size(self, batch_size: int) -> None:
         if self._is_initialized:
@@ -269,7 +269,7 @@ class LearningHmmFilter(
         self._predicted_next_state = predicted_next_state_trajectory[
             :, -1, :
         ]  # (batch_size, state_dim)
-        self._predicted_next_observation_probability = self._emission_process(
+        self._predicted_next_observation_probability = self._emission(
             self._predicted_next_state,  # (batch_size, state_dim)
         )  # (batch_size, discrete_observation_dim)
 
@@ -292,8 +292,8 @@ class LearningHmmFilter(
             case (
                 Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
             ):
-                estimation: torch.Tensor = self._emission_process(
-                    self._transition_process.predicted_next_state_over_layers  # (batch_size, layer_dim, state_dim)
+                estimation: torch.Tensor = self._emission(
+                    self._transition.predicted_next_state_over_layers  # (batch_size, layer_dim, state_dim)
                 )  # (batch_size, layer_dim, discrete_observation_dim)
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
@@ -301,7 +301,7 @@ class LearningHmmFilter(
                 Config.EstimationConfig.Option.PREDICTED_NEXT_STATE_OVER_LAYERS
             ):
                 estimation = (
-                    self._transition_process.predicted_next_state_over_layers
+                    self._transition.predicted_next_state_over_layers
                 )  # (batch_size, layer_dim, state_dim)
                 if self._batch_size == 1:
                     estimation = estimation.unsqueeze(0)
