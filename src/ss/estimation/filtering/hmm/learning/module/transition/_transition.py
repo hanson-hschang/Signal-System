@@ -27,9 +27,13 @@ class TransitionProcess(BaseLearningModule[Config.TransitionProcessConfig]):
         self._layer_dim = self._config.layer_dim + 1
         self._layers = nn.ModuleList()
         for l in range(self._layer_dim - 1):
+            layer_config = self._config.layers[l]
+            layer_config.skip_first_transition = (
+                self._config.skip_first_transition
+            )
             self._layers.append(
                 TransitionLayer(
-                    self._config.layers[l],
+                    layer_config,
                     filter_config,
                     l + 1,
                 )

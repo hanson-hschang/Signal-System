@@ -1,4 +1,4 @@
-from typing import List, Tuple, cast
+from typing import Callable, List, Tuple, cast
 
 import torch
 from torch import nn
@@ -32,9 +32,13 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
 
         self._blocks = nn.ModuleList()
         for block_id in range(self._block_dim):
+            block_config = self._config.blocks[block_id]
+            block_config.skip_first_transition = (
+                self._config.skip_first_transition
+            )
             self._blocks.append(
                 BaseTransitionBlock.create(
-                    self._config.blocks[block_id],
+                    block_config,
                     filter_config,
                     block_id,
                 )
@@ -45,6 +49,9 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         )
         self._initial_state: ProbabilityParameter
 
+        self._forward: Callable[
+            [torch.Tensor], Tuple[torch.Tensor, torch.Tensor]
+        ]
         if self._block_initial_state_binding:
             self._initial_state = ProbabilityParameter(
                 self._config.initial_state.probability_parameter,
@@ -54,6 +61,9 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
                 cast(
                     BaseTransitionBlock, block
                 ).initial_state_parameter.bind_with(self._initial_state)
+            self._forward = self._forward_bound_initial_state
+        else:
+            self._forward = self._forward_unbound_initial_state
 
         self._coefficient = ProbabilityParameter(
             self._config.coefficient.probability_parameter,
@@ -100,6 +110,10 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
 
     @property
     def matrix(self) -> torch.Tensor:
+        if not self._block_initial_state_binding:
+            raise AttributeError(
+                "The matrix attribute is only available when block_initial_state_binding is True."
+            )
         coefficient = self.coefficient
         transition_matrix = torch.zeros(
             (self._state_dim, self._state_dim),
@@ -107,22 +121,47 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
         )
         for i, block in enumerate(self._blocks):
             transition_matrix += (
-                cast(BaseTransitionBlock, block).matrix * coefficient[i]
+                cast(BaseTransitionBlock, block).matrix * coefficient[:, i]
             )
         return transition_matrix
 
-    def forward(
+    def _forward_bound_initial_state(
+        self, input_state_trajectory: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
+        # (1, 1, state_dim, block_dim)
+
+        estimated_state_trajectory = torch.zeros_like(
+            input_state_trajectory,
+            device=input_state_trajectory.device,
+        )  # (batch_size, horizon, state_dim)
+        predicted_next_state_trajectory = torch.zeros_like(
+            input_state_trajectory,
+            device=input_state_trajectory.device,
+        )  # (batch_size, horizon, state_dim)
+
+        transition_matrix = self.matrix
+
+        return (
+            estimated_state_trajectory,
+            predicted_next_state_trajectory,
+        )
+
+    def _forward_unbound_initial_state(
         self, input_state_trajectory: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
         # (1, 1, block_dim)
 
         average_estimated_state_trajectory = torch.zeros_like(
-            input_state_trajectory
+            input_state_trajectory,
+            device=input_state_trajectory.device,
         )  # (batch_size, horizon, state_dim)
         average_predicted_next_state_trajectory = torch.zeros_like(
-            input_state_trajectory
+            input_state_trajectory,
+            device=input_state_trajectory.device,
         )  # (batch_size, horizon, state_dim)
+
         for b, block in enumerate(self._blocks):
             estimated_state_trajectory, predicted_next_state_trajectory = (
                 block(input_state_trajectory)
@@ -133,9 +172,43 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
             average_predicted_next_state_trajectory += (
                 predicted_next_state_trajectory * coefficient[:, :, b]
             )
+
         return (
             average_estimated_state_trajectory,
             average_predicted_next_state_trajectory,
+        )
+
+    def forward(
+        self, input_state_trajectory: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+
+        (
+            estimated_state_trajectory,
+            predicted_next_state_trajectory,
+        ) = self._forward(input_state_trajectory)
+        # coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
+        # # (1, 1, state_dim, block_dim) or (1, 1, block_dim)
+
+        # average_estimated_state_trajectory = torch.zeros_like(
+        #     input_state_trajectory
+        # )  # (batch_size, horizon, state_dim)
+        # average_predicted_next_state_trajectory = torch.zeros_like(
+        #     input_state_trajectory
+        # )  # (batch_size, horizon, state_dim)
+
+        # for b, block in enumerate(self._blocks):
+        #     estimated_state_trajectory, predicted_next_state_trajectory = (
+        #         block(input_state_trajectory)
+        #     )  # (batch_size, horizon, state_dim), (batch_size, horizon, state_dim)
+        #     average_estimated_state_trajectory += (
+        #         estimated_state_trajectory * coefficient[:, :, b]
+        #     )
+        #     average_predicted_next_state_trajectory += (
+        #         predicted_next_state_trajectory * coefficient[:, :, b]
+        #     )
+        return (
+            estimated_state_trajectory,
+            predicted_next_state_trajectory,
         )
 
     def reset(self) -> None:

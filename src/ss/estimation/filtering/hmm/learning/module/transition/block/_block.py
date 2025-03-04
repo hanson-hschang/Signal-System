@@ -22,7 +22,7 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
-        self._block_id = block_id
+        self._id = block_id
 
         self._initial_state = ProbabilityParameter(
             self._config.initial_state.probability_parameter,
@@ -39,7 +39,7 @@ class BaseTransitionBlock(BaseLearningModule[Config.TransitionBlockConfig]):
 
     @property
     def id(self) -> int:
-        return self._block_id
+        return self._id
 
     @property
     def estimated_state(self) -> torch.Tensor:

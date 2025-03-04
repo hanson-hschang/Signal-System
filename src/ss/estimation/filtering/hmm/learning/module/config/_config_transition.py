@@ -84,6 +84,7 @@ class TransitionLayerConfig(Config.BaseLearningConfig):
         default_factory=lambda: TransitionInitialStateConfig()
     )
     block_initial_state_binding: bool = True
+    skip_first_transition: bool = False
 
     @property
     def block_dim(self) -> int:
@@ -114,6 +115,7 @@ class TransitionProcessConfig(Config.BaseLearningConfig):
             super().__set__(obj, value)
 
     layers: LayersDescriptor = LayersDescriptor()
+    skip_first_transition: bool = False
 
     @property
     def layer_dim(self) -> int:
