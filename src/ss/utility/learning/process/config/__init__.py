@@ -1,1 +1,1 @@
-from ._config import TrainingConfig
+from ._config import EvaluationConfigProtocol, TestingConfig, TrainingConfig

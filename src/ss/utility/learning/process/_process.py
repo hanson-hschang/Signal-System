@@ -24,7 +24,11 @@ from ss.utility.device import DeviceManager
 from ss.utility.learning import module as Module
 from ss.utility.learning import serialization
 from ss.utility.learning.process.checkpoint import Checkpoint, CheckpointInfo
-from ss.utility.learning.process.config import TrainingConfig
+from ss.utility.learning.process.config import (
+    EvaluationConfigProtocol,
+    TestingConfig,
+    TrainingConfig,
+)
 from ss.utility.learning.process.inference import InferenceContext
 from ss.utility.logging import Logging
 
@@ -103,21 +107,29 @@ class BaseLearningProcess:
         raise NotImplementedError
 
     def evaluate_model(
-        self, data_loader: DataLoader[Tuple[torch.Tensor, ...]]
+        self,
+        data_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        evaluation_config: EvaluationConfigProtocol,
     ) -> NDArray:
 
         with self._module.evaluation_mode():
             logger.info("Evaluating model...")
             losses = []
             # with torch.no_grad():
-            for data_batch in logger.progress_bar(
-                data_loader, total=len(data_loader)
+            for b, data_batch in logger.progress_bar(
+                enumerate(data_loader), total=len(data_loader)
             ):
-                losses.append(
-                    self._evaluate_one_batch(
-                        self._device_manager.load_data_batch(data_batch)
-                    ).item()
-                )
+                if evaluation_config.termination_condition(
+                    batch_number=b
+                ).satisfied():
+                    break
+
+                evaluation_loss = self._evaluate_one_batch(
+                    self._device_manager.load_data_batch(data_batch)
+                ).item()
+
+                losses.append(evaluation_loss)
+
         return np.array(losses)
 
     def _train_one_batch(
@@ -152,7 +164,7 @@ class BaseLearningProcess:
                     iteration=self._iteration,
                 ).satisfied():
                     validation_losses = self.evaluate_model(
-                        validation_data_loader
+                        validation_data_loader, training_config.validation
                     )
                     self._update_validation_loss(validation_losses)
 
@@ -176,7 +188,9 @@ class BaseLearningProcess:
 
             if training_config.validation.at_initial:
                 logger.info("Model evaluation before training...")
-                validation_losses = self.evaluate_model(validation_data_loader)
+                validation_losses = self.evaluate_model(
+                    validation_data_loader, training_config.validation
+                )
                 self._update_validation_loss(validation_losses)
 
                 self._update_epoch(training_config.termination.max_epoch)
@@ -227,9 +241,14 @@ class BaseLearningProcess:
     def test_model(
         self,
         testing_data_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        testing_config: Optional[TestingConfig] = None,
     ) -> None:
+        if testing_config is None:
+            testing_config = TestingConfig()
         logger.info("Testing...")
-        testing_losses = self.evaluate_model(testing_data_loader)
+        testing_losses = self.evaluate_model(
+            testing_data_loader, testing_config
+        )
         loss_mean, loss_std = float(testing_losses.mean()), float(
             testing_losses.std()
         )

@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Optional, Protocol, Self
 
 from dataclasses import dataclass, field
 from enum import Enum, Flag, auto
@@ -10,13 +10,41 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
+class EvaluationConfigProtocol(Protocol):
+    def termination_condition(
+        self, batch_number: Optional[int] = None
+    ) -> Condition: ...
+
+
+@dataclass
+class TestingConfig:
+    max_batch: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        self._termination_condition = Condition(any)
+
+    def termination_condition(
+        self, batch_number: Optional[int] = None
+    ) -> Condition:
+        if batch_number is not None:
+            self._termination_condition(
+                max_batch=(
+                    self.max_batch is not None
+                    and batch_number >= self.max_batch
+                )
+            )
+        return self._termination_condition
+
+
 @dataclass
 class ValidationConfig:
     per_iteration_period: int = 1
     at_initial: bool = True
+    max_batch: Optional[int] = None
 
     def __post_init__(self) -> None:
         self._condition = Condition(any)
+        self._termination_condition = Condition(any)
 
     def condition(self, iteration: Optional[int] = None) -> Condition:
         if iteration is not None:
@@ -24,6 +52,18 @@ class ValidationConfig:
                 iteration=(iteration % self.per_iteration_period) == 0
             )
         return self._condition
+
+    def termination_condition(
+        self, batch_number: Optional[int] = None
+    ) -> Condition:
+        if batch_number is not None:
+            self._termination_condition(
+                max_batch=(
+                    self.max_batch is not None
+                    and batch_number >= self.max_batch
+                )
+            )
+        return self._termination_condition
 
 
 @dataclass

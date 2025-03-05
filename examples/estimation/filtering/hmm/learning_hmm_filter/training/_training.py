@@ -129,6 +129,7 @@ def training(
     # Prepare training configuration
     training_config = TrainingConfig()
     training_config.validation.per_iteration_period = 300
+    training_config.validation.max_batch = 50
     training_config.termination.max_epoch = 16
     training_config.checkpoint.folderpath = (
         model_folderpath / training_config.checkpoint.folderpath
