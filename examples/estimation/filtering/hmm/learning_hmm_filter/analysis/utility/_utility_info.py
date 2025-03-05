@@ -37,6 +37,7 @@ def emission_process_info(
 def transition_block_info(
     transition_block: BaseTransitionBlock,
     block_dim: int,
+    show_initial_state: bool = True,
 ) -> None:
     start_index = len("Transition")
     block_type_name = type(transition_block).__name__[start_index:]
@@ -44,9 +45,10 @@ def transition_block_info(
     logger.info(
         f"    (block {transition_block.id+1} / {block_dim}) learned transition block ({block_type_name}):"
     )
-    initial_state = transition_block.initial_state.detach().numpy()
-    logger.info("        initial state:")
-    logger.info(f"            {initial_state}")
+    if show_initial_state:
+        initial_state = transition_block.initial_state.detach().numpy()
+        logger.info("        initial state:")
+        logger.info(f"            {initial_state}")
 
     transition_matrix = transition_block.matrix.detach().numpy()
     logger.info(f"        transition matrix:")
@@ -64,21 +66,29 @@ def transition_layer_info(
     )
     coefficient = transition_layer.coefficient.detach().numpy()
     if transition_layer.block_initial_state_binding:
+        initial_state = transition_layer.initial_state.detach().numpy()
+        logger.info("    initial state:")
+        logger.info(f"        {initial_state}")
         transition_matrix = transition_layer.matrix.detach().numpy()
+        coefficient = transition_layer.coefficient.detach().numpy()
         logger.info(f"    equivalent transition matrix:")
         for k in range(transition_matrix.shape[0]):
-            logger.info(f"        {transition_matrix[k]}")
+            logger.info(
+                f"        {transition_matrix[k]} with block coefficient(s) {coefficient[k]}"
+                if transition_layer.block_dim > 1
+                else f"        {transition_matrix[k]}"
+            )
     else:
         if transition_layer.block_dim > 1:
-            logger.info(f"    block coefficient(s) for each state:")
+            logger.info(f"    block coefficient(s):")
             logger.info(f"        {coefficient}")
-        # for k in range(coefficient.shape[0]):
-        #     logger.info(
-        #         f"        state {k+1}: {coefficient[k]}"
-        #     )
 
     for transition_block in transition_layer.blocks:
-        transition_block_info(transition_block, block_dim)
+        transition_block_info(
+            transition_block,
+            block_dim,
+            show_initial_state=not transition_layer.block_initial_state_binding,
+        )
 
 
 def transition_process_info(

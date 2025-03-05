@@ -19,7 +19,7 @@ class TransitionStepMixin(nn.Module):
         self._state_dim = state_dim
         self._skip_first_transition = skip_first_transition
 
-        self._initial_state = ProbabilityParameter(
+        self._initial_state: ProbabilityParameter = ProbabilityParameter(
             initial_state_config.probability_parameter,
             (state_dim,),
         )

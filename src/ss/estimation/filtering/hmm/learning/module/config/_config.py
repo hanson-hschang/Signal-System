@@ -46,7 +46,7 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         cls,
         state_dim: int,
         discrete_observation_dim: int,
-        block_dims: int | Tuple[int, ...],
+        block_dims: int | Tuple[int, ...] = 1,
         dropout_rate: float = 0.0,
     ) -> Self:
         """

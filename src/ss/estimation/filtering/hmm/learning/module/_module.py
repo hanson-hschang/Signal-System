@@ -159,7 +159,6 @@ class LearningHmmFilter(
             predicted_next_observation_log_probability_trajectory : torch.Tensor
                 shape (batch_size, discrete_observation_dim, horizon)
         """
-
         _, predicted_next_state_trajectory, emission_matrix = self._forward(
             observation_trajectory  # (batch_size, horizon, discrete_observation_dim)
         )

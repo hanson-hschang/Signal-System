@@ -61,20 +61,10 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        block_dims=(1,),
     )
-    config.transition.layers[0].block_initial_state_binding = False
 
     # Prepare module
     learning_filter = LearningHmmFilter(config)
-
-    # Uncomment the following code block to initialize one of
-    # the learning filter's transition matrix to a identity matrix
-
-    # with learning_filter.evaluation_mode():
-    #     learning_filter.transition_process.layers[0].blocks[0].matrix = torch.eye(
-    #         learning_filter.state_dim
-    #     )
 
     # Define learning process
     class LearningProcess(LearningHmmFilterProcess):

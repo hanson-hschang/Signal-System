@@ -6,6 +6,7 @@ from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.estimation.filtering.hmm.learning.module.transition.step import (
     TransitionStepMixin,
 )
+from ss.utility.descriptor import ReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.logging import Logging
@@ -44,9 +45,10 @@ class BaseTransitionBlock(
         # )  # (batch_size, state_dim)
         # self._matrix: ProbabilityParameter
 
-    @property
-    def id(self) -> int:
-        return self._id
+    # @property
+    # def id(self) -> int:
+    #     return self._id
+    id = ReadOnlyDescriptor[int]()
 
     # @property
     # def estimated_state(self) -> torch.Tensor:
