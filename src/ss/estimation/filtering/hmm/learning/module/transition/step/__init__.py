@@ -1,1 +1,1 @@
-from ._step import prediction, update
+from ._step import TransitionStepMixin

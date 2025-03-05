@@ -61,7 +61,7 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        block_dims=(2,),
+        block_dims=(1,),
     )
     config.transition.layers[0].block_initial_state_binding = False
 

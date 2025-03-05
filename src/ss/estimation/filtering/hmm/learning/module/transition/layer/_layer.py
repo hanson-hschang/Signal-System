@@ -57,6 +57,12 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
                 self._config.initial_state.probability_parameter,
                 (self._state_dim,),
             )
+            self._is_initialized = False
+            self._estimated_state = (
+                torch.ones(self._state_dim) / self._state_dim
+            ).repeat(
+                1, 1
+            )  # (batch_size, state_dim)
             for block in self._blocks:
                 cast(
                     BaseTransitionBlock, block
@@ -124,6 +130,16 @@ class TransitionLayer(BaseLearningModule[Config.TransitionLayerConfig]):
                 cast(BaseTransitionBlock, block).matrix * coefficient[:, i]
             )
         return transition_matrix
+
+    def get_estimated_state(self, batch_size: int = 1) -> torch.Tensor:
+        if not self._inference:
+            self._is_initialized = False
+            estimated_state = self.initial_state.repeat(batch_size, 1)
+            return estimated_state
+        if not self._is_initialized:
+            self._is_initialized = True
+            self._estimated_state = self.initial_state.repeat(batch_size, 1)
+        return self._estimated_state
 
     def _forward_bound_initial_state(
         self, input_state_trajectory: torch.Tensor

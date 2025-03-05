@@ -49,7 +49,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
     FILE_EXTENSIONS = (".pt", ".pth")
 
     def __init__(self, config: Config.BLC, **kwargs: Any) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         assert issubclass(
             type(config), Config.BaseLearningConfig
         ), f"{type(config) = } must be a subclass of {Config.BaseLearningConfig.__name__}"

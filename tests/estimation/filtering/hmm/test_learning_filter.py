@@ -58,7 +58,34 @@ class TestLearningHmmFilter:
         return config
 
     @pytest.fixture
-    def learning_filter(
+    def learning_filter_with_block_initial_state_binding(
+        self, config: Config.LearningHmmFilterConfig
+    ) -> LearningHmmFilter:
+        learning_filter = LearningHmmFilter(config=config)
+        transition_layer = learning_filter.transition.layers[0]
+        with learning_filter.evaluation_mode():
+            transition_layer.coefficient = torch.tensor([0.75, 0.25])
+            transition_layer.blocks[0].initial_state = torch.tensor(
+                [1.0, 0.0, 0.0]
+            )
+            transition_layer.blocks[1].initial_state = torch.tensor(
+                [0.0, 1.0, 0.0]
+            )
+            identity = np.identity(learning_filter.state_dim)
+            transition_layer.blocks[0].matrix = torch.tensor(
+                np.fliplr(identity).copy()
+            )
+            shifted_identity = torch.roll(
+                torch.tensor(identity), shifts=1, dims=1
+            )
+            transition_layer.blocks[1].matrix = shifted_identity
+            learning_filter.emission.matrix = torch.tensor(
+                [[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]]
+            )
+        return learning_filter
+
+    @pytest.fixture
+    def learning_filter_without_block_initial_state_binding(
         self, config: Config.LearningHmmFilterConfig
     ) -> LearningHmmFilter:
         config.transition.layers[0].block_initial_state_binding = False
@@ -90,8 +117,10 @@ class TestLearningHmmFilter:
         return torch.tensor([0, 0, 1])
 
     def test_learning_filter_parameter(
-        self, learning_filter: LearningHmmFilter
+        self,
+        learning_filter_without_block_initial_state_binding: LearningHmmFilter,
     ) -> None:
+        learning_filter = learning_filter_without_block_initial_state_binding
         assert learning_filter.state_dim == 3
         assert learning_filter.discrete_observation_dim == 2
         assert learning_filter.emission.matrix.shape == (3, 2)
@@ -102,7 +131,7 @@ class TestLearningHmmFilter:
             assert block.matrix.shape == (3, 3)
             assert block.initial_state.shape == (3,)
         emission_matrix = learning_filter.emission.matrix
-        with learning_filter.evaluation_mode():
+        with BaseLearningProcess.inference_mode(learning_filter):
             assert_allclose(
                 transition_layer.coefficient,
                 np.array([0.75, 0.25]),
@@ -136,10 +165,10 @@ class TestLearningHmmFilter:
 
     def test_learning_filter_estimation(
         self,
-        learning_filter: LearningHmmFilter,
+        learning_filter_without_block_initial_state_binding: LearningHmmFilter,
         observation_trajectory: torch.Tensor,
     ) -> None:
-        ERROR_TOLERANCE = 1e-6
+        learning_filter = learning_filter_without_block_initial_state_binding
         learning_filter.estimation_option = (
             Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
         )
