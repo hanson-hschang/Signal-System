@@ -25,10 +25,11 @@ class Parameter(BaseLearningModule[PC]):
         self._shape = shape
         self._initializer = self._config.initializer
         self._dropout = Dropout(self._config.dropout)
-        self._pytorch_parameter = nn.Parameter(
-            self._initializer(self._shape),
-            requires_grad=self._config.require_training,
-        )
+        # self._pytorch_parameter = nn.Parameter(
+        #     self._initializer(self._shape),
+        #     requires_grad=self._config.require_training,
+        # )
+        self._pytorch_parameter: nn.Parameter = self._init_parameter()
 
     @property
     def shape(self) -> Tuple[int, ...]:
@@ -37,6 +38,13 @@ class Parameter(BaseLearningModule[PC]):
     @property
     def pytorch_parameter(self) -> nn.Parameter:
         return self._pytorch_parameter
+
+    def _init_parameter(self) -> nn.Parameter:
+        parameter = nn.Parameter(
+            self._initializer(self._shape),
+            requires_grad=self._config.require_training,
+        )
+        return parameter
 
     def bind_with(self, parameter: Union[nn.Parameter, "Parameter"]) -> None:
         if not self.shape == parameter.shape:
