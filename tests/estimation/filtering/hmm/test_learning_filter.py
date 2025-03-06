@@ -130,7 +130,6 @@ class TestLearningHmmFilter:
         for block in [transition_block_1, transition_block_2]:
             assert block.matrix.shape == (3, 3)
             assert block.initial_state.shape == (3,)
-        emission_matrix = learning_filter.emission.matrix
         with BaseLearningProcess.inference_mode(learning_filter):
             assert_allclose(
                 transition_layer.coefficient,
@@ -159,7 +158,7 @@ class TestLearningHmmFilter:
                 np.array([[0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [1.0, 0.0, 0.0]]),
             )
             assert_allclose(
-                emission_matrix,
+                learning_filter.emission.matrix,
                 np.array([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]]),
             )
 
