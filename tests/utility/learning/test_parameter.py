@@ -32,6 +32,12 @@ from ss.utility.learning.parameter.transformer.exp import ExpTransformer
 from ss.utility.learning.parameter.transformer.exp.config import (
     ExpTransformerConfig,
 )
+from ss.utility.learning.parameter.transformer.norm.min_zero import (
+    MinZeroNormTransformer,
+)
+from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
+    MinZeroNormTransformerConfig,
+)
 
 
 @dataclass
@@ -147,60 +153,95 @@ class TestParameter:
 
 @dataclass
 class ComplexConfig(Config.BaseLearningConfig):
-    parameter: ParameterConfig = field(default_factory=ParameterConfig)
-    positive_parameter: PositiveParameterConfig = field(
+    number: ParameterConfig = field(default_factory=ParameterConfig)
+    positive_number: PositiveParameterConfig = field(
         default_factory=lambda: PositiveParameterConfig()
     )
-    probability_parameter: ProbabilityParameterConfig = field(
+    probability_1: ProbabilityParameterConfig = field(
         default_factory=lambda: ProbabilityParameterConfig()
+    )
+    probability_2: ProbabilityParameterConfig[MinZeroNormTransformerConfig] = (
+        field(
+            default_factory=lambda: ProbabilityParameterConfig[
+                MinZeroNormTransformerConfig
+            ](transformer=MinZeroNormTransformerConfig(order=1))
+        )
     )
 
 
 class ComplexModule(BaseLearningModule[ComplexConfig]):
     def __init__(self, config: ComplexConfig) -> None:
         super().__init__(config)
-        self._parameter = Parameter[ParameterConfig](
-            self._config.parameter, (3, 4)
+        self._number = Parameter[ParameterConfig](self._config.number, (3, 4))
+        self._positive_number = PositiveParameter[PositiveParameterConfig](
+            self._config.positive_number, (3, 4)
         )
-        self._positive_parameter = PositiveParameter[PositiveParameterConfig](
-            self._config.positive_parameter, (3, 4)
+        self._probability_1 = ProbabilityParameter[ProbabilityParameterConfig](
+            self._config.probability_1, (3, 4)
         )
-        self._probability_parameter = ProbabilityParameter[
-            ProbabilityParameterConfig
-        ](self._config.probability_parameter, (3, 4))
+        self._probability_2 = ProbabilityParameter[
+            ProbabilityParameterConfig[MinZeroNormTransformerConfig],
+            MinZeroNormTransformer,
+        ](self._config.probability_2, (3, 4))
 
     @property
-    def parameter(self) -> torch.Tensor:
-        parameter: torch.Tensor = self._parameter()
-        return parameter
+    def number(self) -> torch.Tensor:
+        number: torch.Tensor = self._number()
+        return number
 
-    @parameter.setter
-    def parameter(self, value: torch.Tensor) -> None:
-        self._parameter.set_value(value)
-
-    @property
-    def positive_parameter(self) -> torch.Tensor:
-        positive_parameter: torch.Tensor = self._positive_parameter()
-        return positive_parameter
-
-    @positive_parameter.setter
-    def positive_parameter(self, value: torch.Tensor) -> None:
-        self._positive_parameter.set_value(value)
+    @number.setter
+    def number(self, value: torch.Tensor) -> None:
+        self._number.set_value(value)
 
     @property
-    def probability_parameter(self) -> torch.Tensor:
-        probability_parameter: torch.Tensor = self._probability_parameter()
-        return probability_parameter
+    def positive_number_parameter(self) -> PositiveParameter:
+        return self._positive_number
 
-    @probability_parameter.setter
-    def probability_parameter(self, value: torch.Tensor) -> None:
-        self._probability_parameter.set_value(value)
+    @property
+    def positive_number(self) -> torch.Tensor:
+        positive_number: torch.Tensor = self._positive_number()
+        return positive_number
+
+    @positive_number.setter
+    def positive_number(self, value: torch.Tensor) -> None:
+        self._positive_number.set_value(value)
+
+    @property
+    def probability_1_parameter(self) -> ProbabilityParameter:
+        return self._probability_1
+
+    @property
+    def probability_1(self) -> torch.Tensor:
+        probability: torch.Tensor = self._probability_1()
+        return probability
+
+    @probability_1.setter
+    def probability_1(self, value: torch.Tensor) -> None:
+        self._probability_1.set_value(value)
 
     def forward(self) -> torch.Tensor:
-        result: torch.Tensor = self._parameter() + torch.mul(
-            self._positive_parameter(), self._probability_parameter()
-        )
+        result: torch.Tensor = torch.mul(
+            self._number(), self._probability_1()
+        ) + torch.mul(self._positive_number(), self._probability_2())
         return result
+
+    @property
+    def probability_2_parameter(
+        self,
+    ) -> ProbabilityParameter[
+        ProbabilityParameterConfig[MinZeroNormTransformerConfig],
+        MinZeroNormTransformer,
+    ]:
+        return self._probability_2
+
+    @property
+    def probability_2(self) -> torch.Tensor:
+        probability: torch.Tensor = self._probability_2()
+        return probability
+
+    @probability_2.setter
+    def probability_2(self, value: torch.Tensor) -> None:
+        self._probability_2.set_value(value)
 
 
 class TestManifoldParameter:
@@ -217,12 +258,11 @@ class TestManifoldParameter:
     ) -> None:
         complex_module = ComplexModule(complex_config)
         assert (
-            complex_module.config.positive_parameter
-            == complex_config.positive_parameter
+            complex_module.config.positive_number
+            == complex_config.positive_number
         )
         assert (
-            complex_module.config.probability_parameter
-            == complex_config.probability_parameter
+            complex_module.config.probability_1 == complex_config.probability_1
         )
 
     def test_parameter_initialization(
@@ -230,47 +270,68 @@ class TestManifoldParameter:
     ) -> None:
         complex_module = ComplexModule(complex_config)
         with complex_module.evaluation_mode():
-            positive_parameter = complex_module.positive_parameter
-            probability_parameter = complex_module.probability_parameter
-        assert positive_parameter.min() >= 0.0
-        assert probability_parameter.min() >= 0.0
-        assert probability_parameter.max() <= 1.0
+            positive_number = complex_module.positive_number
+            probability_1 = complex_module.probability_1
+            probability_2 = complex_module.probability_2
+        assert positive_number.min() >= 0.0
+        assert probability_1.min() >= 0.0
+        assert probability_1.max() <= 1.0
+        assert probability_2.min() >= 0.0
+        assert probability_2.max() <= 1.0
         assert np.allclose(
-            np.sum(probability_parameter.detach().numpy(), axis=-1), np.ones(3)
+            np.sum(probability_1.detach().numpy(), axis=-1), np.ones(3)
+        )
+        assert np.allclose(
+            np.sum(probability_2.detach().numpy(), axis=-1), np.ones(3)
         )
 
     def test_parameter_shape(self, complex_module: ComplexModule) -> None:
 
-        parameter = complex_module.parameter
-        positive_parameter = complex_module.positive_parameter
-        probability_parameter = complex_module.probability_parameter
+        number = complex_module.number
+        positive_number = complex_module.positive_number
+        probability_1 = complex_module.probability_1
+        probability_2 = complex_module.probability_2
         result: torch.Tensor = complex_module()
-        assert parameter.shape == (3, 4)
-        assert positive_parameter.shape == (3, 4)
-        assert probability_parameter.shape == (3, 4)
+        assert number.shape == (3, 4)
+        assert positive_number.shape == (3, 4)
+        assert probability_1.shape == (3, 4)
+        assert probability_2.shape == (3, 4)
         assert result.shape == (3, 4)
 
     def test_parameter_set_value(self, complex_module: ComplexModule) -> None:
-        complex_module.positive_parameter = torch.full((3, 4), 5.0)
-        complex_module.probability_parameter = torch.full((3, 4), 0.25)
+        complex_module.positive_number = torch.full((3, 4), 5.0)
+        complex_module.probability_1 = torch.full((3, 4), 0.25)
+        complex_module.probability_2 = torch.full((3, 4), 0.25)
         with complex_module.evaluation_mode():
-            positive_parameter = complex_module.positive_parameter
-            probability_parameter = complex_module.probability_parameter
+            positive_number = complex_module.positive_number
+            probability_1 = complex_module.probability_1
+            probability_2 = complex_module.probability_2
         assert np.allclose(
-            positive_parameter.detach().numpy(), np.full((3, 4), 5.0)
+            positive_number.detach().numpy(), np.full((3, 4), 5.0)
         )
         assert np.allclose(
-            probability_parameter.detach().numpy(), np.full((3, 4), 0.25)
+            probability_1.detach().numpy(), np.full((3, 4), 0.25)
+        )
+        assert np.allclose(
+            probability_2.detach().numpy(), np.full((3, 4), 0.25)
         )
 
     def test_parameter_binding(self, complex_module: ComplexModule) -> None:
         Parameter.binding(
-            complex_module._probability_parameter,
-            complex_module._positive_parameter,
+            complex_module.probability_1_parameter,
+            complex_module.positive_number_parameter,
         )
-        complex_module.positive_parameter = torch.full((3, 4), 1.0)
+        Parameter.binding(
+            complex_module.probability_2_parameter,
+            complex_module.positive_number_parameter,
+        )
+        complex_module.positive_number = torch.full((3, 4), torch.e)
         with complex_module.evaluation_mode():
-            probability_parameter = complex_module.probability_parameter
+            probability_1 = complex_module.probability_1
+            probability_2 = complex_module.probability_2
         assert np.allclose(
-            probability_parameter.detach().numpy(), np.full((3, 4), 0.25)
+            probability_1.detach().numpy(), np.full((3, 4), 0.25)
+        )
+        assert np.allclose(
+            probability_2.detach().numpy(), np.full((3, 4), 0.25)
         )

@@ -1,4 +1,4 @@
-from typing import Callable, Protocol, Sequence, Tuple, TypeVar, Union
+from typing import Callable, Generic, Protocol, Tuple, TypeVar, Union
 
 import torch
 from torch import nn
@@ -14,7 +14,7 @@ logger = Logging.get_logger(__name__)
 PC = TypeVar("PC", bound=Config.ParameterConfig)
 
 
-class Parameter(BaseLearningModule[PC]):
+class Parameter(BaseLearningModule[PC], Generic[PC]):
 
     def __init__(
         self,
@@ -67,10 +67,15 @@ class Parameter(BaseLearningModule[PC]):
         if isinstance(parameter_1, Parameter):
             parameter_1.bind_with(parameter_2)
             return
-        if isinstance(parameter_2, Parameter):
-            parameter_2.bind_with(parameter_1)
-            return
-        parameter_1 = parameter_2
+        parameter_1 = (
+            parameter_2.pytorch_parameter
+            if isinstance(parameter_2, Parameter)
+            else parameter_2
+        )
+        # if isinstance(parameter_2, Parameter):
+        #     parameter_1 = parameter_2.pytorch_parameter
+        #     return
+        # parameter_1 = parameter_2
 
     def forward(self) -> torch.Tensor:
         value: torch.Tensor = self._dropout(self._pytorch_parameter)

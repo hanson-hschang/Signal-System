@@ -14,7 +14,9 @@ from ss.utility.learning.parameter.transformer.softmax import config as Config
 
 # T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
 C = TypeVar(
-    "C", bound=TransformerConfig, default=Config.SoftmaxTransformerConfig
+    "C",
+    bound=TransformerConfig,
+    # default=Config.SoftmaxTransformerConfig,
 )
 
 
