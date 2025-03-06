@@ -86,19 +86,19 @@ def training(
         ) -> None:
             super().__init__(module, loss_function, optimizer)
 
-        def _save_model_info(self) -> Dict[str, Any]:
+        def save_model_info(self) -> Dict[str, Any]:
             custom_model_info: Dict[str, Any] = dict(
                 # save extra arguments
             )
             return custom_model_info
 
-        def _save_checkpoint_info(self) -> CheckpointInfo:
+        def save_checkpoint_info(self) -> CheckpointInfo:
             custom_checkpoint_info = CheckpointInfo(
                 # save extra information
             )
             return custom_checkpoint_info
 
-        def _load_checkpoint_info(
+        def load_checkpoint_info(
             self, checkpoint_info: CheckpointInfo
         ) -> None:
             # load extra information
