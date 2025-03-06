@@ -1,4 +1,4 @@
-from typing import Tuple, assert_never
+from typing import Generic, Tuple, TypeVar, assert_never
 
 import torch
 
@@ -9,13 +9,24 @@ from ss.estimation.filtering.hmm.learning.module.transition.step import (
 from ss.utility.descriptor import ReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
+from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
 from ss.utility.logging import Logging
+
+T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
 
 logger = Logging.get_logger(__name__)
 
 
 class BaseTransitionBlock(
-    TransitionStepMixin, BaseLearningModule[Config.TransitionBlockConfig]
+    TransitionStepMixin[T],
+    BaseLearningModule[Config.TransitionBlockConfig],
+    Generic[T],
 ):
     def __init__(
         self,
@@ -198,23 +209,23 @@ class BaseTransitionBlock(
         config: Config.TransitionBlockConfig,
         filter_config: Config.FilterConfig,
         block_id: int,
-    ) -> "BaseTransitionBlock":
+    ) -> "BaseTransitionBlock[T]":
         match config.option:
             case Config.TransitionBlockConfig.Option.FULL_MATRIX:
-                return TransitionFullMatrix(config, filter_config, block_id)
+                return TransitionFullMatrix[T](config, filter_config, block_id)
             case Config.TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX:
-                return TransitionSpatialInvariantMatrix(
+                return TransitionSpatialInvariantMatrix[T](
                     config,
                     filter_config,
                     block_id,
                 )
             case Config.TransitionBlockConfig.Option.IID:
-                return TransitionIID(config, filter_config, block_id)
+                return TransitionIID[T](config, filter_config, block_id)
             case _ as _invalid_block_option:
                 assert_never(_invalid_block_option)
 
 
-class TransitionFullMatrix(BaseTransitionBlock):
+class TransitionFullMatrix(BaseTransitionBlock[T], Generic[T]):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
@@ -237,7 +248,7 @@ class TransitionFullMatrix(BaseTransitionBlock):
         self._matrix.set_value(matrix)
 
 
-class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
+class TransitionSpatialInvariantMatrix(BaseTransitionBlock[T], Generic[T]):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
@@ -252,9 +263,9 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
 
         if self._config.matrix.initial_state_binding:
             self._matrix.bind_with(self._initial_state)
-            self._matrix.transformer.temperature_parameter.bind_with(
-                self._initial_state.transformer.temperature_parameter
-            )
+            # self._matrix.transformer.temperature_parameter.bind_with(
+            #     self._initial_state.transformer.temperature_parameter
+            # )
 
     @property
     def matrix(self) -> torch.Tensor:
@@ -283,7 +294,7 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock):
         self._matrix.set_value(row_probability)
 
 
-class TransitionIID(BaseTransitionBlock):
+class TransitionIID(BaseTransitionBlock[T], Generic[T]):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
@@ -303,9 +314,9 @@ class TransitionIID(BaseTransitionBlock):
             (self._state_dim,),
         )
         self._matrix.bind_with(self._initial_state)
-        self._matrix.transformer.temperature_parameter.bind_with(
-            self._initial_state.transformer.temperature_parameter
-        )
+        # self._matrix.transformer.temperature_parameter.bind_with(
+        #     self._initial_state.transformer.temperature_parameter
+        # )
 
     @property
     def matrix(self) -> torch.Tensor:

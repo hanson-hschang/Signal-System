@@ -1,4 +1,4 @@
-from typing import Tuple, TypeVar
+from typing import Self, Tuple, TypeVar
 
 import torch
 
@@ -12,6 +12,9 @@ class Transformer(BaseLearningModule[C]):
     def __init__(self, config: C, shape: Tuple[int, ...]) -> None:
         super().__init__(config)
         self._shape = shape
+
+    def bind_with(self, transformer: Self) -> None:
+        raise NotImplementedError
 
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError

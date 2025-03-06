@@ -1,4 +1,4 @@
-from typing import Generic, Tuple, TypeVar, cast
+from typing import Generic, Self, Tuple, TypeVar, cast
 
 import torch
 
@@ -45,6 +45,9 @@ class SoftmaxTransformer(
         if value.ndim == (len(self._shape) - 1):
             value = value.unsqueeze(-1)
         self._temperature.set_value(value)
+
+    def bind_with(self, transformer: Self) -> None:
+        self._temperature.bind_with(transformer.temperature_parameter)
 
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
         return torch.nn.functional.softmax(

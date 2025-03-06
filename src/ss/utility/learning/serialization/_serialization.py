@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Callable, List, Optional, Set, Tuple, Type, TypeAlias, Union
 
+import operator
 from collections import defaultdict
 
 import torch
@@ -113,7 +114,9 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
 
 def add_builtin() -> SafeCallables:
     # This is for getter and setter of properties
-    safe_callables = SafeCallables({getattr, setattr, defaultdict, dict})
+    safe_callables = SafeCallables(
+        {getattr, setattr, defaultdict, dict, operator.getitem}
+    )
     return safe_callables
 
 

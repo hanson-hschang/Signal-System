@@ -1,10 +1,13 @@
-from typing import Self, Tuple
+from typing import Callable, Self, Tuple
 
 from dataclasses import dataclass, field
 
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.learning.module import config as Config
 from ss.utility.learning.module.dropout.config import DropoutConfig
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
 from ss.utility.logging import Logging
 
 from ._config_emission import EmissionProcessConfig
@@ -48,6 +51,9 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         discrete_observation_dim: int,
         block_dims: int | Tuple[int, ...] = 1,
         dropout_rate: float = 0.0,
+        probability_parameter_factory: Callable[
+            [], ProbabilityParameterConfig
+        ] = lambda: ProbabilityParameterConfig(),
     ) -> Self:
         """
         Create a basic configuration of the `LearningHmmFilter` module.
@@ -104,5 +110,24 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
                     dropout_rate
                 )
                 block.matrix.probability_parameter.dropout.rate = dropout_rate
+
+        # Update probability parameter configuration
+        config.emission.block.matrix.probability_parameter = (
+            probability_parameter_factory()
+        )
+        for layer in config.transition.layers:
+            layer.coefficient.probability_parameter = (
+                probability_parameter_factory()
+            )
+            layer.initial_state.probability_parameter = (
+                probability_parameter_factory()
+            )
+            for block in layer.blocks:
+                block.initial_state.probability_parameter = (
+                    probability_parameter_factory()
+                )
+                block.matrix.probability_parameter = (
+                    probability_parameter_factory()
+                )
 
         return config

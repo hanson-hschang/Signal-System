@@ -1,4 +1,4 @@
-from typing import List, Tuple, cast
+from typing import Generic, List, Tuple, TypeVar, cast
 
 import torch
 from torch import nn
@@ -9,12 +9,20 @@ from ss.estimation.filtering.hmm.learning.module.transition.layer import (
 )
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
+from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
+T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
 
-class TransitionProcess(BaseLearningModule[Config.TransitionProcessConfig]):
+
+class TransitionProcess(
+    BaseLearningModule[Config.TransitionProcessConfig], Generic[T]
+):
     def __init__(
         self,
         config: Config.TransitionProcessConfig,
@@ -32,7 +40,7 @@ class TransitionProcess(BaseLearningModule[Config.TransitionProcessConfig]):
                 self._config.skip_first_transition
             )
             self._layers.append(
-                TransitionLayer(
+                TransitionLayer[T](
                     layer_config,
                     filter_config,
                     l + 1,
@@ -65,12 +73,14 @@ class TransitionProcess(BaseLearningModule[Config.TransitionProcessConfig]):
     )
 
     @property
-    def layers(self) -> List[TransitionLayer]:
-        return [cast(TransitionLayer, layer) for layer in self._layers]
+    def layers(self) -> List[TransitionLayer[T]]:
+        return [cast(TransitionLayer[T], layer) for layer in self._layers]
 
     @property
     def matrix(self) -> List[torch.Tensor]:
-        return [cast(TransitionLayer, layer).matrix for layer in self._layers]
+        return [
+            cast(TransitionLayer[T], layer).matrix for layer in self._layers
+        ]
 
     def forward(
         self, likelihood_state_trajectory: torch.Tensor

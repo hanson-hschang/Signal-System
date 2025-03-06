@@ -1,6 +1,7 @@
-from typing import Generic, Tuple, TypeVar, cast
+from typing import Generic, Tuple, TypeVar, Union, cast
 
 import torch
+import torch.nn as nn
 
 from ss.utility.learning.parameter import Parameter
 from ss.utility.learning.parameter.manifold import config as Config
@@ -29,6 +30,15 @@ class ManifoldParameter(Parameter[C], Generic[C, T]):
     @property
     def transformer(self) -> T:
         return self._transformer
+
+    def bind_with(
+        self, parameter: Union[nn.Parameter, Parameter, "ManifoldParameter"]
+    ) -> None:
+        super().bind_with(parameter)
+        if isinstance(parameter, ManifoldParameter) and (
+            self.__class__ == parameter.__class__
+        ):
+            self._transformer.bind_with(cast(T, parameter.transformer))
 
     def forward(self) -> torch.Tensor:
         return self._transformer.forward(super().forward())

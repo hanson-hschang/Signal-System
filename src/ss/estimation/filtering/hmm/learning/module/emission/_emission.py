@@ -1,13 +1,24 @@
-from typing import Optional
+from typing import Generic, Optional, TypeVar
 
 import torch
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
+from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+
+T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
 
 
-class EmissionProcess(BaseLearningModule[Config.EmissionProcessConfig]):
+class EmissionProcess(
+    BaseLearningModule[Config.EmissionProcessConfig], Generic[T]
+):
     def __init__(
         self,
         config: Config.EmissionProcessConfig,
@@ -17,13 +28,17 @@ class EmissionProcess(BaseLearningModule[Config.EmissionProcessConfig]):
         self._state_dim = filter_config.state_dim
         self._discrete_observation_dim = filter_config.discrete_observation_dim
 
-        self._matrix = ProbabilityParameter(
+        self._matrix: ProbabilityParameter[
+            ProbabilityParameterConfig, T
+        ] = ProbabilityParameter[ProbabilityParameterConfig, T](
             self._config.block.matrix.probability_parameter,
             (self._state_dim, self._discrete_observation_dim),
         )
 
     @property
-    def matrix_parameter(self) -> ProbabilityParameter:
+    def matrix_parameter(
+        self,
+    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
         return self._matrix
 
     @property

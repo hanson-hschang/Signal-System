@@ -1,4 +1,4 @@
-from typing import List, Tuple, assert_never
+from typing import Generic, List, Tuple, TypeVar, assert_never
 
 import torch
 
@@ -14,13 +14,20 @@ from ss.utility.descriptor import (
     ReadOnlyDescriptor,
 )
 from ss.utility.learning import module as Module
+from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
 
+T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+
+
 class LearningHmmFilter(
-    Module.BaseLearningModule[Config.LearningHmmFilterConfig]
+    Module.BaseLearningModule[Config.LearningHmmFilterConfig], Generic[T]
 ):
     """
     `LearningHmmFilter` module for learning the hidden Markov model and estimating the next observation.
@@ -48,10 +55,10 @@ class LearningHmmFilter(
         self._layer_dim = self._config.transition.layer_dim + 1
 
         # Define the learnable emission process and transition process
-        self._emission = EmissionProcess(
+        self._emission = EmissionProcess[T](
             self._config.emission, self._config.filter
         )
-        self._transition = TransitionProcess(
+        self._transition = TransitionProcess[T](
             self._config.transition, self._config.filter
         )
 
@@ -101,11 +108,11 @@ class LearningHmmFilter(
     batch_size = ReadOnlyDescriptor[int]()
 
     @property
-    def emission(self) -> EmissionProcess:
+    def emission(self) -> EmissionProcess[T]:
         return self._emission
 
     @property
-    def transition(self) -> TransitionProcess:
+    def transition(self) -> TransitionProcess[T]:
         return self._transition
 
     @property

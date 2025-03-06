@@ -41,7 +41,3 @@ class ProbabilityParameter(ManifoldParameter[C, T], Generic[C, T]):
                 f"Unknown transformer config: {self._config.transformer}"
             )
         return cast(T, transformer)
-
-        # return cast(
-        #     T, SoftmaxTransformer(self._config.transformer, self._shape)
-        # )

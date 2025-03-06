@@ -1,13 +1,22 @@
-from typing import Any, Tuple
+from typing import Any, Generic, Tuple, TypeVar
 
 import torch
 import torch.nn as nn
 
 from ss.estimation.filtering.hmm.learning.module import config as Config
 from ss.utility.learning.parameter.probability import ProbabilityParameter
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
+from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+
+T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
 
 
-class TransitionStepMixin(nn.Module):
+class TransitionStepMixin(nn.Module, Generic[T]):
     def __init__(
         self,
         initial_state_config: Config.TransitionInitialStateConfig,
@@ -19,7 +28,9 @@ class TransitionStepMixin(nn.Module):
         self._state_dim = state_dim
         self._skip_first_transition = skip_first_transition
 
-        self._initial_state: ProbabilityParameter = ProbabilityParameter(
+        self._initial_state: ProbabilityParameter[
+            ProbabilityParameterConfig, T
+        ] = ProbabilityParameter[ProbabilityParameterConfig, T](
             initial_state_config.probability_parameter,
             (state_dim,),
         )
@@ -30,10 +41,12 @@ class TransitionStepMixin(nn.Module):
         ).repeat(
             1, 1
         )  # (batch_size, state_dim)
-        self._matrix: ProbabilityParameter
+        self._matrix: ProbabilityParameter[ProbabilityParameterConfig, T]
 
     @property
-    def initial_state_parameter(self) -> ProbabilityParameter:
+    def initial_state_parameter(
+        self,
+    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
         return self._initial_state
 
     @property
@@ -46,7 +59,9 @@ class TransitionStepMixin(nn.Module):
         self._initial_state.set_value(initial_state)
 
     @property
-    def matrix_parameter(self) -> ProbabilityParameter:
+    def matrix_parameter(
+        self,
+    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
         return self._matrix
 
     @property
