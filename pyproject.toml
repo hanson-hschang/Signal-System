@@ -11,7 +11,7 @@ name = "Signal-System"
 version = "0.0.2"
 description = "A package for signal and system simulation, design, analysis, and learning"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11,<3.12"
 license = {text = "MIT"}
 authors = [
     {name = "Heng-Sheng Chang"}
@@ -27,14 +27,14 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Natural Language :: English",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.11",
 ]
 
 dependencies = [
     "numpy>=1.26.0",
     "scipy>=1.11.0",
     "numba>=0.60.0",
-    "torch>=2.6.0",
+    "torch>=2.0.0",
     "matplotlib>=3.7.2",
     "h5py>=3.0.0",
     "tqdm>=4.60.0",
@@ -52,7 +52,7 @@ dev = [
     "codecov>=2.1.13",
     "black>=24.4.2",
     "isort[colors]>=5.13.2",
-    "mypy>=1.10.0",
+    "mypy>=1.10.0,<1.15",
     "mypy-extensions>=1.0.0",
     "pip-tools>=7.4.0",
 ]
@@ -63,7 +63,7 @@ packages = ["ss"]
 
 [tool.black]
 # https://github.com/psf/black
-target-version = ["py313"]
+target-version = ["py311"]
 line-length = 79
 color = true
 
@@ -105,12 +105,11 @@ include_trailing_comma = true
 profile = "black"
 multi_line_output = 3
 indent = 4
-use_parentheses = true
 color_output = true
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
-python_version = "3.13"
+python_version = "3.11"
 pretty = true
 show_traceback = true
 color_output = true

@@ -1,43 +1,13 @@
-from typing import Any, Generic, Optional, Type, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
-O = TypeVar("O", bound=object, default=object)
 
 
-class ReadOnlyDescriptor(Generic[T, O]):
-    def __set_name__(self, owner: Type[O], name: str) -> None:
+class ReadOnlyDescriptor(Generic[T]):
+    def __set_name__(self, owner: type, name: str) -> None:
         self.name = name
         self.private_name = "_" + name
 
-    def __get__(self, instance: Optional[O], owner: Type[O]) -> T:
-        value: T = getattr(instance, self.private_name)
+    def __get__(self, obj: object, obj_type: type) -> T:
+        value: T = getattr(obj, self.private_name)
         return value
-
-
-class Descriptor(ReadOnlyDescriptor[T, O]):
-    def __set__(self, obj: O, value: T) -> None:
-        setattr(obj, self.private_name, value)
-
-
-class ReadOnlyDataclassDescriptor(Generic[T, O]):
-    def __init__(self, value: Optional[T] = None) -> None:
-        self._default_value = value
-
-    def __set_name__(self, owner: Type[O], name: str) -> None:
-        self.name = name
-        self.private_name = "_" + name
-
-    def __get__(self, instance: Optional[O], owner: Type[O]) -> T:
-        if instance is None:
-            if self._default_value is None:
-                raise AttributeError(f"'{self.name}' is not set.")
-            return self._default_value
-        if not hasattr(instance, self.private_name):
-            setattr(instance, self.private_name, self._default_value)
-        value: T = getattr(instance, self.private_name)
-        return value
-
-
-class DataclassDescriptor(ReadOnlyDataclassDescriptor[T, O]):
-    def __set__(self, instance: O, value: T) -> None:
-        setattr(instance, self.private_name, value)

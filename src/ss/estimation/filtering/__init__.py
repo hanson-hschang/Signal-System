@@ -1,1 +1,1 @@
-from ._filtering import Filter
+from ss.estimation.filtering._filtering import Filter

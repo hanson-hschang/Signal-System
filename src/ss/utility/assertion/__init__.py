@@ -1,4 +1,4 @@
-from ._assertion import (
+from ss.utility.assertion._assertion import (
     check_directory_existence,
     check_filepath_existence,
     check_parent_directory_existence,

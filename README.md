@@ -24,26 +24,25 @@ A Python package for **Signal & System** simulation, design, analysis, and learn
 ## Dependency & installation
 
 ### Requirements
-  - Python version: 3.13
+  - Python version: 3.11
   - Additional package dependencies include: [NumPy](https://numpy.org/doc/stable/user/absolute_beginners.html), [SciPy](https://docs.scipy.org/doc/scipy/tutorial/index.html#user-guide), [Numba](https://numba.readthedocs.io/en/stable/user/5minguide.html), [PyTorch](https://pytorch.org/docs/stable/index.html), [Matplotlib](https://matplotlib.org/stable/users/explain/quick_start.html), [H5py](https://docs.h5py.org/en/stable/), [tqdm](https://tqdm.github.io/), and [Click](https://click.palletsprojects.com/en/stable/) (detailed in `pyproject.toml`)
 
 ### Installation
 
 Before installation, create a Python virtual environment to manage dependencies and ensure a clean installation of the **Signal & System** package.
 
-1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment.
-This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage environments.)
+1. Create and activate a virtual environment: (One may use your preferred way to create a virtual environment. This tutorial uses [Anaconda](https://docs.anaconda.com/) to manage the environments.)
 
     ```properties
-    # Change directory to your <working_directory>
-    cd <working_directory>
+    # Change directory to your working folder
+    cd path_to_your_working_folder
 
-    # Create a virtual environment of name <venv>
-    # with Python version 3.13
-    conda create --name <venv> python=3.13
+    # Create a virtual environment of name `myenv`
+    # with Python version 3.11
+    conda create --name myenv python=3.11
 
     # Activate the virtual environment
-    conda activate <venv>
+    conda activate myenv
 
     # Note: Exit the virtual environment
     conda deactivate

@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Optional, Union
 
 import os
 from datetime import datetime

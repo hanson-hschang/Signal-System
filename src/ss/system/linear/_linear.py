@@ -13,7 +13,7 @@ from ss.utility.assertion.validator import Validator
 class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     class _StateSpaceMatrixAValidator(Validator):
         def __init__(self, state_space_matrix_A: ArrayLike) -> None:
-            super().__init__(state_space_matrix_A)
+            super().__init__()
             self._state_space_matrix_A = np.array(state_space_matrix_A)
             self._validate_functions.append(self._validate_shape)
 
@@ -32,10 +32,10 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     class _StateSpaceMatrixBValidator(Validator):
         def __init__(
             self,
-            state_space_matrix_B: Optional[ArrayLike],
             state_dim: int,
+            state_space_matrix_B: Optional[ArrayLike] = None,
         ) -> None:
-            super().__init__(state_space_matrix_B)
+            super().__init__()
             if state_space_matrix_B is None:
                 state_space_matrix_B = np.zeros((state_dim, 0))
             self._state_space_matrix_B = np.array(state_space_matrix_B)
@@ -56,11 +56,9 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
 
     class _StateSpaceMatrixCValidator(Validator):
         def __init__(
-            self,
-            state_space_matrix_C: ArrayLike,
-            state_dim: int,
+            self, state_dim: int, state_space_matrix_C: ArrayLike
         ) -> None:
-            super().__init__(state_space_matrix_C)
+            super().__init__()
             self._state_space_matrix_C = np.array(state_space_matrix_C)
             self._state_dim = state_dim
             self._validate_functions.append(self._validate_shape)
@@ -92,14 +90,12 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         state_dim = self._state_space_matrix_A.shape[0]
 
         self._state_space_matrix_C = self._StateSpaceMatrixCValidator(
-            state_space_matrix_C,
-            state_dim,
+            state_dim, state_space_matrix_C
         ).get_matrix()
         observation_dim = self._state_space_matrix_C.shape[0]
 
         self._state_space_matrix_B = self._StateSpaceMatrixBValidator(
-            state_space_matrix_B,
-            state_dim,
+            state_dim, state_space_matrix_B
         ).get_matrix()
         control_dim = self._state_space_matrix_B.shape[1]
         self._set_compute_state_process(control_flag=(control_dim > 0))

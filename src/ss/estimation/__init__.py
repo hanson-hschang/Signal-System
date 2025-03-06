@@ -1,1 +1,1 @@
-from ._estimation import Estimator, EstimatorCallback
+from ss.estimation._estimation import Estimator, EstimatorCallback

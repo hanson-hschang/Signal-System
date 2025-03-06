@@ -1,1 +1,1 @@
-from ._control import Controller
+from ss.control._control import Controller

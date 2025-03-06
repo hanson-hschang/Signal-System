@@ -4,15 +4,11 @@ PYTHONPATH := `pwd`
 
 #* Installation
 .PHONY: install
+
 install:
 	python -m pip install --upgrade pip
-	python -m pip install -e .
-
-#* Installation with developer tools
-.PHONY: install-dev
-install-dev:
-	python -m pip install --upgrade pip
 	python -m pip install -e ".[dev]"
+
 
 #* Installation of pre-commit: tool of Git hook scripts
 .PHONY: install-pre-commit
@@ -27,7 +23,7 @@ test:
 #* Formatters
 .PHONY: formatting
 formatting:
-	pyupgrade --exit-zero-even-if-changed --py313-plus src/**/*.py
+	pyupgrade --exit-zero-even-if-changed --py38-plus src/**/*.py
 	isort --settings-path pyproject.toml ./
 	black --config pyproject.toml ./
 	mypy --config-file pyproject.toml ./
@@ -35,13 +31,13 @@ formatting:
 #* Linting
 .PHONY: check-test
 check-test:
-	pytest -c pyproject.toml --cov=src
+	poetry run pytest -c pyproject.toml --cov=src
 
 .PHONY: check-formatting
 check-formatting:
-	isort --diff --check-only --settings-path pyproject.toml ./
-	black --diff --check --config pyproject.toml ./
-	mypy --config-file pyproject.toml ./
+	poetry run isort --diff --check-only --settings-path pyproject.toml ./
+	poetry run black --diff --check --config pyproject.toml ./
+	poetry run mypy --config-file pyproject.toml src
 
 .PHONY: lint
 lint: check-formatting check-test

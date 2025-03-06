@@ -1,1 +1,1 @@
-from ._mppi import ModelPredictivePathIntegralController
+from ss.control.mppi._mppi import ModelPredictivePathIntegralController

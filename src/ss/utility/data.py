@@ -22,7 +22,7 @@ class MetaData(dict):
         def __init__(
             self, meta_data: Dict[str, Union[ArrayLike, "MetaData"]]
         ) -> None:
-            super().__init__(meta_data)
+            super().__init__()
             self._meta_data = meta_data
             self._validated_meta_data: Dict[
                 str, Union[NDArray, "MetaData"]
@@ -59,8 +59,7 @@ class MetaData(dict):
             return self._validated_meta_data
 
     def __init__(self, **meta_data: Union[ArrayLike, "MetaData"]) -> None:
-        _meta_data = self._MetaDataValidator(meta_data).get_meta_data()
-        super().__init__(**_meta_data)
+        super().__init__(**self._MetaDataValidator(meta_data).get_meta_data())
 
     def __setitem__(
         self, key: str, value: Union[ArrayLike, "MetaData"]
@@ -86,7 +85,7 @@ MetaInfoValueType = Union[bool, int, float, str]
 class MetaInfo(dict):
     class _MetaInfoValidator(Validator):
         def __init__(self, meta_info: Dict[str, MetaInfoValueType]) -> None:
-            super().__init__(meta_info)
+            super().__init__()
             self._meta_info = meta_info
             self.add_validation(self._validate_meta_info)
 
@@ -118,13 +117,11 @@ class MetaInfo(dict):
             return self._meta_info
 
     def __init__(self, **meta_info: MetaInfoValueType) -> None:
-        _meta_info = self._MetaInfoValidator(meta_info).get_meta_info()
-        super().__init__(**_meta_info)
+        super().__init__(**self._MetaInfoValidator(meta_info).get_meta_info())
 
     def __setitem__(self, key: str, value: MetaInfoValueType) -> None:
-        meta_info = {key: value}
         super().__setitem__(
-            key, self._MetaInfoValidator(meta_info).get_meta_info()[key]
+            key, self._MetaInfoValidator({key: value}).get_meta_info()[key]
         )
 
     @classmethod
