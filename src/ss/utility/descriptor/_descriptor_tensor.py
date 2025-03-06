@@ -17,7 +17,7 @@ class TensorReadOnlyDescriptor:
 
 class TensorDescriptor(TensorReadOnlyDescriptor):
     def __set__(self, obj: object, value: ArrayLike) -> None:
-        _value: torch.Tensor = torch.tensor(value, dtype=torch.float64)
+        _value: torch.Tensor = torch.tensor(value)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
         assert _value.shape == shape, (
             f"{self.name} must be in the shape of {shape}. "

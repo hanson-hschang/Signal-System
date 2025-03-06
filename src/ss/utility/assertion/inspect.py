@@ -12,7 +12,7 @@ from typing import (
 )
 
 import inspect
-from dataclasses import is_dataclass
+from dataclasses import fields, is_dataclass
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -117,7 +117,9 @@ def get_nondefault_type_fields(
                         nondefault_type
                     )
         # Handle regular types
-        elif field_type not in _default_python_types:
+        elif field_type not in _default_python_types and hasattr(
+            field_type, "__qualname__"
+        ):
             nondefault_type_parameters[field_name] = field_type
 
     return nondefault_type_parameters

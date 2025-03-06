@@ -1,17 +1,14 @@
 import click
-import matplotlib.pyplot as plt
 import numpy as np
 from tqdm import tqdm
 
-from ss.control.cost import CostCallback, CostTrajectoryFigure
-from ss.control.cost.quadratic import QuadraticCost
+from ss.control.cost import CostCallback, QuadraticCost
 from ss.control.mppi import ModelPredictivePathIntegralController
 from ss.system import SystemCallback
-from ss.system.examples.cart_pole import (
-    CartPoleStateTrajectoryFigure,
-    CartPoleSystem,
-)
+from ss.system.examples.cart_pole import CartPoleSystem
 from ss.utility import basic_config
+
+from . import figure as Figure
 
 
 @click.command()
@@ -118,15 +115,15 @@ def main(
     system_callback.save(path_manager.result_directory / "system.hdf5")
     cost_callback.save(path_manager.result_directory / "cost.hdf5")
 
-    CartPoleStateTrajectoryFigure(
+    Figure.CartPoleStateTrajectoryFigure(
         system_callback["time"],
         system_callback["state"],
     ).plot()
-    CostTrajectoryFigure(
+    Figure.CostTrajectoryFigure(
         cost_callback["time"],
         cost_callback["cost"],
     ).plot()
-    plt.show()
+    Figure.show()
 
 
 if __name__ == "__main__":

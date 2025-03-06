@@ -1,1 +1,1 @@
-from ss.utility._utility import basic_config
+from ._utility import basic_config

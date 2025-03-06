@@ -1,4 +1,14 @@
-from typing import Dict, Iterable, Optional, Union
+from types import TracebackType
+from typing import (
+    Dict,
+    Iterable,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    TypeAlias,
+    Union,
+)
 
 import logging
 import sys
@@ -12,6 +22,17 @@ from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.singleton import SingletonMeta
+
+ExcInfoType: TypeAlias = Union[
+    bool,
+    Tuple[
+        Type[BaseException],
+        BaseException,
+        Optional[TracebackType],
+    ],
+    Tuple[None, None, None],
+    BaseException,
+]
 
 
 class LogLevel(IntEnum):
@@ -50,6 +71,29 @@ class Logger(logging.Logger):
         self, iterable: Iterable, total: Optional[int] = None
     ) -> tqdm:
         return tqdm(iterable, total=total)
+
+    # This is a temporary solution to indent the log messages
+    def indent(self, level: int = 1) -> str:
+        return "    " * level
+
+    def error(
+        self,
+        message: object,
+        *args: object,
+        exc_info: Optional[ExcInfoType] = None,
+        stack_info: bool = False,
+        stacklevel: int = 1,
+        extra: Optional[Mapping[str, object]] = None,
+    ) -> None:
+        super().error(
+            message,
+            *args,
+            exc_info=exc_info,
+            stack_info=stack_info,
+            stacklevel=stacklevel,
+            extra=extra,
+        )
+        raise ValueError(message)
 
 
 class Logging(metaclass=SingletonMeta):
