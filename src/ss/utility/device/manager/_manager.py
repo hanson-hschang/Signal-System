@@ -1,7 +1,6 @@
-from typing import Generator, Optional, Type, TypeVar, Union, assert_never
+from typing import Generator, Optional, TypeVar, Union, assert_never
 
 from contextlib import contextmanager
-from enum import StrEnum, auto
 from pathlib import Path
 
 import torch

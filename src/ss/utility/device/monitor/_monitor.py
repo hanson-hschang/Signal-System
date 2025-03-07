@@ -1,4 +1,4 @@
-from typing import Optional, TypeVar, Union, assert_never
+from typing import Optional, Self, Union, assert_never
 
 import threading
 import time
@@ -9,18 +9,16 @@ from ss.utility.assertion.validator import (
     PositiveNumberValidator,
 )
 from ss.utility.device import Device
-from ss.utility.device.monitor.performance import (
+from ss.utility.device.performance import (
     Performance,
     PerformanceCallback,
 )
-from ss.utility.device.monitor.performance.cpu import CpuPerformance
-from ss.utility.device.monitor.performance.cuda import CudaGpuPerformance
-from ss.utility.device.monitor.performance.mps import MpsPerformance
+from ss.utility.device.performance.cpu import CpuPerformance
+from ss.utility.device.performance.cuda import CudaGpuPerformance
+from ss.utility.device.performance.mps import MpsPerformance
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
-
-DM = TypeVar("DM", bound="DeviceMonitor")
 
 
 class DeviceMonitor:
@@ -39,9 +37,7 @@ class DeviceMonitor:
             result_directory if result_directory else Path.cwd()
         )
         self._result_filename = (
-            result_filename
-            if result_filename
-            else "device_performance_monitoring_result.hdf5"
+            result_filename if result_filename else "device_performance.hdf5"
         )
         result_filepath = Path(self._result_directory) / self._result_filename
         self._result_filepath = FilePathValidator(
@@ -80,7 +76,7 @@ class DeviceMonitor:
                 logger.error(f"Error in monitoring: {e}")
                 time.sleep(self._sampling_interval)
 
-    def start(self: DM) -> DM:
+    def start(self) -> Self:
         if self._thread is None or not self._thread.is_alive():
             self._thread = threading.Thread(target=self.loop, daemon=True)
         self._event.clear()

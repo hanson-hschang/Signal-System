@@ -1,10 +1,18 @@
-from ss.utility.device.monitor.performance import Performance
+from typing import Optional, Union
+
+from pathlib import Path
+
+from torch import mps
+
+from ss.utility.device.performance import Performance
 
 
-class CudaGpuPerformance(Performance):
-    def __init__(self) -> None:
+class MpsPerformance(Performance):
+    def __init__(
+        self,
+    ) -> None:
 
-        super().__init__()
+        super().__init__("mps")
 
     def _process(self) -> None:
         pass

@@ -1,4 +1,4 @@
-from typing import Any, DefaultDict, Dict, List, Optional, Union
+from typing import Any, DefaultDict, List, Optional, Union, cast
 
 from collections import defaultdict
 from pathlib import Path
@@ -30,6 +30,7 @@ class Callback:
     def record(self, current_step: int, time: float) -> None:
         if current_step % self.sample_every == 0:
             self._record(time)
+        # TODO: add key name violation check
 
     def _record(self, time: float) -> None:
         self._callback_params["time"].append(time)
@@ -39,7 +40,15 @@ class Callback:
         assert (
             key in self._callback_params.keys()
         ), f"{key} not in callback parameters."
-        signal_trajectory = np.array(self._callback_params[key])
+        signal_trajectory = self.to_numpy_array(self._callback_params[key])
+        # signal_trajectory = np.array(self._callback_params[key])
+        # if len(signal_trajectory.shape) > 1:
+        #     signal_trajectory = np.moveaxis(signal_trajectory, 0, -1)
+        return signal_trajectory
+
+    @staticmethod
+    def to_numpy_array(value: List) -> NDArray:
+        signal_trajectory = np.array(value)
         if len(signal_trajectory.shape) > 1:
             signal_trajectory = np.moveaxis(signal_trajectory, 0, -1)
         return signal_trajectory
@@ -105,18 +114,77 @@ class Callback:
                     f.create_group(MetaData.NAME),
                     self._meta_data,
                 )
-            for key in self._callback_params.keys():
-                f.create_dataset(
-                    name=key,
-                    data=self[key],
-                )
+            # for key in self._callback_params.keys():
+            #     f.create_dataset(
+            #         name=key,
+            #         data=self[key],
+            #     )
+            for key, value in self._callback_params.items():
+                self._save_callback_params(f, key, value)
             for key, value in self._meta_info.items():
-                f.attrs[key] = value
+                self._save_meta_info(f, key, cast(MetaInfoValueType, value))
+                # f.attrs[key] = value
 
-    @staticmethod
-    def _save_meta_data(h5_group: h5py.Group, meta_data: MetaData) -> None:
+    @classmethod
+    def _save_meta_info(
+        cls, h5_group: h5py.Group, key: str, value: MetaInfoValueType
+    ) -> None:
+        if "/" in key:
+            parent_key, child_key = key.split("/")
+            h5_subgroup = (
+                h5_group.create_group(parent_key)
+                if parent_key not in h5_group
+                else h5_group[parent_key]
+            )
+            if isinstance(h5_subgroup, h5py.Group):
+                cls._save_meta_info(h5_subgroup, child_key, value)
+            elif isinstance(h5_subgroup, h5py.Dataset):
+                if "/" in child_key:
+                    # This is a nested meta info
+                    # TODO: Implement this
+                    pass
+                else:
+                    h5_subgroup.attrs[child_key] = value
+        else:
+            h5_group.attrs[key] = value
+
+    @classmethod
+    def _save_meta_data(
+        cls, h5_group: h5py.Group, meta_data: MetaData
+    ) -> None:
         for key, value in meta_data.items():
             if isinstance(value, MetaData):
-                Callback._save_meta_data(h5_group.create_group(key), value)
+                cls._save_meta_data(h5_group.create_group(key), value)
             else:
                 h5_group.create_dataset(name=key, data=value)
+
+    @classmethod
+    def _save_callback_params(
+        cls,
+        h5_group: h5py.Group,
+        key: str,
+        value: List,
+    ) -> None:
+        if "/" in key:
+            parent_key, child_key = key.split("/")
+
+            h5_subgroup = (
+                h5_group.create_group(parent_key)
+                if parent_key not in h5_group
+                else h5_group[parent_key]
+            )
+            if isinstance(h5_subgroup, h5py.Group):
+                Callback._save_callback_params(h5_subgroup, child_key, value)
+            elif isinstance(h5_subgroup, h5py.Dataset):
+                # If the parent key already exists as a dataset, convert it to a dataset
+                # under the parent key group with the same name as the parent key.
+                temp_value = np.array(h5_subgroup)
+                del h5_group[parent_key]
+                h5_subgroup = h5_group.create_group(parent_key)
+                h5_subgroup.create_dataset(parent_key, data=temp_value)
+
+        else:
+            h5_group.create_dataset(
+                name=key,
+                data=cls.to_numpy_array(value),
+            )

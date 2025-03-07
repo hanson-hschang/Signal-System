@@ -1,12 +1,15 @@
-from typing import Callable, Self, Tuple
+from typing import Callable, Generic, Optional, Self, Tuple, TypeVar
 
 from dataclasses import dataclass, field
 
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.learning.module import config as Config
-from ss.utility.learning.module.dropout.config import DropoutConfig
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
+)
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
 )
 from ss.utility.logging import Logging
 
@@ -22,9 +25,11 @@ from ._config_transition import (
 
 logger = Logging.get_logger(__name__)
 
+TC = TypeVar("TC", bound=TransformerConfig, default=SoftmaxTransformerConfig)
+
 
 @dataclass
-class LearningHmmFilterConfig(Config.BaseLearningConfig):
+class LearningHmmFilterConfig(Config.BaseLearningConfig, Generic[TC]):
     """
     Configuration of the `LearningHmmFilter` class.
     """
@@ -51,9 +56,9 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         discrete_observation_dim: int,
         block_dims: int | Tuple[int, ...] = 1,
         dropout_rate: float = 0.0,
-        probability_parameter_factory: Callable[
-            [], ProbabilityParameterConfig
-        ] = lambda: ProbabilityParameterConfig(),
+        probability_parameter_factory: Optional[
+            Callable[[], ProbabilityParameterConfig[TC]]
+        ] = None,
     ) -> Self:
         """
         Create a basic configuration of the `LearningHmmFilter` module.
@@ -105,6 +110,9 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
         )
         for layer in config.transition.layers:
             layer.coefficient.probability_parameter.dropout.rate = dropout_rate
+            layer.initial_state.probability_parameter.dropout.rate = (
+                dropout_rate
+            )
             for block in layer.blocks:
                 block.initial_state.probability_parameter.dropout.rate = (
                     dropout_rate
@@ -112,22 +120,23 @@ class LearningHmmFilterConfig(Config.BaseLearningConfig):
                 block.matrix.probability_parameter.dropout.rate = dropout_rate
 
         # Update probability parameter configuration
-        config.emission.block.matrix.probability_parameter = (
-            probability_parameter_factory()
-        )
-        for layer in config.transition.layers:
-            layer.coefficient.probability_parameter = (
+        if probability_parameter_factory is not None:
+            config.emission.block.matrix.probability_parameter = (
                 probability_parameter_factory()
             )
-            layer.initial_state.probability_parameter = (
-                probability_parameter_factory()
-            )
-            for block in layer.blocks:
-                block.initial_state.probability_parameter = (
+            for layer in config.transition.layers:
+                layer.coefficient.probability_parameter = (
                     probability_parameter_factory()
                 )
-                block.matrix.probability_parameter = (
+                layer.initial_state.probability_parameter = (
                     probability_parameter_factory()
                 )
+                for block in layer.blocks:
+                    block.initial_state.probability_parameter = (
+                        probability_parameter_factory()
+                    )
+                    block.matrix.probability_parameter = (
+                        probability_parameter_factory()
+                    )
 
         return config

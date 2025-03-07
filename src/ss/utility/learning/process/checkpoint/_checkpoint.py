@@ -20,7 +20,7 @@ logger = Logging.get_logger(__name__)
 
 class CheckpointInfo(dict):
     FILE_EXTENSION = ".hdf5"
-    RESERVED_KEYS_VIEW = dict(__type__=None).keys()
+    RESERVED_KEYS_VIEW = dict(__type__="ClassName").keys()
 
     def __init__(self, **kwargs: Any) -> None:
         ReservedKeyNameValidator(

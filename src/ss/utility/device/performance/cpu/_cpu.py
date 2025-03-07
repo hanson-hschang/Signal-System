@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import psutil
 
-from ss.utility.device.monitor.performance import Performance
+from ss.utility.device.performance import Performance
 
 
 @dataclass
@@ -20,7 +20,7 @@ class Memory:
 class CpuPerformance(Performance):
     def __init__(self) -> None:
         self._cpu_process = psutil.Process()
-        super().__init__()
+        super().__init__("cpu")
 
     def _process(self) -> None:
         self._utilization = self._get_utilization()
