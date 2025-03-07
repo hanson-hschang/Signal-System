@@ -115,30 +115,30 @@ class LearningHmmFilter(
     def transition(self) -> TransitionProcess[T]:
         return self._transition
 
-    @property
-    def emission_matrix(self) -> torch.Tensor:
-        return self._emission.matrix.detach()
+    # @property
+    # def emission_matrix(self) -> torch.Tensor:
+    #     return self._emission.matrix
 
-    @property
-    def transition_matrix(self) -> List[torch.Tensor]:
-        return [matrix.detach() for matrix in self._transition.matrix]
+    # @property
+    # def transition_matrix(self) -> List[torch.Tensor]:
+    #     return [matrix for matrix in self._transition.matrix]
 
-    @property
-    def initial_state(self) -> List[List[torch.Tensor]]:
-        return [
-            [
-                transition_block.initial_state.detach()
-                for transition_block in transition_layer.blocks
-            ]
-            for transition_layer in self._transition.layers
-        ]
+    # @property
+    # def initial_state(self) -> List[List[torch.Tensor]]:
+    #     return [
+    #         [
+    #             transition_block.initial_state
+    #             for transition_block in transition_layer.blocks
+    #         ]
+    #         for transition_layer in self._transition.layers
+    #     ]
 
-    @property
-    def coefficient(self) -> List[torch.Tensor]:
-        return [
-            transition_layer.coefficient.detach()
-            for transition_layer in self._transition.layers
-        ]
+    # @property
+    # def coefficient(self) -> List[torch.Tensor]:
+    #     return [
+    #         transition_layer.coefficient
+    #         for transition_layer in self._transition.layers
+    #     ]
 
     @property
     def estimation_option(self) -> Config.EstimationConfig.Option:
@@ -264,9 +264,7 @@ class LearningHmmFilter(
         self._check_batch_size(batch_size=observation_trajectory.shape[0])
 
         estimated_state_trajectory, predicted_next_state_trajectory, _ = (
-            self._forward(
-                self._device_manager.load_data(observation_trajectory)
-            )
+            self._forward(observation_trajectory)
         )
 
         self._estimated_state = estimated_state_trajectory[
