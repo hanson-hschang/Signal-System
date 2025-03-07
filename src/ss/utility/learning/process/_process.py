@@ -32,10 +32,12 @@ from ss.utility.learning.process.config import (
 from ss.utility.learning.process.inference import InferenceContext
 from ss.utility.logging import Logging
 
+from ._process_info import LearningProcessInfoMixin
+
 logger = Logging.get_logger(__name__)
 
 
-class BaseLearningProcess:
+class BaseLearningProcess(LearningProcessInfoMixin):
 
     class Mode(StrEnum):
         TRAINING = auto()
@@ -48,40 +50,41 @@ class BaseLearningProcess:
         loss_function: Callable[..., torch.Tensor],
         optimizer: torch.optim.Optimizer,
     ) -> None:
+        super().__init__()
         self._device_manager = DeviceManager()
         self._module = self._device_manager.load_module(module)
         self._loss_function = loss_function
         self._optimizer = optimizer
 
-        self._iteration: int = 0
-        self._epoch: int = 0
-        self._training_loss: float = 0.0
+        # self._iteration: int = 0
+        # self._epoch: int = 0
+        # self._training_loss: float = 0.0
 
-        self._epoch_history: DefaultDict[str, List[int]] = defaultdict(list)
-        self._training_loss_history: DefaultDict[str, List[float]] = (
-            defaultdict(list)
-        )
-        self._validation_loss_history: DefaultDict[str, List[float]] = (
-            defaultdict(list)
-        )
+        # self._epoch_history: DefaultDict[str, List[int]] = defaultdict(list)
+        # self._training_loss_history: DefaultDict[str, List[float]] = (
+        #     defaultdict(list)
+        # )
+        # self._validation_loss_history: DefaultDict[str, List[float]] = (
+        #     defaultdict(list)
+        # )
 
-    def _update_epoch(self, max_epoch: int) -> None:
-        self._epoch_history["iteration"].append(self._iteration)
-        self._epoch_history["epoch"].append(self._epoch)
-        logger.info(f"Finish epoch: {self._epoch} / {max_epoch}")
-        logger.info("")
+    # def _update_epoch(self, max_epoch: int) -> None:
+    #     self._epoch_history["iteration"].append(self._iteration)
+    #     self._epoch_history["epoch"].append(self._epoch)
+    #     logger.info(f"Finish epoch: {self._epoch} / {max_epoch}")
+    #     logger.info("")
 
-    def _update_validation_loss(self, losses: NDArray) -> None:
-        self._validation_loss_history["iteration"].append(self._iteration)
-        loss_mean, loss_std = float(losses.mean()), float(losses.std())
-        self._validation_loss_history["loss_mean"].append(loss_mean)
-        self._validation_loss_history["loss_std"].append(loss_std)
-        logger.info(f"Validation loss: {loss_mean}" " \xb1 " f"{loss_std}")
-        # \xb1 is a unicode character for the plus-minus sign (±)
+    # def _update_validation_loss(self, losses: NDArray) -> None:
+    #     self._validation_loss_history["iteration"].append(self._iteration)
+    #     loss_mean, loss_std = float(losses.mean()), float(losses.std())
+    #     self._validation_loss_history["loss_mean"].append(loss_mean)
+    #     self._validation_loss_history["loss_std"].append(loss_std)
+    #     logger.info(f"Validation loss: {loss_mean}" " \xb1 " f"{loss_std}")
+    #     # \xb1 is a unicode character for the plus-minus sign (±)
 
-    def _update_training_loss(self, loss: float) -> None:
-        self._training_loss_history["iteration"].append(self._iteration)
-        self._training_loss_history["loss"].append(loss)
+    # def _update_training_loss(self, loss: float) -> None:
+    #     self._training_loss_history["iteration"].append(self._iteration)
+    #     self._training_loss_history["loss"].append(loss)
 
     def _evaluate_one_batch(
         self, data_batch: Tuple[torch.Tensor, ...]
@@ -196,8 +199,8 @@ class BaseLearningProcess:
                 self._update_epoch(training_config.termination.max_epoch)
                 self._checkpoint.save(
                     self._module,
-                    self.save_checkpoint_info(),
-                    self.save_model_info(),
+                    self._save_checkpoint_info(),
+                    self._save_model_info(),
                 )
 
             logger.info("Start training...")
@@ -218,8 +221,8 @@ class BaseLearningProcess:
                 ).satisfied():
                     self._checkpoint.save(
                         self._module,
-                        self.save_checkpoint_info(),
-                        self.save_model_info(),
+                        self._save_checkpoint_info(),
+                        self._save_model_info(),
                     )
 
         except KeyboardInterrupt:
@@ -234,8 +237,8 @@ class BaseLearningProcess:
 
         self._checkpoint.finalize().save(
             self._module,
-            self.save_checkpoint_info(),
-            self.save_model_info(),
+            self._save_checkpoint_info(),
+            self._save_model_info(),
         )
 
     def test_model(
@@ -258,65 +261,65 @@ class BaseLearningProcess:
             f"{loss_std}"
         )
 
-    def _save_checkpoint_info(self) -> CheckpointInfo:
-        """
-        Save custom checkpoint information. This method can be overridden in the derived class.
+    # def _save_checkpoint_info(self) -> CheckpointInfo:
+    #     """
+    #     Save custom checkpoint information. This method can be overridden in the derived class.
 
-        Returns
-        -------
-        custom_checkpoint_info: CheckpointInfo
-            Custom checkpoint information.
-        """
-        custom_checkpoint_info = CheckpointInfo()
-        return custom_checkpoint_info
+    #     Returns
+    #     -------
+    #     custom_checkpoint_info: CheckpointInfo
+    #         Custom checkpoint information.
+    #     """
+    #     custom_checkpoint_info = CheckpointInfo()
+    #     return custom_checkpoint_info
 
-    def save_checkpoint_info(self) -> CheckpointInfo:
-        checkpoint_info = CheckpointInfo(
-            __iteration__=self._iteration,
-            __epoch__=self._epoch,
-            __training_loss__=self._training_loss,
-            __epoch_history__=self._epoch_history,
-            __validation_loss_history__=self._validation_loss_history,
-            __training_loss_history__=self._training_loss_history,
-        )
-        custom_checkpoint_info = self._save_checkpoint_info()
-        ReservedKeyNameValidator(
-            custom_checkpoint_info, checkpoint_info.keys()
-        )
-        checkpoint_info.update(custom_checkpoint_info)
-        return checkpoint_info
+    # def save_checkpoint_info(self) -> CheckpointInfo:
+    #     checkpoint_info = CheckpointInfo(
+    #         __iteration__=self._iteration,
+    #         __epoch__=self._epoch,
+    #         __training_loss__=self._training_loss,
+    #         __epoch_history__=self._epoch_history,
+    #         __validation_loss_history__=self._validation_loss_history,
+    #         __training_loss_history__=self._training_loss_history,
+    #     )
+    #     custom_checkpoint_info = self._save_checkpoint_info()
+    #     ReservedKeyNameValidator(
+    #         custom_checkpoint_info, checkpoint_info.keys()
+    #     )
+    #     checkpoint_info.update(custom_checkpoint_info)
+    #     return checkpoint_info
 
-    def _load_checkpoint_info(self, checkpoint_info: CheckpointInfo) -> None:
-        """
-        Load custom checkpoint information. This method can be overridden in the derived class.
+    # def _load_checkpoint_info(self, checkpoint_info: CheckpointInfo) -> None:
+    #     """
+    #     Load custom checkpoint information. This method can be overridden in the derived class.
 
-        Parameters
-        ----------
-        checkpoint_info : CheckpointInfo
-            Custom checkpoint information to be loaded.
-        """
-        pass
+    #     Parameters
+    #     ----------
+    #     checkpoint_info : CheckpointInfo
+    #         Custom checkpoint information to be loaded.
+    #     """
+    #     pass
 
-    def load_checkpoint_info(
-        self,
-        checkpoint_info: CheckpointInfo,
-    ) -> None:
+    # def load_checkpoint_info(
+    #     self,
+    #     checkpoint_info: CheckpointInfo,
+    # ) -> None:
 
-        self._iteration = checkpoint_info.pop("__iteration__")
-        self._epoch = checkpoint_info.pop("__epoch__")
-        self._training_loss = checkpoint_info.pop("__training_loss__")
+    #     self._iteration = checkpoint_info.pop("__iteration__")
+    #     self._epoch = checkpoint_info.pop("__epoch__")
+    #     self._training_loss = checkpoint_info.pop("__training_loss__")
 
-        self._epoch_history = checkpoint_info.pop("__epoch_history__")
-        self._validation_loss_history = checkpoint_info.pop(
-            "__validation_loss_history__"
-        )
-        self._training_loss_history = checkpoint_info.pop(
-            "__training_loss_history__"
-        )
+    #     self._epoch_history = checkpoint_info.pop("__epoch_history__")
+    #     self._validation_loss_history = checkpoint_info.pop(
+    #         "__validation_loss_history__"
+    #     )
+    #     self._training_loss_history = checkpoint_info.pop(
+    #         "__training_loss_history__"
+    #     )
 
-        self._load_checkpoint_info(checkpoint_info)
+    #     self._load_checkpoint_info(checkpoint_info)
 
-    def _save_model_info(self) -> Dict[str, Any]:
+    def save_model_info(self) -> Dict[str, Any]:
         """
         Save custom model information. This method can be overridden in the derived class.
 
@@ -328,18 +331,18 @@ class BaseLearningProcess:
         custom_model_info: Dict[str, Any] = dict()
         return custom_model_info
 
-    def save_model_info(self) -> Dict[str, Any]:
+    def _save_model_info(self) -> Dict[str, Any]:
         model_info = dict(
             __loss_function__=self._loss_function,
             __optimizer__=self._optimizer,
         )
-        custom_model_info = self._save_model_info()
+        custom_model_info = self.save_model_info()
         ReservedKeyNameValidator(custom_model_info, model_info.keys())
         model_info.update(custom_model_info)
         return model_info
 
     @classmethod
-    def load_model_info(
+    def _load_model_info(
         cls, model_info: Dict[str, Any]
     ) -> Tuple[
         Callable[..., torch.Tensor], torch.optim.Optimizer, Dict[str, Any]
@@ -358,7 +361,7 @@ class BaseLearningProcess:
         module, model_info, checkpoint_info = Checkpoint.load(
             module, model_filepath, safe_callables
         )
-        loss_function, optimizer, model_info = cls.load_model_info(model_info)
+        loss_function, optimizer, model_info = cls._load_model_info(model_info)
         optimizer.param_groups = []
         optimizer.add_param_group({"params": module.parameters()})
         learning_process = cls(
@@ -367,7 +370,7 @@ class BaseLearningProcess:
             optimizer=optimizer,
             **model_info,
         )
-        learning_process.load_checkpoint_info(checkpoint_info)
+        learning_process._load_checkpoint_info(checkpoint_info)
         logger.info(f"Learning process is loaded from {model_filepath}")
         logger.info(
             f"with epoch: {learning_process._epoch} and iteration: {learning_process._iteration}"
