@@ -11,7 +11,7 @@ from ss.estimation.filtering.hmm.learning.process import (
     LearningHmmFilterProcess,
 )
 from ss.utility.data import Data
-from ss.utility.device import DeviceManager
+from ss.utility.device.manager import DeviceManager
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
@@ -150,7 +150,7 @@ def training(
 
     # Train model
     with device_manager.monitor_performance(
-        sampling_rate=10.0,
+        sampling_interval=1.0,
         result_directory=result_directory,
     ):
         learning_process.training(

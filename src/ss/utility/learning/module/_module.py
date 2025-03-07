@@ -23,7 +23,8 @@ from ss.utility.assertion.validator import (
     FilePathValidator,
     ReservedKeyNameValidator,
 )
-from ss.utility.device import DeviceManager
+from ss.utility.device import Device
+from ss.utility.device.manager import DeviceManager
 from ss.utility.learning import serialization
 from ss.utility.learning.module import config as Config
 from ss.utility.logging import Logging
@@ -152,7 +153,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         with serialization.SafeCallables(safe_callables):
             model_info: Dict[str, Any] = torch.load(
                 filepath,
-                map_location=DeviceManager.Device.CPU,
+                map_location=Device.CPU,
             )
             config = cast(Config.BLC, model_info.pop("__config__"))
             module = cls(type(config).reload(config))

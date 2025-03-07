@@ -6,7 +6,7 @@ from numpy.typing import NDArray
 
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.utility.data import Data
-from ss.utility.device import DeviceManager
+from ss.utility.device.manager import DeviceManager
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
 

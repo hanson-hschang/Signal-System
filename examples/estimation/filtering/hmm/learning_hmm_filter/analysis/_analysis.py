@@ -10,7 +10,7 @@ from ss.estimation.filtering.hmm import HmmFilter
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
-from ss.utility.device import DeviceManager
+from ss.utility.device.manager import DeviceManager
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 

@@ -3,7 +3,7 @@ from typing import ContextManager, Dict, Optional, Type
 
 import torch
 
-from ss.utility.device import DeviceManager
+from ss.utility.device.manager import DeviceManager
 from ss.utility.learning import module as Module
 
 

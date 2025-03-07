@@ -20,7 +20,7 @@ from numpy.typing import NDArray
 from torch.utils.data import DataLoader
 
 from ss.utility.assertion.validator import ReservedKeyNameValidator
-from ss.utility.device import DeviceManager
+from ss.utility.device.manager import DeviceManager
 from ss.utility.learning import module as Module
 from ss.utility.learning import serialization
 from ss.utility.learning.process.checkpoint import Checkpoint, CheckpointInfo
