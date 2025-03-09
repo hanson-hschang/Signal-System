@@ -14,7 +14,7 @@ class ReadOnlyDescriptor(Generic[T, O]):
         return value
 
 
-class Descriptor(ReadOnlyDescriptor[T, O]):
+class Descriptor(ReadOnlyDescriptor[T, O], Generic[T, O]):
     def __set__(self, obj: O, value: T) -> None:
         setattr(obj, self.private_name, value)
 
@@ -38,6 +38,6 @@ class ReadOnlyDataclassDescriptor(Generic[T, O]):
         return value
 
 
-class DataclassDescriptor(ReadOnlyDataclassDescriptor[T, O]):
+class DataclassDescriptor(ReadOnlyDataclassDescriptor[T, O], Generic[T, O]):
     def __set__(self, instance: O, value: T) -> None:
         setattr(instance, self.private_name, value)

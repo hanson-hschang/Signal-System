@@ -172,17 +172,16 @@ class ComplexConfig(Config.BaseLearningConfig):
 class ComplexModule(BaseLearningModule[ComplexConfig]):
     def __init__(self, config: ComplexConfig) -> None:
         super().__init__(config)
-        self._number = Parameter[ParameterConfig](self._config.number, (3, 4))
-        self._positive_number = PositiveParameter[PositiveParameterConfig](
+        self._number: Parameter = Parameter(self._config.number, (3, 4))
+        self._positive_number: PositiveParameter = PositiveParameter(
             self._config.positive_number, (3, 4)
         )
-        self._probability_1 = ProbabilityParameter[ProbabilityParameterConfig](
+        self._probability_1: ProbabilityParameter = ProbabilityParameter(
             self._config.probability_1, (3, 4)
         )
-        self._probability_2 = ProbabilityParameter[
-            ProbabilityParameterConfig[MinZeroNormTransformerConfig],
-            MinZeroNormTransformer,
-        ](self._config.probability_2, (3, 4))
+        self._probability_2: ProbabilityParameter = ProbabilityParameter(
+            self._config.probability_2, (3, 4)
+        )
 
     @property
     def number(self) -> torch.Tensor:
@@ -228,10 +227,7 @@ class ComplexModule(BaseLearningModule[ComplexConfig]):
     @property
     def probability_2_parameter(
         self,
-    ) -> ProbabilityParameter[
-        ProbabilityParameterConfig[MinZeroNormTransformerConfig],
-        MinZeroNormTransformer,
-    ]:
+    ) -> ProbabilityParameter:
         return self._probability_2
 
     @property

@@ -1,4 +1,4 @@
-from typing import Generic, Tuple, TypeVar, assert_never
+from typing import Generic, Self, Tuple, TypeVar, assert_never
 
 import torch
 
@@ -13,24 +13,26 @@ from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
 from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
 from ss.utility.logging import Logging
 
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+TC = TypeVar("TC", bound=TransformerConfig)
+T = TypeVar("T", bound=Transformer)
 
 logger = Logging.get_logger(__name__)
 
 
 class BaseTransitionBlock(
-    TransitionStepMixin[T],
-    BaseLearningModule[Config.TransitionBlockConfig],
-    Generic[T],
+    TransitionStepMixin[T, TC],
+    BaseLearningModule[Config.TransitionBlockConfig[TC]],
+    Generic[T, TC],
 ):
     def __init__(
         self,
-        config: Config.TransitionBlockConfig,
+        config: Config.TransitionBlockConfig[TC],
         filter_config: Config.FilterConfig,
         block_id: int,
     ) -> None:
@@ -209,31 +211,33 @@ class BaseTransitionBlock(
         config: Config.TransitionBlockConfig,
         filter_config: Config.FilterConfig,
         block_id: int,
-    ) -> "BaseTransitionBlock[T]":
+    ) -> "BaseTransitionBlock[T, TC]":
         match config.option:
             case Config.TransitionBlockConfig.Option.FULL_MATRIX:
-                return TransitionFullMatrix[T](config, filter_config, block_id)
+                return TransitionFullMatrix[T, TC](
+                    config, filter_config, block_id
+                )
             case Config.TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX:
-                return TransitionSpatialInvariantMatrix[T](
+                return TransitionSpatialInvariantMatrix[T, TC](
                     config,
                     filter_config,
                     block_id,
                 )
             case Config.TransitionBlockConfig.Option.IID:
-                return TransitionIID[T](config, filter_config, block_id)
+                return TransitionIID[T, TC](config, filter_config, block_id)
             case _ as _invalid_block_option:
                 assert_never(_invalid_block_option)
 
 
-class TransitionFullMatrix(BaseTransitionBlock[T], Generic[T]):
+class TransitionFullMatrix(BaseTransitionBlock[T, TC], Generic[T, TC]):
     def __init__(
         self,
-        config: Config.TransitionBlockConfig,
+        config: Config.TransitionBlockConfig[TC],
         filter_config: Config.FilterConfig,
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)
-        self._matrix = ProbabilityParameter(
+        self._matrix = ProbabilityParameter[T, TC](
             self._config.matrix.probability_parameter,
             (self._state_dim, self._state_dim),
         )
@@ -248,7 +252,9 @@ class TransitionFullMatrix(BaseTransitionBlock[T], Generic[T]):
         self._matrix.set_value(matrix)
 
 
-class TransitionSpatialInvariantMatrix(BaseTransitionBlock[T], Generic[T]):
+class TransitionSpatialInvariantMatrix(
+    BaseTransitionBlock[T, TC], Generic[T, TC]
+):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,
@@ -256,7 +262,7 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock[T], Generic[T]):
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)
-        self._matrix = ProbabilityParameter(
+        self._matrix = ProbabilityParameter[T, TC](
             self._config.matrix.probability_parameter,
             (self._state_dim,),
         )
@@ -294,7 +300,7 @@ class TransitionSpatialInvariantMatrix(BaseTransitionBlock[T], Generic[T]):
         self._matrix.set_value(row_probability)
 
 
-class TransitionIID(BaseTransitionBlock[T], Generic[T]):
+class TransitionIID(BaseTransitionBlock[T, TC], Generic[T, TC]):
     def __init__(
         self,
         config: Config.TransitionBlockConfig,

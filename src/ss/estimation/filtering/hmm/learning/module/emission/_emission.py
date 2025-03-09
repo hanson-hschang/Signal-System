@@ -9,28 +9,30 @@ from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
 from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
 
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+TC = TypeVar("TC", bound=TransformerConfig)
+T = TypeVar("T", bound=Transformer)
 
 
 class EmissionProcess(
-    BaseLearningModule[Config.EmissionProcessConfig], Generic[T]
+    BaseLearningModule[Config.EmissionProcessConfig[TC]], Generic[T, TC]
 ):
     def __init__(
         self,
-        config: Config.EmissionProcessConfig,
+        config: Config.EmissionProcessConfig[TC],
         filter_config: Config.FilterConfig,
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
         self._discrete_observation_dim = filter_config.discrete_observation_dim
 
-        self._matrix: ProbabilityParameter[
-            ProbabilityParameterConfig, T
-        ] = ProbabilityParameter[ProbabilityParameterConfig, T](
+        self._matrix: ProbabilityParameter[T, TC] = ProbabilityParameter[
+            T, TC
+        ](
             self._config.block.matrix.probability_parameter,
             (self._state_dim, self._discrete_observation_dim),
         )
@@ -38,7 +40,7 @@ class EmissionProcess(
     @property
     def matrix_parameter(
         self,
-    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
+    ) -> ProbabilityParameter[T, TC]:
         return self._matrix
 
     @property

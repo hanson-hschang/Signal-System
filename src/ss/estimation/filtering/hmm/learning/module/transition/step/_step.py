@@ -9,17 +9,19 @@ from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
 from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
 
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+TC = TypeVar("TC", bound=TransformerConfig)
+T = TypeVar("T", bound=Transformer)
 
 
-class TransitionStepMixin(nn.Module, Generic[T]):
+class TransitionStepMixin(nn.Module, Generic[T, TC]):
     def __init__(
         self,
-        initial_state_config: Config.TransitionInitialStateConfig,
+        initial_state_config: Config.TransitionInitialStateConfig[TC],
         state_dim: int,
         skip_first_transition: bool,
         **kwargs: Any,
@@ -29,8 +31,8 @@ class TransitionStepMixin(nn.Module, Generic[T]):
         self._skip_first_transition = skip_first_transition
 
         self._initial_state: ProbabilityParameter[
-            ProbabilityParameterConfig, T
-        ] = ProbabilityParameter[ProbabilityParameterConfig, T](
+            T, TC
+        ] = ProbabilityParameter[T, TC](
             initial_state_config.probability_parameter,
             (state_dim,),
         )
@@ -41,12 +43,12 @@ class TransitionStepMixin(nn.Module, Generic[T]):
         ).repeat(
             1, 1
         )  # (batch_size, state_dim)
-        self._matrix: ProbabilityParameter[ProbabilityParameterConfig, T]
+        self._matrix: ProbabilityParameter[T, TC]
 
     @property
     def initial_state_parameter(
         self,
-    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
+    ) -> ProbabilityParameter[T, TC]:
         return self._initial_state
 
     @property
@@ -61,7 +63,7 @@ class TransitionStepMixin(nn.Module, Generic[T]):
     @property
     def matrix_parameter(
         self,
-    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
+    ) -> ProbabilityParameter[T, TC]:
         return self._matrix
 
     @property

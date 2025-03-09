@@ -17,6 +17,7 @@ from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
 from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
@@ -24,17 +25,18 @@ from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+TC = TypeVar("TC", bound=TransformerConfig)
+T = TypeVar("T", bound=Transformer)
 
 
 class TransitionLayer(
-    TransitionStepMixin[T],
-    BaseLearningModule[Config.TransitionLayerConfig],
-    Generic[T],
+    TransitionStepMixin[T, TC],
+    BaseLearningModule[Config.TransitionLayerConfig[TC]],
+    Generic[T, TC],
 ):
     def __init__(
         self,
-        config: Config.TransitionLayerConfig,
+        config: Config.TransitionLayerConfig[TC],
         filter_config: Config.FilterConfig,
         layer_id: int,
     ) -> None:
@@ -55,7 +57,7 @@ class TransitionLayer(
                 self._config.skip_first_transition
             )
             self._blocks.append(
-                BaseTransitionBlock[T].create(
+                BaseTransitionBlock[T, TC].create(
                     block_config,
                     filter_config,
                     block_id,
@@ -83,16 +85,14 @@ class TransitionLayer(
             # )  # (batch_size, state_dim)
             for block in self._blocks:
                 cast(
-                    BaseTransitionBlock[T], block
+                    BaseTransitionBlock[T, TC], block
                 ).initial_state_parameter.bind_with(self._initial_state)
             self._forward = self._forward_bound_initial_state
         else:
             del self._initial_state
             self._forward = self._forward_unbound_initial_state
 
-        self._coefficient = ProbabilityParameter[
-            ProbabilityParameterConfig, T
-        ](
+        self._coefficient = ProbabilityParameter[T, TC](
             self._config.coefficient.probability_parameter,
             (
                 (self._state_dim, self._block_dim)
@@ -108,7 +108,7 @@ class TransitionLayer(
     @property
     def coefficient_parameter(
         self,
-    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
+    ) -> ProbabilityParameter[T, TC]:
         return self._coefficient
 
     @property
@@ -134,8 +134,10 @@ class TransitionLayer(
     #     self._initial_state.set_value(initial_state)
 
     @property
-    def blocks(self) -> List[BaseTransitionBlock[T]]:
-        return [cast(BaseTransitionBlock[T], block) for block in self._blocks]
+    def blocks(self) -> List[BaseTransitionBlock[T, TC]]:
+        return [
+            cast(BaseTransitionBlock[T, TC], block) for block in self._blocks
+        ]
 
     @property
     def matrix(self) -> torch.Tensor:
@@ -150,7 +152,7 @@ class TransitionLayer(
         )
         for i, block in enumerate(self._blocks):
             transition_matrix += (
-                cast(BaseTransitionBlock[T], block).matrix
+                cast(BaseTransitionBlock[T, TC], block).matrix
                 * coefficient[:, i : i + 1]
             )
         return transition_matrix

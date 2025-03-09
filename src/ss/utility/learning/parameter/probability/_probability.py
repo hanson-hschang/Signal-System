@@ -1,8 +1,11 @@
 from typing import Generic, Tuple, TypeVar, cast
 
 from ss.utility.learning.parameter.manifold import ManifoldParameter
-from ss.utility.learning.parameter.probability import config as Config
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
 from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.norm.min_zero import (
     MinZeroNormTransformer,
 )
@@ -16,12 +19,16 @@ from ss.utility.learning.parameter.transformer.softmax.config import (
     SoftmaxTransformerConfig,
 )
 
-C = TypeVar("C", bound=Config.ProbabilityParameterConfig)
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+TC = TypeVar("TC", bound=TransformerConfig)
+T = TypeVar("T", bound=Transformer)
 
 
-class ProbabilityParameter(ManifoldParameter[C, T], Generic[C, T]):
-    def __init__(self, config: C, shape: Tuple[int, ...]) -> None:
+class ProbabilityParameter(
+    ManifoldParameter[T, ProbabilityParameterConfig[TC]], Generic[T, TC]
+):
+    def __init__(
+        self, config: ProbabilityParameterConfig[TC], shape: Tuple[int, ...]
+    ) -> None:
         super().__init__(config, shape)
 
     def _init_transformer(self) -> T:

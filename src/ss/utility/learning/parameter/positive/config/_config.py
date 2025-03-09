@@ -11,14 +11,14 @@ from ss.utility.learning.parameter.transformer.exp import ExpTransformer
 from ss.utility.learning.parameter.transformer.exp import config as Config
 
 # T = TypeVar("T", bound=Transformer, default=ExpTransformer)
-C = TypeVar("C", bound=TransformerConfig, default=Config.ExpTransformerConfig)
+TC = TypeVar("TC", bound=TransformerConfig)
 
 
 @dataclass
-class PositiveParameterConfig(ManifoldParameterConfig[C], Generic[C]):
+class PositiveParameterConfig(ManifoldParameterConfig[TC], Generic[TC]):
     # Transformer: Type[T] = field(
     #     default_factory=lambda: cast(Type[T], ExpTransformer)
     # )
-    transformer: C = field(
-        default_factory=lambda: cast(C, Config.ExpTransformerConfig())
+    transformer: TC = field(
+        default_factory=lambda: cast(TC, Config.ExpTransformerConfig())
     )

@@ -1,30 +1,41 @@
-from typing import Generic, Type, TypeVar, cast
+from typing import Generic, TypeVar, assert_never, cast
 
 from dataclasses import dataclass, field
+from enum import StrEnum, auto
 
 from ss.utility.learning.parameter.manifold.config import (
     ManifoldParameterConfig,
 )
-from ss.utility.learning.parameter.transformer import Transformer
 from ss.utility.learning.parameter.transformer.config import TransformerConfig
-from ss.utility.learning.parameter.transformer.softmax import (
-    SoftmaxTransformer,
+from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
+    MinZeroNormTransformerConfig,
 )
-from ss.utility.learning.parameter.transformer.softmax import config as Config
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 
-# T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
-C = TypeVar(
-    "C",
-    bound=TransformerConfig,
-    # default=Config.SoftmaxTransformerConfig,
-)
+TC = TypeVar("TC", bound=TransformerConfig, default=SoftmaxTransformerConfig)
 
 
 @dataclass
-class ProbabilityParameterConfig(ManifoldParameterConfig[C], Generic[C]):
-    # Transformer: Type[T] = field(
-    #     default_factory=lambda: cast(Type[T], SoftmaxTransformer)
-    # )
-    transformer: C = field(
-        default_factory=lambda: cast(C, Config.SoftmaxTransformerConfig())
+class ProbabilityParameterConfig(ManifoldParameterConfig[TC], Generic[TC]):
+
+    class Option(StrEnum):
+        SOFTMAX = auto()
+        MIN_ZERO_NORM = auto()
+
+    transformer: TC = field(
+        default_factory=lambda: cast(TC, SoftmaxTransformerConfig())
     )
+
+    @classmethod
+    def from_option(cls, option: Option) -> "ProbabilityParameterConfig[TC]":
+        match option:
+            case cls.Option.SOFTMAX:
+                return cls(transformer=cast(TC, SoftmaxTransformerConfig()))
+            case cls.Option.MIN_ZERO_NORM:
+                return cls(
+                    transformer=cast(TC, MinZeroNormTransformerConfig())
+                )
+            case _ as _probability_option:
+                assert_never(_probability_option)

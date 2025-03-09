@@ -10,6 +10,7 @@ from ss.estimation.filtering.hmm.learning.module.transition.layer import (
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
 from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
@@ -17,15 +18,16 @@ from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+TC = TypeVar("TC", bound=TransformerConfig)
+T = TypeVar("T", bound=Transformer)
 
 
 class TransitionProcess(
-    BaseLearningModule[Config.TransitionProcessConfig], Generic[T]
+    BaseLearningModule[Config.TransitionProcessConfig[TC]], Generic[T, TC]
 ):
     def __init__(
         self,
-        config: Config.TransitionProcessConfig,
+        config: Config.TransitionProcessConfig[TC],
         filter_config: Config.FilterConfig,
     ) -> None:
         super().__init__(config)
@@ -40,7 +42,7 @@ class TransitionProcess(
                 self._config.skip_first_transition
             )
             self._layers.append(
-                TransitionLayer[T](
+                TransitionLayer[T, TC](
                     layer_config,
                     filter_config,
                     l + 1,
@@ -73,13 +75,14 @@ class TransitionProcess(
     )
 
     @property
-    def layers(self) -> List[TransitionLayer[T]]:
-        return [cast(TransitionLayer[T], layer) for layer in self._layers]
+    def layers(self) -> List[TransitionLayer[T, TC]]:
+        return [cast(TransitionLayer[T, TC], layer) for layer in self._layers]
 
     @property
     def matrix(self) -> List[torch.Tensor]:
         return [
-            cast(TransitionLayer[T], layer).matrix for layer in self._layers
+            cast(TransitionLayer[T, TC], layer).matrix
+            for layer in self._layers
         ]
 
     def forward(
