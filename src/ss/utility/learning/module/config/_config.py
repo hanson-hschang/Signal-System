@@ -34,6 +34,8 @@ class BaseLearningConfig:
         for key, value in config.__dict__.items():
             # TODO: The following condition did not check the dunder attributes
             is_init_argument = True
+            if key.startswith("__"):
+                continue
             if key.startswith("_"):
                 key = key[1:]
                 is_init_argument = False

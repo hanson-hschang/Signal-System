@@ -1,5 +1,15 @@
 from types import TracebackType
-from typing import Callable, List, Optional, Set, Tuple, Type, TypeAlias, Union
+from typing import (
+    Callable,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Type,
+    TypeAlias,
+    TypeVar,
+    Union,
+)
 
 import operator
 from collections import defaultdict
@@ -16,7 +26,9 @@ from ss.utility.package import (
 
 logger = Logging.get_logger(__name__)
 
-SafeCallable: TypeAlias = Union[Callable, Tuple[Callable, str]]
+SafeCallable: TypeAlias = Union[
+    Callable, Tuple[Callable, str], TypeVar, Tuple[TypeVar, str]
+]
 
 
 class SafeCallables(set):
@@ -36,7 +48,7 @@ class SafeCallables(set):
             self.__class__.registered_safe_callables
         )
         self._safe_globals_context_manager = torch.serialization.safe_globals(
-            self._list_of_safe_callables
+            self._list_of_safe_callables  # type: ignore
         )
         self._safe_globals_context_manager.__enter__()
 
@@ -109,6 +121,21 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
     # Add all classes to the safe type set
     safe_callables.update(all_classes)
 
+    return safe_callables
+
+
+def add_type_var() -> SafeCallables:
+    from ss.utility.learning.parameter.transformer.config import (
+        TC,
+    )
+    from ss.utility.learning.parameter.transformer.exp.config import (
+        TC as TC_EXP,
+    )
+    from ss.utility.learning.parameter.transformer.softmax.config import (
+        TC as TC_SOFTMAX,
+    )
+
+    safe_callables = SafeCallables({TC, TC_SOFTMAX, TC_EXP})
     return safe_callables
 
 

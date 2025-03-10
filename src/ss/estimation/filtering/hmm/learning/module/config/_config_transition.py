@@ -4,17 +4,15 @@ from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
 from ss.utility.descriptor import DataclassDescriptor
-from ss.utility.learning.module import config as Config
+from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
-
-TC = TypeVar("TC", bound=TransformerConfig)
+from ss.utility.learning.parameter.transformer.config import TC
 
 
 @dataclass
-class TransitionInitialStateConfig(Config.BaseLearningConfig, Generic[TC]):
+class TransitionInitialStateConfig(BaseLearningConfig, Generic[TC]):
 
     probability_parameter: ProbabilityParameterConfig[TC] = field(
         default_factory=lambda: ProbabilityParameterConfig[TC]()
@@ -22,7 +20,7 @@ class TransitionInitialStateConfig(Config.BaseLearningConfig, Generic[TC]):
 
 
 @dataclass
-class TransitionMatrixConfig(Config.BaseLearningConfig, Generic[TC]):
+class TransitionMatrixConfig(BaseLearningConfig, Generic[TC]):
 
     probability_parameter: ProbabilityParameterConfig[TC] = field(
         default_factory=lambda: ProbabilityParameterConfig[TC]()
@@ -31,7 +29,7 @@ class TransitionMatrixConfig(Config.BaseLearningConfig, Generic[TC]):
 
 
 @dataclass
-class TransitionBlockConfig(Config.BaseLearningConfig, Generic[TC]):
+class TransitionBlockConfig(BaseLearningConfig, Generic[TC]):
 
     class Option(StrEnum):
         FULL_MATRIX = auto()
@@ -49,7 +47,7 @@ class TransitionBlockConfig(Config.BaseLearningConfig, Generic[TC]):
 
 
 @dataclass
-class TransitionCoefficientConfig(Config.BaseLearningConfig, Generic[TC]):
+class TransitionCoefficientConfig(BaseLearningConfig, Generic[TC]):
 
     probability_parameter: ProbabilityParameterConfig[TC] = field(
         default_factory=lambda: ProbabilityParameterConfig[TC]()
@@ -80,7 +78,7 @@ class BlocksDescriptor(
 
 
 @dataclass
-class TransitionLayerConfig(Config.BaseLearningConfig, Generic[TC]):
+class TransitionLayerConfig(BaseLearningConfig, Generic[TC]):
 
     blocks: BlocksDescriptor[TC] = BlocksDescriptor[TC](tuple())
     coefficient: TransitionCoefficientConfig[TC] = field(
@@ -122,7 +120,7 @@ class LayersDescriptor(
 
 
 @dataclass
-class TransitionProcessConfig(Config.BaseLearningConfig, Generic[TC]):
+class TransitionProcessConfig(BaseLearningConfig, Generic[TC]):
 
     layers: LayersDescriptor[TC] = LayersDescriptor[TC](tuple())
     skip_first_transition: bool = False

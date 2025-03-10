@@ -7,9 +7,9 @@ from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer.config import TC
 
-TC = TypeVar("TC", bound=TransformerConfig)
+# TC = TypeVar("TC", bound=TransformerConfig)
 
 
 @dataclass

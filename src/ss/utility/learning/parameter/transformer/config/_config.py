@@ -1,3 +1,5 @@
+from typing import TypeVar
+
 from dataclasses import dataclass, field
 
 from ss.utility.learning.module.config import BaseLearningConfig
@@ -5,3 +7,6 @@ from ss.utility.learning.module.config import BaseLearningConfig
 
 @dataclass
 class TransformerConfig(BaseLearningConfig): ...
+
+
+TC = TypeVar("TC", bound=TransformerConfig)

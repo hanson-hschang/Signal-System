@@ -26,13 +26,13 @@ class LearningProcessInfoMixin:
             defaultdict(list)
         )
 
-    def _update_epoch(self, max_epoch: int) -> None:
+    def _record_epoch(self, max_epoch: int) -> None:
         self._epoch_history["iteration"].append(self._iteration)
         self._epoch_history["epoch"].append(self._epoch)
         logger.info(f"Finish epoch: {self._epoch} / {max_epoch}")
         logger.info("")
 
-    def _update_validation_loss(self, losses: NDArray) -> None:
+    def _record_validation_loss(self, losses: NDArray) -> None:
         self._validation_loss_history["iteration"].append(self._iteration)
         loss_mean, loss_std = float(losses.mean()), float(losses.std())
         self._validation_loss_history["loss_mean"].append(loss_mean)
@@ -40,9 +40,15 @@ class LearningProcessInfoMixin:
         logger.info(f"Validation loss: {loss_mean}" " \xb1 " f"{loss_std}")
         # \xb1 is a unicode character for the plus-minus sign (±)
 
-    def _update_training_loss(self, loss: float) -> None:
+    def _record_training_loss(self, loss: float) -> None:
         self._training_loss_history["iteration"].append(self._iteration)
         self._training_loss_history["loss"].append(loss)
+
+    def record(self) -> None:
+        """
+        Record training information.
+        """
+        pass
 
     def save_checkpoint_info(self) -> CheckpointInfo:
         """

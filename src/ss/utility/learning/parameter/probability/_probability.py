@@ -5,7 +5,7 @@ from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
 from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.learning.parameter.transformer.norm.min_zero import (
     MinZeroNormTransformer,
 )
@@ -19,7 +19,7 @@ from ss.utility.learning.parameter.transformer.softmax.config import (
     SoftmaxTransformerConfig,
 )
 
-TC = TypeVar("TC", bound=TransformerConfig)
+# TC = TypeVar("TC", bound=TransformerConfig)
 T = TypeVar("T", bound=Transformer)
 
 

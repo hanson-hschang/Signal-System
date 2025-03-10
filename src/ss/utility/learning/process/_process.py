@@ -158,7 +158,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                 training_data_loader, total=len(training_data_loader)
             ):
                 training_loss = self._train_one_batch(data_batch).item()
-                self._update_training_loss(training_loss)
+                self._record_training_loss(training_loss)
 
                 self._iteration += 1
                 self._training_loss = (training_loss + self._training_loss) / 2
@@ -169,7 +169,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                     validation_losses = self.evaluate_model(
                         validation_data_loader, training_config.validation
                     )
-                    self._update_validation_loss(validation_losses)
+                    self._record_validation_loss(validation_losses)
 
                 if training_config.termination.condition(
                     iteration=self._iteration
@@ -194,9 +194,9 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                 validation_losses = self.evaluate_model(
                     validation_data_loader, training_config.validation
                 )
-                self._update_validation_loss(validation_losses)
+                self._record_validation_loss(validation_losses)
 
-                self._update_epoch(training_config.termination.max_epoch)
+                self._record_epoch(training_config.termination.max_epoch)
                 self._checkpoint.save(
                     self._module,
                     self._save_checkpoint_info(),
@@ -214,7 +214,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                     training_config,
                 )
 
-                self._update_epoch(training_config.termination.max_epoch)
+                self._record_epoch(training_config.termination.max_epoch)
 
                 if training_config.checkpoint.condition(
                     epoch=self._epoch
