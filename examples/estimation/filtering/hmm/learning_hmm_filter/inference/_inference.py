@@ -21,7 +21,7 @@ def inference(
 ) -> None:
     model_filepath = model_folderpath / model_filename
 
-    DeviceManager()
+    device_manager = DeviceManager()
 
     # Prepare data
     data = Data.load(data_filepath)
@@ -59,21 +59,23 @@ def inference(
     future_time_steps = 10  # This is like how many next token to predict
     number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
 
-    with BaseLearningProcess.inference_mode(learning_filter):
-        _observation_trajectory = torch.tensor(
+    logger.info(
+        f"The sequence of the first {given_time_horizon} observations from the data is: "
+        f"{observation_trajectory[:given_time_horizon]} (given observation)"
+    )
+    logger.info(
+        f"The sequence of the next {future_time_steps} observations from the data is: "
+        f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
+    )
+    _observation_trajectory = device_manager.load_data(
+        torch.tensor(
             observation_trajectory[:given_time_horizon], dtype=torch.int64
-        )
-        logger.info(
-            f"The sequence of the first {given_time_horizon} observations from the data is: "
-            f"{observation_trajectory[:given_time_horizon]} (given observation)"
-        )
-        logger.info(
-            f"The sequence of the next {future_time_steps} observations from the data is: "
-            f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
-        )
-        _observation_trajectory = _observation_trajectory.repeat(
+        ).repeat(
             number_of_samples, 1
         )
+    )
+
+    with BaseLearningProcess.inference_mode(learning_filter):
         learning_filter.update(_observation_trajectory)
 
         predicted_next_observation_trajectory = torch.empty(
