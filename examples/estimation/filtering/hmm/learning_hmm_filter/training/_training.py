@@ -137,7 +137,7 @@ def training(
     training_config.checkpoint.filename = model_filename
     training_config.checkpoint.per_epoch_period = 4
     if not new_training:
-        training_config.validation.at_initial = False
+        training_config.validation.initial.skip = True
 
     # Train model
     with device_manager.monitor_performance(

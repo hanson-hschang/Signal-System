@@ -189,7 +189,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
         try:
 
-            if training_config.validation.at_initial:
+            if not training_config.validation.initial.skip:
                 logger.info("Model evaluation before training...")
                 validation_losses = self.evaluate_model(
                     validation_data_loader, training_config.validation
@@ -197,11 +197,15 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                 self._record_validation_loss(validation_losses)
 
                 self._record_epoch(training_config.termination.max_epoch)
-                self._checkpoint.save(
-                    self._module,
-                    self._save_checkpoint_info(),
-                    self._save_model_info(),
-                )
+
+                if training_config.checkpoint.condition(
+                    epoch=self._epoch, initial=True
+                ).satisfied():
+                    self._checkpoint.save(
+                        self._module,
+                        self._save_checkpoint_info(),
+                        self._save_model_info(),
+                    )
 
             logger.info("Start training...")
             while training_config.termination.condition(

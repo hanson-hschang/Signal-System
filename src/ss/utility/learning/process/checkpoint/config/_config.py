@@ -19,6 +19,14 @@ class CheckpointConfig:
     @dataclass
     class Initial:
 
+        class SkipDescriptor(DataclassDescriptor[bool]):
+            def __set__(
+                self,
+                obj: object,
+                value: bool,
+            ) -> None:
+                super().__set__(obj, value)
+
         class IndexDescriptor(DataclassDescriptor[int]):
             def __set__(
                 self,
@@ -28,7 +36,7 @@ class CheckpointConfig:
                 value = NonnegativeIntegerValidator(value).get_value()
                 super().__set__(obj, value)
 
-        # skip: bool = False
+        skip: SkipDescriptor = SkipDescriptor(False)
         index: IndexDescriptor = IndexDescriptor(0)
 
     @dataclass
@@ -72,13 +80,22 @@ class CheckpointConfig:
                 appendix += now.strftime(self._time_format)
             return appendix
 
+    class PerEpochPeriodDescriptor(DataclassDescriptor[int]):
+        def __set__(
+            self,
+            obj: object,
+            value: int,
+        ) -> None:
+            value = NonnegativeIntegerValidator(value).get_value()
+            super().__set__(obj, value)
+
     folderpath: Path = field(default_factory=lambda: Path("checkpoints"))
     filename: Path = field(default_factory=lambda: Path("model"))
     appendix: Appendix = field(default_factory=Appendix)
     initial: Initial = field(
         default_factory=cast(Callable[[], Initial], Initial)
     )
-    per_epoch_period: int = 1
+    per_epoch_period: PerEpochPeriodDescriptor = PerEpochPeriodDescriptor(1)
 
     # save_last: bool = True
     # save_best: bool = True
@@ -90,6 +107,17 @@ class CheckpointConfig:
             )
         self._condition = Condition(any)
 
-    def condition(self, epoch: int) -> Condition:
-        self._condition(epoch=(epoch % self.per_epoch_period) == 0)
+    def condition(self, epoch: int, initial: bool = False) -> Condition:
+        if initial and self.per_epoch_period == 0:
+            logger.info("checkpoints are saved only at the end of training")
+        self._condition(
+            epoch=(
+                False
+                if self.per_epoch_period == 0
+                else (epoch % self.per_epoch_period) == 0
+            ),
+            initial=False if initial else not self.initial.skip,
+        )
+
+        # self._condition(epoch=(epoch % self.per_epoch_period) == 0)
         return self._condition

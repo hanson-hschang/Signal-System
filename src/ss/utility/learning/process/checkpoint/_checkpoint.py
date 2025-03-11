@@ -107,6 +107,7 @@ class Checkpoint:
             ).get_folderpath()
             / self._config.filename
         )
+        self._initial_skip = self._config.initial.skip
         self._initial_index = self._config.initial.index
         self._index = self._config.initial.index
         self._finalize = False
@@ -142,8 +143,16 @@ class Checkpoint:
     ) -> None:
         if self._index == self._initial_index:
             logger.info(
-                f"checkpoints are saved every {self._config.per_epoch_period} epoch(s)"
+                f"checkpoints are saved every {self._config.per_epoch_period} epoch(s) "
+                + (
+                    "with the initial checkpoint skipped"
+                    if self._initial_skip
+                    else "with the initial checkpoint saved"
+                )
             )
+            if self._initial_skip:
+                self._index += 1
+                return
         filepath = self.filepath
         module.save(
             filename=filepath.with_suffix(module.FILE_EXTENSIONS[0]),
