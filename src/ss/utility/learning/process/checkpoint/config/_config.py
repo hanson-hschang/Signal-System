@@ -89,8 +89,31 @@ class CheckpointConfig:
             value = NonnegativeIntegerValidator(value).get_value()
             super().__set__(obj, value)
 
-    folderpath: Path = field(default_factory=lambda: Path("checkpoints"))
-    filename: Path = field(default_factory=lambda: Path("model"))
+    class FolderPathDescriptor(DataclassDescriptor[Path]):
+        def __set__(
+            self,
+            obj: object,
+            value: Path,
+        ) -> None:
+            super().__set__(obj, value)
+
+    class FilenameDescriptor(DataclassDescriptor[Path]):
+        def __set__(
+            self,
+            obj: object,
+            value: Path,
+        ) -> None:
+            if value.suffix != "":
+                logger.error(
+                    "The suffix of the checkpoint filename should be empty."
+                )
+            super().__set__(obj, value)
+
+    folderpath: FolderPathDescriptor = FolderPathDescriptor(
+        Path("checkpoints")
+    )
+    # filename: Path = field(default_factory=lambda: Path("model"))
+    filename: FilenameDescriptor = FilenameDescriptor(Path("model"))
     appendix: Appendix = field(default_factory=Appendix)
     initial: Initial = field(
         default_factory=cast(Callable[[], Initial], Initial)
@@ -101,10 +124,10 @@ class CheckpointConfig:
     # save_best: bool = True
 
     def __post_init__(self) -> None:
-        if not (self.filename.suffix == ""):
-            logger.error(
-                "The suffix of the checkpoint filename should be empty."
-            )
+        # if not (self.filename.suffix == ""):
+        #     logger.error(
+        #         "The suffix of the checkpoint filename should be empty."
+        #     )
         self._condition = Condition(any)
 
     def condition(self, epoch: int, initial: bool = False) -> Condition:
