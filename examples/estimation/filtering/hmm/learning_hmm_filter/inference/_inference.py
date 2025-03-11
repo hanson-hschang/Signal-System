@@ -16,7 +16,7 @@ logger = Logging.get_logger(__name__)
 def inference(
     data_filepath: Path,
     model_folderpath: Path,
-    model_filename: Path,
+    model_filename: str,
     result_directory: Path,
 ) -> None:
     model_filepath = model_folderpath / model_filename

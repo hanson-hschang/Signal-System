@@ -22,7 +22,7 @@ logger = Logging.get_logger(__name__)
 def training(
     data_filepath: Path,
     model_folderpath: Path,
-    model_filename: Path,
+    model_filename: str,
     result_directory: Path,
     new_training: bool = True,
 ) -> None:

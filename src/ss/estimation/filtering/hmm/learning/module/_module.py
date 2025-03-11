@@ -1,4 +1,4 @@
-from typing import Generic, List, Tuple, TypeVar, assert_never
+from typing import Generic, List, Optional, Tuple, TypeVar, assert_never
 
 import torch
 
@@ -13,6 +13,7 @@ from ss.utility.descriptor import (
     BatchTensorReadOnlyDescriptor,
     ReadOnlyDescriptor,
 )
+from ss.utility.device import Device
 from ss.utility.learning import module as Module
 from ss.utility.learning.parameter.transformer import Transformer
 from ss.utility.learning.parameter.transformer.config import TransformerConfig
@@ -65,10 +66,13 @@ class LearningHmmFilter(
         )
 
         # Initialize the estimated next state, and next observation for the inference mode
-        self._init_batch_size(batch_size=1)
+        self._init_batch(batch_size=1)
 
-    def _init_batch_size(
-        self, batch_size: int, is_initialized: bool = False
+    def _init_batch(
+        self,
+        batch_size: int,
+        device: Device = Device.CPU,
+        is_initialized: bool = False,
     ) -> None:
         self._is_initialized = is_initialized
         self._batch_size = batch_size
@@ -77,15 +81,21 @@ class LearningHmmFilter(
             self._estimated_state = (
                 torch.ones((self._batch_size, self._state_dim))
                 / self._state_dim
+            ).to(
+                device=device.torch_device
             )  # (batch_size, state_dim)
             self._predicted_next_state = (
                 torch.ones((self._batch_size, self._state_dim))
                 / self._state_dim
+            ).to(
+                device=device.torch_device
             )  # (batch_size, state_dim)
             self._predicted_next_observation_probability: torch.Tensor = (
                 self._emission(
                     self._predicted_next_state,  # (batch_size, state_dim)
                 )
+            ).to(
+                device=device.torch_device
             )  # (batch_size, discrete_observation_dim)
             self._estimation = self._estimate()
             self._estimation_shape = tuple(self._estimation.shape[1:])
@@ -152,7 +162,7 @@ class LearningHmmFilter(
         estimation_option: Config.EstimationConfig.Option,
     ) -> None:
         self._config.estimation.option = estimation_option
-        self._init_batch_size(batch_size=self._batch_size)
+        self._init_batch(batch_size=self._batch_size)
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
@@ -231,14 +241,32 @@ class LearningHmmFilter(
         self._emission.reset()
         self._transition.reset()
 
-    def _check_batch_size(self, batch_size: int) -> None:
+    def _check_batch(self, batch_size: int, device: torch.device) -> None:
         if self._is_initialized:
             assert batch_size == self._batch_size, (
                 f"batch_size must be the same as the initialized batch_size. "
                 f"batch_size given is {batch_size} while the initialized batch_size is {self._batch_size}."
             )
             return
-        self._init_batch_size(batch_size, is_initialized=True)
+
+        _device: Device
+        match device:
+            case torch.device(type="cpu"):
+                _device = Device.CPU
+            case torch.device(type="cuda"):
+                _device = Device.CUDA
+            case torch.device(type="mps"):
+                _device = Device.MPS
+            case _:
+                logger.warning(
+                    f"device {device} is not supported. "
+                    f"device will be set to CPU."
+                )
+                _device = Device.CPU
+
+        self._init_batch(
+            batch_size=batch_size, device=_device, is_initialized=True
+        )
 
     @torch.inference_mode()
     def update(self, observation_trajectory: torch.Tensor) -> None:
@@ -263,7 +291,11 @@ class LearningHmmFilter(
             f"observation_trajectory must be in the shape of (batch_size, horizon). "
             f"observation_trajectory given has the shape of {observation_trajectory.shape}."
         )
-        self._check_batch_size(batch_size=observation_trajectory.shape[0])
+
+        self._check_batch(
+            batch_size=observation_trajectory.shape[0],
+            device=observation_trajectory.device,
+        )
 
         estimated_state_trajectory, predicted_next_state_trajectory, _ = (
             self._forward(observation_trajectory)

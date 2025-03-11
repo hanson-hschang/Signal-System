@@ -89,7 +89,7 @@ class CheckpointConfig:
             value = NonnegativeIntegerValidator(value).get_value()
             super().__set__(obj, value)
 
-    class FolderPathDescriptor(DataclassDescriptor[Path]):
+    class FolderpathDescriptor(DataclassDescriptor[Path]):
         def __set__(
             self,
             obj: object,
@@ -97,24 +97,23 @@ class CheckpointConfig:
         ) -> None:
             super().__set__(obj, value)
 
-    class FilenameDescriptor(DataclassDescriptor[Path]):
+    class FilenameDescriptor(DataclassDescriptor[str]):
         def __set__(
             self,
             obj: object,
-            value: Path,
+            value: str,
         ) -> None:
-            value = Path(value)
-            if value.suffix != "":
+            if Path(value).suffix != "":
                 logger.error(
                     "The suffix of the checkpoint filename should be empty."
                 )
             super().__set__(obj, value)
 
-    folderpath: FolderPathDescriptor = FolderPathDescriptor(
+    folderpath: FolderpathDescriptor = FolderpathDescriptor(
         Path("checkpoints")
     )
     # filename: Path = field(default_factory=lambda: Path("model"))
-    filename: FilenameDescriptor = FilenameDescriptor(Path("model"))
+    filename: FilenameDescriptor = FilenameDescriptor("model")
     appendix: Appendix = field(default_factory=Appendix)
     initial: Initial = field(
         default_factory=cast(Callable[[], Initial], Initial)
