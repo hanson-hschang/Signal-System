@@ -103,6 +103,7 @@ class CheckpointConfig:
             obj: object,
             value: Path,
         ) -> None:
+            value = Path(value)
             if value.suffix != "":
                 logger.error(
                     "The suffix of the checkpoint filename should be empty."
@@ -132,6 +133,7 @@ class CheckpointConfig:
 
     def condition(self, epoch: int, initial: bool = False) -> Condition:
         if initial and self.per_epoch_period == 0:
+            self.initial.skip = True
             logger.info("checkpoints are saved only at the end of training")
         self._condition(
             epoch=(
@@ -139,7 +141,7 @@ class CheckpointConfig:
                 if self.per_epoch_period == 0
                 else (epoch % self.per_epoch_period) == 0
             ),
-            initial=False if initial else not self.initial.skip,
+            initial=not self.initial.skip if initial else False,
         )
 
         # self._condition(epoch=(epoch % self.per_epoch_period) == 0)
