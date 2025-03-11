@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import Final, TypeVar
 
 from dataclasses import dataclass, field
 

@@ -3,12 +3,12 @@ from typing import Generic, Self, Tuple, TypeVar, cast
 import torch
 
 from ss.utility.learning.parameter.positive import PositiveParameter
-from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer import T, Transformer
 from ss.utility.learning.parameter.transformer.exp import ExpTransformer
 from ss.utility.learning.parameter.transformer.softmax import config as Config
 
-T = TypeVar("T", bound=Transformer, default=Transformer)
-PP = TypeVar("PP", bound=PositiveParameter, default=PositiveParameter)
+# T = TypeVar("T", bound=Transformer)
+PP = TypeVar("PP", bound=PositiveParameter)
 
 
 class SoftmaxTransformer(
@@ -68,3 +68,6 @@ class SoftmaxTransformer(
                 torch.log(value) * self._temperature()
             )
         return parameter_value
+
+
+SoftmaxT = TypeVar("SoftmaxT", bound=Transformer, default=SoftmaxTransformer)

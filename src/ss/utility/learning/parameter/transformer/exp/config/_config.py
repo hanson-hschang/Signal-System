@@ -10,4 +10,4 @@ class ExpTransformerConfig(TransformerConfig):
     pass
 
 
-TC = TypeVar("TC", bound=TransformerConfig, default=ExpTransformerConfig)
+ExpTC = TypeVar("ExpTC", bound=TransformerConfig, default=ExpTransformerConfig)

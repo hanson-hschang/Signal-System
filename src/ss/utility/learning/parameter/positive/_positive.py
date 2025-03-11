@@ -4,15 +4,15 @@ from ss.utility.learning.parameter.manifold import ManifoldParameter
 from ss.utility.learning.parameter.positive.config import (
     PositiveParameterConfig,
 )
-from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer import T, Transformer
+from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.learning.parameter.transformer.exp import ExpTransformer
 from ss.utility.learning.parameter.transformer.exp.config import (
     ExpTransformerConfig,
 )
 
-TC = TypeVar("TC", bound=TransformerConfig)
-T = TypeVar("T", bound=Transformer)
+# TC = TypeVar("TC", bound=TransformerConfig)
+# T = TypeVar("T", bound=Transformer)
 
 
 class PositiveParameter(

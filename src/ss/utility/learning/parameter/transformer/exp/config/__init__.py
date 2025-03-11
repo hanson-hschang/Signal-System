@@ -1,1 +1,1 @@
-from ._config import TC, ExpTransformerConfig
+from ._config import ExpTC, ExpTransformerConfig

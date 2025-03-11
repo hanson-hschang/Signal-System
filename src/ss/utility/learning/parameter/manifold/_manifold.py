@@ -7,7 +7,7 @@ from ss.utility.learning.parameter import Parameter
 from ss.utility.learning.parameter.manifold.config import (
     ManifoldParameterConfig,
 )
-from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer import T
 from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.logging import Logging
 
@@ -15,7 +15,7 @@ logger = Logging.get_logger(__name__)
 
 
 MPC = TypeVar("MPC", bound=ManifoldParameterConfig)
-T = TypeVar("T", bound=Transformer)
+# T = TypeVar("T", bound=Transformer)
 
 
 class ManifoldParameter(Parameter[MPC], Generic[T, MPC]):

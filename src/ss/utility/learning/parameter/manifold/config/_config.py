@@ -4,10 +4,13 @@ from dataclasses import dataclass, field
 
 from ss.utility.learning.parameter.config import ParameterConfig
 from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer.config import (
+    TC,
+    TransformerConfig,
+)
 
 # T = TypeVar("T", bound=Transformer)
-TC = TypeVar("TC", bound=TransformerConfig)
+# TC = TypeVar("TC", bound=TransformerConfig)
 
 
 @dataclass

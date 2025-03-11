@@ -11,17 +11,14 @@ from typing import (
     Union,
 )
 
-import operator
 from collections import defaultdict
 
 import torch
 
 from ss.utility.assertion.inspect import get_nondefault_type_fields
 from ss.utility.logging import Logging
-from ss.utility.package import (
-    get_subclasses,
-    import_submodules,
-    resolve_module_name,
+from ss.utility.package import (  # get_subclasses,; import_submodules,; resolve_module_name,
+    Package,
 )
 
 logger = Logging.get_logger(__name__)
@@ -79,10 +76,10 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
     """
 
     # Import all submodules to ensure all classes are loaded
-    import_submodules(package_name)
+    Package.import_submodules(package_name)
 
     # Get all subclasses
-    subclasses = get_subclasses(base_class)
+    subclasses = Package.get_subclasses(base_class)
 
     # Include base class
     all_classes = subclasses.union({base_class})
@@ -96,14 +93,14 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
     for cls in all_classes:
         logger.debug(
             logger.indent() + f"{ cls.__qualname__ } "
-            f"( from { resolve_module_name(cls.__module__) } module )"
+            f"( from { Package.resolve_module_name(cls.__module__) } module )"
         )
         unregistered_fields = get_nondefault_type_fields(cls)
         for field_name, field_type in unregistered_fields.items():
             logger.debug(
                 logger.indent(2) + f"{ field_name }: "
                 f"{ field_type.__qualname__ } "
-                f"( from { resolve_module_name(field_type.__module__) } module )"
+                f"( from { Package.resolve_module_name(field_type.__module__) } module )"
             )
             # The following lines is a temporary work around to the _get_user_allowed_globals
             # defined in the torch._weights_only_unpickler.py (torch version 2.6.0). Issue link:
@@ -124,23 +121,44 @@ def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
     return safe_callables
 
 
-def add_type_var() -> SafeCallables:
+def add_type_var(bound_class: Type, package_name: str) -> SafeCallables:
     from ss.utility.learning.parameter.transformer.config import (
         TC,
     )
     from ss.utility.learning.parameter.transformer.exp.config import (
-        TC as TC_EXP,
+        ExpTC as ExpTC,
     )
     from ss.utility.learning.parameter.transformer.softmax.config import (
-        TC as TC_SOFTMAX,
+        SoftmaxTC as SoftmaxTC,
     )
 
-    safe_callables = SafeCallables({TC, TC_SOFTMAX, TC_EXP})
-    return safe_callables
+    safe_type_vars = SafeCallables({TC, SoftmaxTC, ExpTC})
+
+    # Import all submodules to ensure all classes are loaded
+    # Package.import_submodules(package_name)
+
+    # safe_type_vars = SafeCallables()
+
+    # safe_type_vars.update(Package.get_bounded_type_var(bound_class))
+
+    # for type_var in Package.get_bounded_type_var(bound_class):
+    #     safe_type_vars.add(type_var)
+
+    # # Inspect all objects in the typing module
+    # for name, obj in inspect.getmembers(typing):
+    #     # Check if the object is a TypeVar
+    #     if isinstance(obj, typing.TypeVar):
+    #         # Check if the TypeVar has a bound and if it's the specified class
+    #         if hasattr(obj, "__bound__") and obj.__bound__ is bound_class:
+    #             bound_typevars.append(obj)
+
+    return safe_type_vars
 
 
 def add_builtin() -> SafeCallables:
-    # This is for getter and setter of properties
+
+    import operator
+
     safe_callables = SafeCallables(
         {getattr, setattr, defaultdict, dict, operator.getitem}
     )

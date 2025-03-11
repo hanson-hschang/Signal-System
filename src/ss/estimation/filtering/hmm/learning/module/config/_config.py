@@ -1,4 +1,4 @@
-from typing import Generic, Optional, Self, Tuple, TypeVar
+from typing import Callable, Generic, Optional, Self, Tuple, TypeVar, cast
 
 from dataclasses import dataclass, field
 
@@ -8,9 +8,7 @@ from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
-from ss.utility.learning.parameter.transformer.softmax.config import (
-    TC as TC_SOFTMAX,
-)
+from ss.utility.learning.parameter.transformer.softmax.config import SoftmaxTC
 from ss.utility.logging import Logging
 
 from ._config_emission import EmissionProcessConfig
@@ -37,8 +35,8 @@ class FilterDescriptor(DataclassDescriptor[FilterConfig]):
 
 
 class TransitionDescriptor(
-    DataclassDescriptor[TransitionProcessConfig[TC_SOFTMAX]],
-    Generic[TC_SOFTMAX],
+    DataclassDescriptor[TransitionProcessConfig[SoftmaxTC]],
+    Generic[SoftmaxTC],
 ):
     # def __init__(self, value: Optional[TransitionProcessConfig[TC_SOFTMAX]] = None):
     #     if value is None:
@@ -48,26 +46,26 @@ class TransitionDescriptor(
     def __set__(
         self,
         obj: object,
-        value: TransitionProcessConfig[TC_SOFTMAX],
+        value: TransitionProcessConfig[SoftmaxTC],
     ) -> None:
         assert isinstance(value, TransitionProcessConfig)
         super().__set__(obj, value)
 
 
 class EmissionDescriptor(
-    DataclassDescriptor[EmissionProcessConfig[TC_SOFTMAX]], Generic[TC_SOFTMAX]
+    DataclassDescriptor[EmissionProcessConfig[SoftmaxTC]], Generic[SoftmaxTC]
 ):
     def __set__(
         self,
         obj: object,
-        value: EmissionProcessConfig[TC_SOFTMAX],
+        value: EmissionProcessConfig[SoftmaxTC],
     ) -> None:
         assert isinstance(value, EmissionProcessConfig)
         super().__set__(obj, value)
 
 
 @dataclass
-class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC_SOFTMAX]):
+class LearningHmmFilterConfig(BaseLearningConfig, Generic[SoftmaxTC]):
     """
     Configuration of the `LearningHmmFilter` class.
     """
@@ -75,11 +73,18 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC_SOFTMAX]):
     filter: FilterDescriptor = FilterDescriptor(
         field(default_factory=lambda: FilterConfig())
     )
-    transition: TransitionDescriptor[TC_SOFTMAX] = TransitionDescriptor[
-        TC_SOFTMAX
-    ](field(default_factory=TransitionProcessConfig[TC_SOFTMAX]))
-    emission: EmissionDescriptor[TC_SOFTMAX] = EmissionDescriptor[TC_SOFTMAX](
-        field(default_factory=lambda: EmissionProcessConfig[TC_SOFTMAX]())
+    transition: TransitionDescriptor[SoftmaxTC] = TransitionDescriptor[
+        SoftmaxTC
+    ](
+        field(
+            default_factory=cast(
+                Callable[[], TransitionProcessConfig[SoftmaxTC]],
+                TransitionProcessConfig[SoftmaxTC],
+            )
+        )
+    )
+    emission: EmissionDescriptor[SoftmaxTC] = EmissionDescriptor[SoftmaxTC](
+        field(default_factory=lambda: EmissionProcessConfig[SoftmaxTC]())
     )
     estimation: EstimationConfig = field(
         default_factory=lambda: EstimationConfig()
@@ -139,9 +144,9 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC_SOFTMAX]):
             blocks = []
             for _ in range(block_dim):
                 # layer.blocks.append(TransitionBlockConfig[TC]())
-                blocks.append(TransitionBlockConfig[TC_SOFTMAX]())
+                blocks.append(TransitionBlockConfig[SoftmaxTC]())
             layers.append(
-                TransitionLayerConfig[TC_SOFTMAX](blocks=tuple(blocks))
+                TransitionLayerConfig[SoftmaxTC](blocks=tuple(blocks))
             )
 
         # Prepare filter configuration
@@ -152,37 +157,37 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC_SOFTMAX]):
         # Prepare module configuration
         config = cls(
             filter=filter_config,
-            transition=TransitionProcessConfig[TC_SOFTMAX](
+            transition=TransitionProcessConfig[SoftmaxTC](
                 layers=tuple(layers)
             ),
-            emission=EmissionProcessConfig[TC_SOFTMAX](),
+            emission=EmissionProcessConfig[SoftmaxTC](),
         )
 
         # Update probability parameter configuration
         config.emission.block.matrix.probability_parameter = (
-            ProbabilityParameterConfig[TC_SOFTMAX].from_option(
+            ProbabilityParameterConfig[SoftmaxTC].from_option(
                 probability_option
             )
         )
         for layer in config.transition.layers:
             layer.coefficient.probability_parameter = (
-                ProbabilityParameterConfig[TC_SOFTMAX].from_option(
+                ProbabilityParameterConfig[SoftmaxTC].from_option(
                     probability_option
                 )
             )
             layer.initial_state.probability_parameter = (
-                ProbabilityParameterConfig[TC_SOFTMAX].from_option(
+                ProbabilityParameterConfig[SoftmaxTC].from_option(
                     probability_option
                 )
             )
             for block in layer.blocks:
                 block.initial_state.probability_parameter = (
-                    ProbabilityParameterConfig[TC_SOFTMAX].from_option(
+                    ProbabilityParameterConfig[SoftmaxTC].from_option(
                         probability_option
                     )
                 )
                 block.matrix.probability_parameter = (
-                    ProbabilityParameterConfig[TC_SOFTMAX].from_option(
+                    ProbabilityParameterConfig[SoftmaxTC].from_option(
                         probability_option
                     )
                 )

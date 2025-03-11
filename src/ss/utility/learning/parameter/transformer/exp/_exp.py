@@ -1,13 +1,15 @@
-from typing import Self
+from typing import Self, TypeVar
 
 import torch
 
 from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.exp import config as Config
+from ss.utility.learning.parameter.transformer.exp.config import (
+    ExpTransformerConfig,
+)
 
 
 class ExpTransformer(
-    Transformer[Config.ExpTransformerConfig],
+    Transformer[ExpTransformerConfig],
 ):
     def bind_with(self, transformer: Self) -> None: ...
 
@@ -16,3 +18,6 @@ class ExpTransformer(
 
     def inverse(self, value: torch.Tensor) -> torch.Tensor:
         return torch.log(value)
+
+
+ExpT = TypeVar("ExpT", bound=Transformer, default=ExpTransformer)

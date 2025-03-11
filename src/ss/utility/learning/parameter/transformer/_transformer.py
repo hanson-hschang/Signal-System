@@ -3,13 +3,13 @@ from typing import Self, Tuple, TypeVar
 import torch
 
 from ss.utility.learning.module import BaseLearningModule
-from ss.utility.learning.parameter.transformer import config as Config
+from ss.utility.learning.parameter.transformer.config import TC
 
-C = TypeVar("C", bound=Config.TransformerConfig)
+# C = TypeVar("C", bound=Config.TransformerConfig)
 
 
-class Transformer(BaseLearningModule[C]):
-    def __init__(self, config: C, shape: Tuple[int, ...]) -> None:
+class Transformer(BaseLearningModule[TC]):
+    def __init__(self, config: TC, shape: Tuple[int, ...]) -> None:
         super().__init__(config)
         self._shape = shape
 
@@ -21,3 +21,6 @@ class Transformer(BaseLearningModule[C]):
 
     def inverse(self, value: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError
+
+
+T = TypeVar("T", bound=Transformer)

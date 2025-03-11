@@ -1,1 +1,1 @@
-from ._config import TC, SoftmaxTransformerConfig
+from ._config import SoftmaxTC, SoftmaxTransformerConfig

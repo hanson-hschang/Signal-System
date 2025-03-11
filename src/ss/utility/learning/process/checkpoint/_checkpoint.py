@@ -98,8 +98,6 @@ class Checkpoint:
             config = Config.CheckpointConfig()
         self._config = config
         self._initialize()
-        self._counter = 0
-        self._finalize = False
 
     def _initialize(self) -> None:
         self._checkpoint_filepath = (
@@ -109,6 +107,9 @@ class Checkpoint:
             ).get_folderpath()
             / self._config.filename
         )
+        self._initial_index = self._config.initial.index
+        self._index = self._config.initial.index
+        self._finalize = False
 
     @property
     def config(self) -> Config.CheckpointConfig:
@@ -121,7 +122,7 @@ class Checkpoint:
 
     @property
     def checkpoint_appendix(self) -> str:
-        return self._config.appendix(self._counter)
+        return self._config.appendix(self._index)
 
     @property
     def filepath(self) -> Path:
@@ -139,7 +140,7 @@ class Checkpoint:
         checkpoint_info: CheckpointInfo,
         model_info: Dict[str, Any],
     ) -> None:
-        if self._counter == 0:
+        if self._index == self._initial_index:
             logger.info(
                 f"checkpoints are saved every {self._config.per_epoch_period} epoch(s)"
             )
@@ -152,7 +153,7 @@ class Checkpoint:
             filename=filepath.with_suffix(CheckpointInfo.FILE_EXTENSION),
         )
         if not self._finalize:
-            self._counter += 1
+            self._index += 1
 
     def finalize(self) -> Self:
         self._finalize = True

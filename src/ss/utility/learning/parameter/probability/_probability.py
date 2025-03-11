@@ -4,7 +4,7 @@ from ss.utility.learning.parameter.manifold import ManifoldParameter
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
-from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer import T, Transformer
 from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.learning.parameter.transformer.norm.min_zero import (
     MinZeroNormTransformer,
@@ -20,7 +20,7 @@ from ss.utility.learning.parameter.transformer.softmax.config import (
 )
 
 # TC = TypeVar("TC", bound=TransformerConfig)
-T = TypeVar("T", bound=Transformer)
+# T = TypeVar("T", bound=Transformer)
 
 
 class ProbabilityParameter(

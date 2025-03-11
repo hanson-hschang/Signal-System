@@ -1,4 +1,4 @@
-from typing import Generic, TypeVar, cast
+from typing import Final, Generic, TypeVar, cast
 
 from dataclasses import dataclass, field
 
@@ -12,13 +12,13 @@ from ss.utility.learning.parameter.positive.config import (
     PositiveParameterConfig,
 )
 from ss.utility.learning.parameter.transformer.config import TransformerConfig
-from ss.utility.learning.parameter.transformer.exp.config import TC as TC_EXP
+from ss.utility.learning.parameter.transformer.exp.config import ExpTC
 
 # TC = TypeVar("TC", bound=TransformerConfig, default=ExpTransformerConfig)
 
 
 @dataclass
-class TemperatureConfig(PositiveParameterConfig[TC_EXP], Generic[TC_EXP]):
+class TemperatureConfig(PositiveParameterConfig[ExpTC], Generic[ExpTC]):
     initializer: InitializerProtocol = field(
         default_factory=lambda: NormalDistributionInitializer.basic_config(
             mean=0.0, std=0.0
@@ -54,4 +54,6 @@ class SoftmaxTransformerConfig(TransformerConfig):
 #     temperature: TemperatureConfig[TC] = field(default_factory=TemperatureConfig[TC])
 
 
-TC = TypeVar("TC", bound=TransformerConfig, default=SoftmaxTransformerConfig)
+SoftmaxTC = TypeVar(
+    "SoftmaxTC", bound=TransformerConfig, default=SoftmaxTransformerConfig
+)

@@ -9,8 +9,8 @@ from ss.estimation.filtering.hmm.learning.module.transition.layer import (
 )
 from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
-from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
+from ss.utility.learning.parameter.transformer import T
+from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
@@ -18,8 +18,8 @@ from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
-TC = TypeVar("TC", bound=TransformerConfig)
-T = TypeVar("T", bound=Transformer)
+# TC = TypeVar("TC", bound=TransformerConfig)
+# T = TypeVar("T", bound=Transformer)
 
 
 class TransitionProcess(

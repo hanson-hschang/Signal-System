@@ -34,10 +34,14 @@ logger = Logging.get_logger(__name__)
 
 def initialize_safe_callables() -> None:
     if not serialization.SafeCallables.initialized:
+        from ss.utility.learning.parameter.transformer import Transformer
+
         serialization.add_subclasses(
             Config.BaseLearningConfig, "ss"
         ).to_registered_safe_callables()
-        serialization.add_type_var().to_registered_safe_callables()
+        serialization.add_type_var(
+            Transformer, "ss"
+        ).to_registered_safe_callables()
         serialization.add_builtin().to_registered_safe_callables()
         # Uncomment the following line to register numpy types
         # serialization.add_numpy_types().to_registered_safe_callables()
