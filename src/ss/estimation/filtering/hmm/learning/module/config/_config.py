@@ -109,7 +109,7 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC]):
         probability_option: ProbabilityParameterConfig.Option = (
             ProbabilityParameterConfig.Option.SOFTMAX
         ),
-    ) -> "LearningHmmFilterConfig":
+    ) -> "LearningHmmFilterConfig[TC]":
         """
         Create a basic configuration of the `LearningHmmFilter` module.
 
