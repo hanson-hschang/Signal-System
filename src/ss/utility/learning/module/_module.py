@@ -61,7 +61,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         ), f"{type(config) = } must be a subclass of {Config.BaseLearningConfig.__name__}"
         self._config = config
         self._inference = not self.training
-        self._device_manager = DeviceManager()
+        # self._device_manager = DeviceManager()
 
     @property
     def config(self) -> Config.BLC:

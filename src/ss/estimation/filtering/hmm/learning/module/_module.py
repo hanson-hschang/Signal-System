@@ -1,4 +1,4 @@
-from typing import Generic, List, Optional, Tuple, TypeVar, assert_never
+from typing import Generic, List, Optional, Tuple, TypeVar, assert_never, cast
 
 import torch
 
@@ -90,10 +90,11 @@ class LearningHmmFilter(
             ).to(
                 device=device.torch_device
             )  # (batch_size, state_dim)
-            self._predicted_next_observation_probability: torch.Tensor = (
+            self._predicted_next_observation_probability: torch.Tensor = cast(
+                torch.Tensor,
                 self._emission(
                     self._predicted_next_state,  # (batch_size, state_dim)
-                )
+                ),
             ).to(
                 device=device.torch_device
             )  # (batch_size, discrete_observation_dim)

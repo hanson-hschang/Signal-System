@@ -55,7 +55,7 @@ def inference(
     learning_filter.config.prediction.temperature = 0.5
 
     # Inference
-    given_time_horizon = 20  # This is like prompt length
+    given_time_horizon = 15  # This is like prompt length
     future_time_steps = 10  # This is like how many next token to predict
     number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
 
@@ -70,9 +70,7 @@ def inference(
     _observation_trajectory = device_manager.load_data(
         torch.tensor(
             observation_trajectory[:given_time_horizon], dtype=torch.int64
-        ).repeat(
-            number_of_samples, 1
-        )
+        ).repeat(number_of_samples, 1)
     )
 
     with BaseLearningProcess.inference_mode(learning_filter):
