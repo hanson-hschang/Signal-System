@@ -3,36 +3,41 @@ from typing import Generic, Self, Tuple, TypeVar, cast
 import torch
 
 from ss.utility.learning.parameter.positive import PositiveParameter
-from ss.utility.learning.parameter.transformer import T, Transformer
-from ss.utility.learning.parameter.transformer.exp import ExpTransformer
-from ss.utility.learning.parameter.transformer.softmax import config as Config
+from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.transformer.exp import ExpT
+from ss.utility.learning.parameter.transformer.exp.config import ExpTC
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 
 # T = TypeVar("T", bound=Transformer)
-PP = TypeVar("PP", bound=PositiveParameter)
+# PP = TypeVar("PP", bound=PositiveParameter)
 
 
 class SoftmaxTransformer(
-    Transformer[Config.SoftmaxTransformerConfig],
-    Generic[PP],
+    Transformer[SoftmaxTransformerConfig[ExpTC]],
+    Generic[ExpT, ExpTC],
 ):
     def __init__(
         self,
-        config: Config.SoftmaxTransformerConfig,
+        config: SoftmaxTransformerConfig[ExpTC],
         shape: Tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
-        self._temperature = self._init_temperature()
+        self._temperature: PositiveParameter[ExpT, ExpTC] = (
+            self._init_temperature()
+        )
 
-    def _init_temperature(self) -> PP:
+    def _init_temperature(self) -> PositiveParameter[ExpT, ExpTC]:
         temperature_shape = (
             (1,) if len(self._shape) == 1 else self._shape[:-1] + (1,)
         )
-        return cast(
-            PP, PositiveParameter(self._config.temperature, temperature_shape)
+        return PositiveParameter[ExpT, ExpTC](
+            self._config.temperature, temperature_shape
         )
 
     @property
-    def temperature_parameter(self) -> PP:
+    def temperature_parameter(self) -> PositiveParameter[ExpT, ExpTC]:
         return self._temperature
 
     @property
@@ -64,9 +69,8 @@ class SoftmaxTransformer(
         log_zero_value = log_nonzero_min - self._config.log_zero_offset
         value = value.masked_fill(zero_mask, torch.exp(log_zero_value))
         with self._temperature.evaluation_mode():
-            parameter_value: torch.Tensor = (
-                torch.log(value) * self._temperature()
-            )
+            temperature = self._temperature()
+        parameter_value: torch.Tensor = torch.log(value) * temperature
         return parameter_value
 
 

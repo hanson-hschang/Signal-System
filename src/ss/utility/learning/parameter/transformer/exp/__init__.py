@@ -1,1 +1,1 @@
-from ._exp import ExpTransformer
+from ._exp import ExpT, ExpTransformer

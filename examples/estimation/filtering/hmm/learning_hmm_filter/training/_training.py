@@ -6,12 +6,24 @@ import torch
 
 from ss.estimation.filtering.hmm.learning import dataset as Dataset
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
-from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.config import (
+    LearningHmmFilterConfig,
+)
 from ss.estimation.filtering.hmm.learning.process import (
     LearningHmmFilterProcess,
 )
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
+from ss.utility.learning.module import BaseLearningModule
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.learning.process.config import TrainingConfig
 from ss.utility.logging import Logging
@@ -56,21 +68,24 @@ def training(
     )
 
     # Prepare module configuration
-    config = Config.LearningHmmFilterConfig.basic_config(
+    config = LearningHmmFilterConfig[SoftmaxTransformerConfig].basic_config(
         state_dim=int(data.meta_info["discrete_state_dim"]),
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
+        probability_option=ProbabilityParameterConfig.Option.SOFTMAX,
     )
 
     # Prepare module
-    learning_filter = LearningHmmFilter(config)
+    learning_filter = LearningHmmFilter[
+        SoftmaxTransformer, SoftmaxTransformerConfig
+    ](config)
 
     # Define learning process
     class LearningProcess(LearningHmmFilterProcess):
         def __init__(
             self,
-            module: LearningHmmFilter,
+            module: BaseLearningModule,
             loss_function: Callable[..., torch.Tensor],
             optimizer: torch.optim.Optimizer,
             # extra arguments

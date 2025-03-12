@@ -1,3 +1,5 @@
+from typing import cast
+
 import numpy as np
 import pytest
 import torch
@@ -21,8 +23,14 @@ class TestLearningHmmFilter:
 
     @pytest.fixture
     def config(self) -> Config.LearningHmmFilterConfig:
+        from ss.utility.learning.parameter.transformer.softmax.config import (
+            SoftmaxTransformerConfig,
+        )
+
         LOG_ZERO_OFFSET = 16
-        config = Config.LearningHmmFilterConfig.basic_config(
+        config = Config.LearningHmmFilterConfig[
+            SoftmaxTransformerConfig
+        ].basic_config(
             state_dim=3,
             discrete_observation_dim=2,
             block_dims=(2,),
@@ -31,9 +39,10 @@ class TestLearningHmmFilter:
         transition_coefficient_parameter = (
             transition_layer.coefficient.probability_parameter
         )
-        transition_coefficient_parameter.transformer.log_zero_offset = (
-            LOG_ZERO_OFFSET
-        )
+        cast(
+            SoftmaxTransformerConfig,
+            transition_coefficient_parameter.transformer,
+        ).log_zero_offset = LOG_ZERO_OFFSET
 
         transition_block_1 = config.transition.layers[0].blocks[0]
         transition_block_2 = config.transition.layers[0].blocks[1]
@@ -45,15 +54,19 @@ class TestLearningHmmFilter:
         )
         for block in [transition_block_1, transition_block_2]:
             matrix_parameter = block.matrix.probability_parameter
-            matrix_parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
+            cast(
+                SoftmaxTransformerConfig, matrix_parameter.transformer
+            ).log_zero_offset = LOG_ZERO_OFFSET
             initial_state_parameter = block.initial_state.probability_parameter
-            initial_state_parameter.transformer.log_zero_offset = (
-                LOG_ZERO_OFFSET
-            )
+            cast(
+                SoftmaxTransformerConfig, initial_state_parameter.transformer
+            ).log_zero_offset = LOG_ZERO_OFFSET
 
         emission_block = config.emission.block
         emission_matrix_parameter = emission_block.matrix.probability_parameter
-        emission_matrix_parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
+        cast(
+            SoftmaxTransformerConfig, emission_matrix_parameter.transformer
+        ).log_zero_offset = LOG_ZERO_OFFSET
 
         return config
 
@@ -61,7 +74,16 @@ class TestLearningHmmFilter:
     def learning_filter_with_block_initial_state_binding(
         self, config: Config.LearningHmmFilterConfig
     ) -> LearningHmmFilter:
-        learning_filter = LearningHmmFilter(config=config)
+        from ss.utility.learning.parameter.transformer.softmax import (
+            SoftmaxTransformer,
+        )
+        from ss.utility.learning.parameter.transformer.softmax.config import (
+            SoftmaxTransformerConfig,
+        )
+
+        learning_filter = LearningHmmFilter[
+            SoftmaxTransformer, SoftmaxTransformerConfig
+        ](config=config)
         transition_layer = learning_filter.transition.layers[0]
         with learning_filter.evaluation_mode():
             transition_layer.coefficient = torch.tensor([0.75, 0.25])
@@ -88,8 +110,17 @@ class TestLearningHmmFilter:
     def learning_filter_without_block_initial_state_binding(
         self, config: Config.LearningHmmFilterConfig
     ) -> LearningHmmFilter:
+        from ss.utility.learning.parameter.transformer.softmax import (
+            SoftmaxTransformer,
+        )
+        from ss.utility.learning.parameter.transformer.softmax.config import (
+            SoftmaxTransformerConfig,
+        )
+
         config.transition.layers[0].block_initial_state_binding = False
-        learning_filter = LearningHmmFilter(config=config)
+        learning_filter = LearningHmmFilter[
+            SoftmaxTransformer, SoftmaxTransformerConfig
+        ](config=config)
         transition_layer = learning_filter.transition.layers[0]
         with learning_filter.evaluation_mode():
             transition_layer.coefficient = torch.tensor([0.75, 0.25])

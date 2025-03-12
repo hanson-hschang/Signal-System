@@ -11,6 +11,12 @@ from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 
@@ -58,7 +64,9 @@ def analysis(
     module_filename = model_filepath.with_suffix(
         LearningHmmFilter.FILE_EXTENSIONS[0]
     )
-    learning_filter, _ = LearningHmmFilter.load(
+    learning_filter, _ = LearningHmmFilter[
+        SoftmaxTransformer, SoftmaxTransformerConfig
+    ].load(
         module_filename,
         safe_callables={
             torch.nn.functional.cross_entropy,

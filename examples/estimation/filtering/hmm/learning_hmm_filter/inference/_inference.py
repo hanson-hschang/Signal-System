@@ -7,6 +7,12 @@ from numpy.typing import NDArray
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
 
@@ -39,7 +45,9 @@ def inference(
     module_filename = model_filepath.with_suffix(
         LearningHmmFilter.FILE_EXTENSIONS[0]
     )
-    learning_filter, _ = LearningHmmFilter.load(
+    learning_filter, _ = LearningHmmFilter[
+        SoftmaxTransformer, SoftmaxTransformerConfig
+    ].load(
         module_filename,
         safe_callables={
             torch.nn.functional.cross_entropy,
@@ -55,9 +63,9 @@ def inference(
     learning_filter.config.prediction.temperature = 0.5
 
     # Inference
-    given_time_horizon = 15  # This is like prompt length
-    future_time_steps = 10  # This is like how many next token to predict
-    number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
+    given_time_horizon = 15
+    future_time_steps = 10
+    number_of_samples = 5
 
     logger.info(
         f"The sequence of the first {given_time_horizon} observations from the data is: "

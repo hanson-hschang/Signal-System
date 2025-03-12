@@ -18,6 +18,12 @@ from ss.utility.learning.parameter.transformer.softmax import (
 from ss.utility.learning.parameter.transformer.softmax.config import (
     SoftmaxTransformerConfig,
 )
+from ss.utility.learning.parameter.transformer.softmax.linear import (
+    LinearSoftmaxTransformer,
+)
+from ss.utility.learning.parameter.transformer.softmax.linear.config import (
+    LinearSoftmaxTransformerConfig,
+)
 
 # TC = TypeVar("TC", bound=TransformerConfig)
 # T = TypeVar("T", bound=Transformer)
@@ -41,6 +47,12 @@ class ProbabilityParameter(
             self._config.transformer, MinZeroNormTransformerConfig
         ):
             transformer = MinZeroNormTransformer(
+                self._config.transformer, self._shape
+            )
+        elif isinstance(
+            self._config.transformer, LinearSoftmaxTransformerConfig
+        ):
+            transformer = LinearSoftmaxTransformer(
                 self._config.transformer, self._shape
             )
         else:

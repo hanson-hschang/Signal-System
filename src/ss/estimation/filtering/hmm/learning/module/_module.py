@@ -15,10 +15,14 @@ from ss.utility.descriptor import (
 )
 from ss.utility.device import Device
 from ss.utility.learning import module as Module
-from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
-from ss.utility.learning.parameter.transformer.softmax import SoftmaxT
-from ss.utility.learning.parameter.transformer.softmax.config import SoftmaxTC
+from ss.utility.learning.parameter.transformer import T, Transformer
+from ss.utility.learning.parameter.transformer.config import (
+    TC,
+    TransformerConfig,
+)
+
+# from ss.utility.learning.parameter.transformer.softmax import SoftmaxT
+# from ss.utility.learning.parameter.transformer.softmax.config import SoftmaxTC
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -29,8 +33,8 @@ logger = Logging.get_logger(__name__)
 
 
 class LearningHmmFilter(
-    Module.BaseLearningModule[Config.LearningHmmFilterConfig[SoftmaxTC]],
-    Generic[SoftmaxT, SoftmaxTC],
+    Module.BaseLearningModule[Config.LearningHmmFilterConfig[TC]],
+    Generic[T, TC],
 ):
     """
     `LearningHmmFilter` module for learning the hidden Markov model and estimating the next observation.
@@ -38,7 +42,7 @@ class LearningHmmFilter(
 
     def __init__(
         self,
-        config: Config.LearningHmmFilterConfig[SoftmaxTC],
+        config: Config.LearningHmmFilterConfig[TC],
     ) -> None:
         """
         Initialize the `LearningHmmFilter` module.
@@ -58,10 +62,10 @@ class LearningHmmFilter(
         self._layer_dim = self._config.transition.layer_dim + 1
 
         # Define the learnable emission process and transition process
-        self._emission = EmissionProcess[SoftmaxT, SoftmaxTC](
+        self._emission = EmissionProcess[T, TC](
             self._config.emission, self._config.filter
         )
-        self._transition = TransitionProcess[SoftmaxT, SoftmaxTC](
+        self._transition = TransitionProcess[T, TC](
             self._config.transition, self._config.filter
         )
 
@@ -121,11 +125,11 @@ class LearningHmmFilter(
     batch_size = ReadOnlyDescriptor[int]()
 
     @property
-    def emission(self) -> EmissionProcess[SoftmaxT, SoftmaxTC]:
+    def emission(self) -> EmissionProcess[T, TC]:
         return self._emission
 
     @property
-    def transition(self) -> TransitionProcess[SoftmaxT, SoftmaxTC]:
+    def transition(self) -> TransitionProcess[T, TC]:
         return self._transition
 
     # @property
