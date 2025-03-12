@@ -125,14 +125,15 @@ def add_type_var(bound_class: Type, package_name: str) -> SafeCallables:
     from ss.utility.learning.parameter.transformer.config import (
         TC,
     )
-    from ss.utility.learning.parameter.transformer.exp.config import (
-        ExpTC as ExpTC,
-    )
+    from ss.utility.learning.parameter.transformer.exp.config import ExpTC
     from ss.utility.learning.parameter.transformer.softmax.config import (
-        SoftmaxTC as SoftmaxTC,
+        SoftmaxTC,
+    )
+    from ss.utility.learning.parameter.transformer.softmax.linear.config import (
+        LinearSoftmaxTC,
     )
 
-    safe_type_vars = SafeCallables({TC, SoftmaxTC, ExpTC})
+    safe_type_vars = SafeCallables({TC, SoftmaxTC, ExpTC, LinearSoftmaxTC})
 
     # Import all submodules to ensure all classes are loaded
     # Package.import_submodules(package_name)
