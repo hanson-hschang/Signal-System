@@ -11,15 +11,11 @@ from typing import (
     Union,
 )
 
-from collections import defaultdict
-
 import torch
 
 from ss.utility.assertion.inspect import get_nondefault_type_fields
 from ss.utility.logging import Logging
-from ss.utility.package import (  # get_subclasses,; import_submodules,; resolve_module_name,
-    Package,
-)
+from ss.utility.package import Package
 
 logger = Logging.get_logger(__name__)
 
@@ -63,7 +59,7 @@ class SafeCallables(set):
         self.__class__.registered_safe_callables.update(self)
 
 
-def add_subclasses(base_class: Type, package_name: str) -> SafeCallables:
+def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
     """
     Register all subclasses of base_class found in the package to be safe callables
 
@@ -159,6 +155,7 @@ def add_type_var(bound_class: Type, package_name: str) -> SafeCallables:
 def add_builtin() -> SafeCallables:
 
     import operator
+    from collections import defaultdict
 
     safe_callables = SafeCallables(
         {getattr, setattr, defaultdict, dict, operator.getitem}

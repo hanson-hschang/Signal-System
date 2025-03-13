@@ -39,10 +39,9 @@ class TestLearningHmmFilter:
         transition_coefficient_parameter = (
             transition_layer.coefficient.probability_parameter
         )
-        cast(
-            SoftmaxTransformerConfig,
-            transition_coefficient_parameter.transformer,
-        ).log_zero_offset = LOG_ZERO_OFFSET
+        transition_coefficient_parameter.transformer.log_zero_offset = (
+            LOG_ZERO_OFFSET
+        )
 
         transition_block_1 = config.transition.layers[0].blocks[0]
         transition_block_2 = config.transition.layers[0].blocks[1]
@@ -54,19 +53,15 @@ class TestLearningHmmFilter:
         )
         for block in [transition_block_1, transition_block_2]:
             matrix_parameter = block.matrix.probability_parameter
-            cast(
-                SoftmaxTransformerConfig, matrix_parameter.transformer
-            ).log_zero_offset = LOG_ZERO_OFFSET
+            matrix_parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
             initial_state_parameter = block.initial_state.probability_parameter
-            cast(
-                SoftmaxTransformerConfig, initial_state_parameter.transformer
-            ).log_zero_offset = LOG_ZERO_OFFSET
+            initial_state_parameter.transformer.log_zero_offset = (
+                LOG_ZERO_OFFSET
+            )
 
         emission_block = config.emission.block
         emission_matrix_parameter = emission_block.matrix.probability_parameter
-        cast(
-            SoftmaxTransformerConfig, emission_matrix_parameter.transformer
-        ).log_zero_offset = LOG_ZERO_OFFSET
+        emission_matrix_parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
 
         return config
 
