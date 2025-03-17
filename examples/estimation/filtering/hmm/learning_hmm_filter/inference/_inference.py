@@ -66,12 +66,6 @@ def inference(
     # Prepare the sampler
     sampler = Sampler(sampler_config)
 
-    # learning_filter.config.prediction.option = (
-    #     learning_filter.config.prediction.Option.TOP_P
-    # )
-    # learning_filter.config.prediction.probability_threshold = 0.9
-    # learning_filter.config.prediction.temperature = 0.5
-
     # Inference
     given_time_horizon = 15
     future_time_steps = 10

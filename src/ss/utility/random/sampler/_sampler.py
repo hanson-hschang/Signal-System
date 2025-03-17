@@ -1,6 +1,7 @@
-from typing import Callable, assert_never
+from typing import Callable, Tuple, assert_never
 
 import numpy as np
+from numba import njit
 from numpy.typing import ArrayLike, NDArray
 from scipy.special import softmax
 
@@ -9,22 +10,41 @@ from ss.utility.map import transform
 from ss.utility.random.sampler.config import SamplerConfig
 
 
-def sample(probability: NDArray) -> NDArray:
-    sample_shape = probability.shape[:-1]
+@njit(cache=True)  # type: ignore
+def reshape_probability(probability: NDArray) -> Tuple[NDArray, NDArray]:
+    sample_shape = np.array(probability.shape[:-1])
 
-    # Reshape probs to 2D: (batch_size, n_classes)
+    # Reshape probs to 2D: (batch_size, number_of_choices)
     batch_size = np.prod(sample_shape) if sample_shape else 1
     reshaped_probability = probability.reshape(batch_size, -1)
+    return reshaped_probability, sample_shape
+
+
+def sample(probability: NDArray) -> NDArray:
+    # sample_shape = probability.shape[:-1]
+
+    # # Reshape probs to 2D: (batch_size, n_classes)
+    # batch_size = np.prod(sample_shape) if sample_shape else 1
+    # reshaped_probability = probability.reshape(batch_size, -1)
+
+    reshaped_probability, sample_shape = reshape_probability(probability)
+
+    # Create array to store sampled results
+    samples = np.empty(reshaped_probability.shape[0])
+
+    for b, _probability in enumerate(reshaped_probability):
+        samples[b] = np.random.choice(len(_probability), p=_probability)
 
     # Sample for each row in the batch
-    samples = np.array(
-        [np.random.choice(len(p), p=p) for p in reshaped_probability]
-    )
+    # samples = np.array(
+    #     [np.random.choice(len(p), p=p) for p in reshaped_probability]
+    # )
 
     # Reshape back to the output shape
     return samples.reshape(sample_shape)
 
 
+@njit(cache=True)  # type: ignore
 def top_k(probability: NDArray, kth: int) -> NDArray:
     # Get the top k probability
     indices = np.argpartition(probability, -kth)[-kth:]
@@ -34,6 +54,7 @@ def top_k(probability: NDArray, kth: int) -> NDArray:
     return top_k_probability
 
 
+@njit(cache=True)  # type: ignore
 def top_p(probability: NDArray, p: float) -> NDArray:
 
     # Sort the probability in descending order
@@ -99,16 +120,17 @@ class Sampler:
         if max_number_of_choices == number_of_choices:
             return sample(probability)
 
-        sample_shape = probability.shape[:-1]
+        # sample_shape = probability.shape[:-1]
 
-        # Reshape probs to 2D: (batch_size, number_of_choices)
-        batch_size = np.prod(sample_shape) if sample_shape else 1
-        reshaped_probability = probability.reshape(
-            batch_size, number_of_choices
-        )
+        # # Reshape probs to 2D: (batch_size, number_of_choices)
+        # batch_size = np.prod(sample_shape) if sample_shape else 1
+        # reshaped_probability = probability.reshape(
+        #     batch_size, number_of_choices
+        # )
+        reshaped_probability, sample_shape = reshape_probability(probability)
 
         # Create array to store sampled results
-        samples = np.empty(batch_size)
+        samples = np.empty(reshaped_probability.shape[0])
 
         # Sample for each batch
         for b, _probability in enumerate(reshaped_probability):
@@ -127,16 +149,18 @@ class Sampler:
             return sample(probability)
 
         number_of_choices = probability.shape[-1]
-        sample_shape = probability.shape[:-1]
+        # sample_shape = probability.shape[:-1]
 
         # Reshape probs to 2D: (batch_size, number_of_choices)
-        batch_size = np.prod(sample_shape) if sample_shape else 1
-        reshaped_probability = probability.reshape(
-            batch_size, number_of_choices
-        )
+        # batch_size = np.prod(sample_shape) if sample_shape else 1
+        # reshaped_probability = probability.reshape(
+        #     batch_size, number_of_choices
+        # )
+
+        reshaped_probability, sample_shape = reshape_probability(probability)
 
         # Create array to store sampled results
-        samples = np.empty(batch_size)
+        samples = np.empty(reshaped_probability.shape[0])
 
         # Sample for each batch
         for b, _probability in enumerate(reshaped_probability):
