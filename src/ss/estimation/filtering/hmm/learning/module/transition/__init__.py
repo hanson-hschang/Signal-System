@@ -1,1 +1,1 @@
-from ._transition import TransitionProcess
+from ._transition import TransitionModule

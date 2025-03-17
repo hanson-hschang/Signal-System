@@ -13,6 +13,7 @@ class ExpTransformer(
 ):
     def bind_with(self, transformer: Self) -> None: ...
 
+    @torch.compile
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
         return torch.exp(parameter)
 

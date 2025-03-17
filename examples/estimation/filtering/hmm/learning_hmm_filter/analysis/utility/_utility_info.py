@@ -5,10 +5,13 @@ import torch
 
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.estimation.filtering.hmm.learning.module.emission import (
-    EmissionProcess,
+    EmissionModule,
+)
+from ss.estimation.filtering.hmm.learning.module.estimation import (
+    EstimationModule,
 )
 from ss.estimation.filtering.hmm.learning.module.transition import (
-    TransitionProcess,
+    TransitionModule,
 )
 from ss.estimation.filtering.hmm.learning.module.transition.block import (
     BaseTransitionBlock,
@@ -23,12 +26,13 @@ from ss.utility.logging import Logging
 logger = Logging.get_logger(__name__)
 
 
-def emission_process_info(
-    emission_process: EmissionProcess,
-    layer_dim: int,
+def emission_module_info(
+    emission: EmissionModule,
+    # layer_dim: int,
 ) -> None:
-    emission_matrix = emission_process.matrix.numpy()
-    logger.info(f"(layer 0 / {layer_dim}) learned emission process:")
+    emission_matrix = emission.matrix.numpy()
+    # logger.info(f"(layer 0 / {layer_dim}) learned emission module:")
+    logger.info(f"learned emission module:")
     logger.info(f"    emission matrix:")
     for k in range(emission_matrix.shape[0]):
         logger.info(f"        {emission_matrix[k]}")
@@ -58,14 +62,15 @@ def transition_block_info(
 
 def transition_layer_info(
     transition_layer: TransitionLayer,
-    layer_dim: int,
+    # layer_dim: int,
 ) -> None:
     block_dim = transition_layer.block_dim
-    logger.info(
-        f"(layer {transition_layer.id} / {layer_dim}) learned transition process ({block_dim} block(s)):"
-    )
+    # logger.info(
+    #     f"(layer {transition_layer.id} / {layer_dim}) learned transition module ({block_dim} block(s)):"
+    # )
+    logger.info(f"learned transition module ({block_dim} block(s)):")
     coefficient = transition_layer.coefficient.detach().numpy()
-    if transition_layer.block_initial_state_binding:
+    if transition_layer.block_state_binding:
         initial_state = transition_layer.initial_state.detach().numpy()
         logger.info("    initial state:")
         logger.info(f"        {initial_state}")
@@ -87,16 +92,24 @@ def transition_layer_info(
         transition_block_info(
             transition_block,
             block_dim,
-            show_initial_state=not transition_layer.block_initial_state_binding,
+            show_initial_state=not transition_layer.block_state_binding,
         )
 
 
-def transition_process_info(
-    transition_process: TransitionProcess,
-    layer_dim: int,
+def transition_module_info(
+    transition: TransitionModule,
+    # layer_dim: int,
 ) -> None:
-    for transition_layer in transition_process.layers:
-        transition_layer_info(transition_layer, layer_dim)
+    for transition_layer in transition.layers:
+        transition_layer_info(transition_layer)
+
+
+def estimation_module_info(estimation: EstimationModule) -> None:
+    logger.info("learned estimation module:")
+    logger.info(f"    estimation matrix:")
+    estimation_matrix = estimation.matrix.numpy()
+    for k in range(estimation_matrix.shape[0]):
+        logger.info(f"        {estimation_matrix[k]}")
 
 
 def module_info(learning_filter: LearningHmmFilter) -> None:
@@ -109,11 +122,12 @@ def module_info(learning_filter: LearningHmmFilter) -> None:
         f"    observation dimension: {learning_filter.discrete_observation_dim}"
     )
 
-    layer_dim = learning_filter.layer_dim - 1
+    # layer_dim = learning_filter.layer_dim - 1
     np.set_printoptions(precision=3, suppress=True)
     with BaseLearningProcess.inference_mode(learning_filter):
-        emission_process_info(learning_filter.emission, layer_dim)
-        transition_process_info(learning_filter.transition, layer_dim)
+        emission_module_info(learning_filter.emission)
+        transition_module_info(learning_filter.transition)
+        estimation_module_info(learning_filter.estimation)
 
     logger.info(
         f"total number of parameters: {sum(p.numel() for p in learning_filter.parameters())}"

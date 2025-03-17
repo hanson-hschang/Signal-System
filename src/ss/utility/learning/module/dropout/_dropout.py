@@ -67,6 +67,7 @@ class Dropout(BaseLearningModule[Config.DropoutConfig]):
         )
         return result
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if (not self.training) or (self._max_rate == 0) or (x.numel() == 1):
             # If the model is not in training mode, the dropout rate is 0,

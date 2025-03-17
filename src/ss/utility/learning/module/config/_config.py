@@ -1,6 +1,6 @@
 from typing import Any, Dict, Type, TypeVar
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 from ss.utility.logging import Logging
 
@@ -31,6 +31,9 @@ class BaseLearningConfig:
         indent_level = level + 1
 
         logger.debug(logger.indent(indent_level) + f"{name} = " + cls.__name__)
+
+        init_arguments = [_field.name for _field in fields(cls)]
+
         for key, value in config.__dict__.items():
             # TODO: The following condition did not check the dunder attributes
             is_init_argument = True
@@ -38,6 +41,8 @@ class BaseLearningConfig:
                 continue
             if key.startswith("_"):
                 key = key[1:]
+                is_init_argument = False
+            if key not in init_arguments:
                 is_init_argument = False
 
             if isinstance(value, BaseLearningConfig):

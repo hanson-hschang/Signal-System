@@ -113,25 +113,38 @@ def analysis(
 
     ## Compute the empirical optimal loss
     empirical_optimal_loss = loss_conversion(
-        Utility.compute_optimal_loss(
+        Utility.compute_loss(
             filter.duplicate(number_of_systems),
             observation_trajectory,
+            filter.discrete_observation_dim,
         )
     )
     logger.info(f"empirical optimal loss = {float(empirical_optimal_loss)}")
 
-    ## Compute the average loss of the learning_filter over layers
-    loss_mean_over_layer = loss_conversion(
-        Utility.compute_layer_loss_trajectory(
-            learning_filter=learning_filter,
-            observation_trajectory=observation_trajectory,
+    # Compute the empirical loss of the learning_filter
+    learning_filter.number_of_systems = number_of_systems
+    empirical_learning_filter_loss = loss_conversion(
+        Utility.compute_loss(
+            learning_filter,
+            observation_trajectory,
+            learning_filter.discrete_observation_dim,
         )
     )
-    logger.info(f"empirical average loss (over layers):")
-    for l, loss in enumerate(loss_mean_over_layer):
-        logger.info(f"    layer {l}: {float(loss)}")
+    logger.info(
+        f"empirical loss of learned HMM filter = {float(empirical_learning_filter_loss)}"
+    )
+    # loss_mean_over_layer = loss_conversion(
+    #     Utility.compute_layer_loss_trajectory(
+    #         learning_filter=learning_filter,
+    #         observation_trajectory=observation_trajectory,
+    #     )
+    # )
+    # logger.info(f"empirical average loss (over layers):")
+    # for l, loss in enumerate(loss_mean_over_layer):
+    #     logger.info(f"    layer {l}: {float(loss)}")
 
     ## Compute an example loss trajectory of the filter and learning_filter
+    learning_filter.number_of_systems = 1
     filter_result_trajectory, learning_filter_result_trajectory = (
         Utility.compute_loss_trajectory(
             filter=filter,
@@ -164,13 +177,19 @@ def analysis(
         log_base=loss_conversion.log_base,
         text_offset=(64, -48),
     )
-    for l, loss in enumerate(loss_mean_over_layer):
-        Figure.add_loss_line(
-            loss_figure.loss_plot_ax,
-            loss,
-            f"loss on layer {l}" + ": {:.3f}",
-            log_base=loss_conversion.log_base,
-        )
+    Figure.add_loss_line(
+        loss_figure.loss_plot_ax,
+        empirical_learning_filter_loss,
+        "learning filter loss: {:.3f}\n",
+        log_base=loss_conversion.log_base,
+    )
+    # for l, loss in enumerate(loss_mean_over_layer):
+    #     Figure.add_loss_line(
+    #         loss_figure.loss_plot_ax,
+    #         loss,
+    #         f"loss on layer {l}" + ": {:.3f}",
+    #         log_base=loss_conversion.log_base,
+    #     )
     Figure.update_loss_ylim(
         loss_figure.loss_plot_ax, (empirical_optimal_loss, random_guess_loss)
     )

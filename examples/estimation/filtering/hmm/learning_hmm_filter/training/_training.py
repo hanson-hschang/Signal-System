@@ -4,7 +4,7 @@ from pathlib import Path
 
 import torch
 
-from ss.estimation.filtering.hmm.learning import dataset as Dataset
+from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.estimation.filtering.hmm.learning.module.config import (
     LearningHmmFilterConfig,
@@ -15,9 +15,6 @@ from ss.estimation.filtering.hmm.learning.process import (
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
 from ss.utility.learning.module import BaseLearningModule
-from ss.utility.learning.parameter.probability.config import (
-    ProbabilityParameterConfig,
-)
 from ss.utility.learning.parameter.transformer.softmax import (
     SoftmaxTransformer,
 )
@@ -51,7 +48,7 @@ def training(
         evaluation_loader,
         testing_loader,
     ) = (
-        Dataset.HmmObservationDataset(
+        HmmObservationDataset(
             observation=observation,
             number_of_systems=number_of_systems,
             max_length=256,
@@ -73,7 +70,6 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        probability_option=ProbabilityParameterConfig.Option.SOFTMAX,
     )
 
     # Prepare module

@@ -15,6 +15,8 @@ from ss.utility.learning.parameter.transformer.softmax.config import (
 )
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
+from ss.utility.random.sampler import Sampler
+from ss.utility.random.sampler.config import SamplerConfig
 
 logger = Logging.get_logger(__name__)
 
@@ -56,11 +58,19 @@ def inference(
         },
     )
 
-    learning_filter.config.prediction.option = (
-        learning_filter.config.prediction.Option.TOP_P
-    )
-    learning_filter.config.prediction.probability_threshold = 0.9
-    learning_filter.config.prediction.temperature = 0.5
+    # Set the sampler configuration
+    sampler_config = SamplerConfig(temperature=0.5)
+    sampler_config.option = SamplerConfig.Option.TOP_P
+    sampler_config.probability_threshold = 0.9
+
+    # Prepare the sampler
+    sampler = Sampler(sampler_config)
+
+    # learning_filter.config.prediction.option = (
+    #     learning_filter.config.prediction.Option.TOP_P
+    # )
+    # learning_filter.config.prediction.probability_threshold = 0.9
+    # learning_filter.config.prediction.temperature = 0.5
 
     # Inference
     given_time_horizon = 15
@@ -81,6 +91,7 @@ def inference(
         ).repeat(number_of_samples, 1)
     )
 
+    learning_filter.number_of_systems = number_of_samples
     with BaseLearningProcess.inference_mode(learning_filter):
         learning_filter.update(_observation_trajectory)
 
@@ -92,8 +103,10 @@ def inference(
             f"Inferring {number_of_samples} samples of sequence of the next {future_time_steps} predictions based on the given observation: "
         )
         for k in logger.progress_bar(range(future_time_steps)):
-            predicted_next_observation = learning_filter.predict()
-            predicted_next_observation_trajectory[:, :, k] = (
+            predicted_next_observation = torch.from_numpy(
+                sampler.sample(learning_filter.estimate().detach().numpy())
+            ).to(dtype=predicted_next_observation_trajectory.dtype)
+            predicted_next_observation_trajectory[:, 0, k] = (
                 predicted_next_observation
             )
             learning_filter.update(predicted_next_observation)

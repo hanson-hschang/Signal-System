@@ -77,6 +77,7 @@ class Parameter(BaseLearningModule[PC], Generic[PC]):
         #     return
         # parameter_1 = parameter_2
 
+    @torch.compile
     def forward(self) -> torch.Tensor:
         value: torch.Tensor = self._dropout(self._pytorch_parameter)
         return value

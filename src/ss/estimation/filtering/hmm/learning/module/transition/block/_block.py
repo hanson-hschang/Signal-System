@@ -2,7 +2,14 @@ from typing import Generic, Self, Tuple, TypeVar, assert_never
 
 import torch
 
-from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.filter.config import (
+    FilterConfig,
+)
+
+# from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.transition.block.config import (
+    TransitionBlockConfig,
+)
 from ss.estimation.filtering.hmm.learning.module.transition.step import (
     TransitionStepMixin,
 )
@@ -27,20 +34,22 @@ logger = Logging.get_logger(__name__)
 
 class BaseTransitionBlock(
     TransitionStepMixin[T, TC],
-    BaseLearningModule[Config.TransitionBlockConfig[TC]],
+    BaseLearningModule[TransitionBlockConfig[TC]],
     Generic[T, TC],
 ):
     def __init__(
         self,
-        config: Config.TransitionBlockConfig[TC],
-        filter_config: Config.FilterConfig,
+        config: TransitionBlockConfig[TC],
+        filter_config: FilterConfig,
         block_id: int,
     ) -> None:
         super().__init__(
             config=config,
-            initial_state_config=config.initial_state,
-            state_dim=filter_config.state_dim,
-            skip_first_transition=config.skip_first_transition,
+            step_config=config.step,
+            filter_config=filter_config,
+            # initial_state_config=config.initial_state,
+            # state_dim=filter_config.state_dim,
+            # skip_first_transition=config.skip_first_transition,
         )
         self._id = block_id
         # self._state_dim = filter_config.state_dim
@@ -208,22 +217,22 @@ class BaseTransitionBlock(
     @classmethod
     def create(
         cls,
-        config: Config.TransitionBlockConfig,
-        filter_config: Config.FilterConfig,
+        config: TransitionBlockConfig,
+        filter_config: FilterConfig,
         block_id: int,
     ) -> "BaseTransitionBlock[T, TC]":
         match config.option:
-            case Config.TransitionBlockConfig.Option.FULL_MATRIX:
+            case TransitionBlockConfig.Option.FULL_MATRIX:
                 return TransitionFullMatrix[T, TC](
                     config, filter_config, block_id
                 )
-            case Config.TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX:
+            case TransitionBlockConfig.Option.SPATIAL_INVARIANT_MATRIX:
                 return TransitionSpatialInvariantMatrix[T, TC](
                     config,
                     filter_config,
                     block_id,
                 )
-            case Config.TransitionBlockConfig.Option.IID:
+            case TransitionBlockConfig.Option.IID:
                 return TransitionIID[T, TC](config, filter_config, block_id)
             case _ as _invalid_block_option:
                 assert_never(_invalid_block_option)
@@ -232,8 +241,8 @@ class BaseTransitionBlock(
 class TransitionFullMatrix(BaseTransitionBlock[T, TC], Generic[T, TC]):
     def __init__(
         self,
-        config: Config.TransitionBlockConfig[TC],
-        filter_config: Config.FilterConfig,
+        config: TransitionBlockConfig[TC],
+        filter_config: FilterConfig,
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)
@@ -257,8 +266,8 @@ class TransitionSpatialInvariantMatrix(
 ):
     def __init__(
         self,
-        config: Config.TransitionBlockConfig,
-        filter_config: Config.FilterConfig,
+        config: TransitionBlockConfig,
+        filter_config: FilterConfig,
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)
@@ -303,8 +312,8 @@ class TransitionSpatialInvariantMatrix(
 class TransitionIID(BaseTransitionBlock[T, TC], Generic[T, TC]):
     def __init__(
         self,
-        config: Config.TransitionBlockConfig,
-        filter_config: Config.FilterConfig,
+        config: TransitionBlockConfig,
+        filter_config: FilterConfig,
         block_id: int,
     ) -> None:
         super().__init__(config, filter_config, block_id)

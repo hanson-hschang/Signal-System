@@ -43,6 +43,7 @@ class ManifoldParameter(Parameter[MPC], Generic[T, MPC]):
         ):
             self._transformer.bind_with(cast(T, parameter.transformer))
 
+    @torch.compile
     def forward(self) -> torch.Tensor:
         return self._transformer.forward(super().forward())
 

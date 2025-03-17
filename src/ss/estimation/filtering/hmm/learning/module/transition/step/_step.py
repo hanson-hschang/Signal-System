@@ -1,40 +1,38 @@
-from typing import Any, Generic, Tuple, TypeVar
+from typing import Any, Generic, Tuple
 
 import torch
 import torch.nn as nn
 
-from ss.estimation.filtering.hmm.learning.module import config as Config
-from ss.utility.learning.parameter.probability import ProbabilityParameter
-from ss.utility.learning.parameter.probability.config import (
-    ProbabilityParameterConfig,
+from ss.estimation.filtering.hmm.learning.module.filter.config import (
+    FilterConfig,
 )
+from ss.estimation.filtering.hmm.learning.module.transition.step.config import (
+    TransitionStepConfig,
+)
+from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.learning.parameter.transformer import T
 from ss.utility.learning.parameter.transformer.config import TC
-from ss.utility.learning.parameter.transformer.softmax import (
-    SoftmaxTransformer,
-)
-
-# TC = TypeVar("TC", bound=TransformerConfig)
-# T = TypeVar("T", bound=Transformer)
 
 
 class TransitionStepMixin(nn.Module, Generic[T, TC]):
     def __init__(
         self,
-        initial_state_config: Config.TransitionInitialStateConfig[TC],
-        state_dim: int,
-        skip_first_transition: bool,
+        step_config: TransitionStepConfig[TC],
+        filter_config: FilterConfig,
+        # initial_state_config: Config.TransitionInitialStateConfig[TC],
+        # state_dim: int,
+        # skip_first_transition: bool,
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        self._state_dim = state_dim
-        self._skip_first_transition = skip_first_transition
+        self._state_dim = filter_config.state_dim
+        self._skip_first = step_config.skip_first
 
         self._initial_state: ProbabilityParameter[
             T, TC
         ] = ProbabilityParameter[T, TC](
-            initial_state_config.probability_parameter,
-            (state_dim,),
+            step_config.initial_state.probability_parameter,
+            (self._state_dim,),
         )
 
         self._is_initialized = False
@@ -91,6 +89,7 @@ class TransitionStepMixin(nn.Module, Generic[T, TC]):
         self._get_internal_estimated_state()
         self._is_initialized = False
 
+    @torch.compile
     def _prediction(
         self,
         estimated_state: torch.Tensor,
@@ -99,6 +98,7 @@ class TransitionStepMixin(nn.Module, Generic[T, TC]):
         predicted_next_state = torch.matmul(estimated_state, transition_matrix)
         return predicted_next_state
 
+    @torch.compile
     def _update(
         self,
         prior_state: torch.Tensor,
@@ -112,6 +112,7 @@ class TransitionStepMixin(nn.Module, Generic[T, TC]):
         )  # (batch_size, state_dim)
         return posterior_state
 
+    @torch.compile
     def _first_prediction(
         self,
         estimated_state: torch.Tensor,
@@ -119,7 +120,7 @@ class TransitionStepMixin(nn.Module, Generic[T, TC]):
     ) -> torch.Tensor:
         predicted_next_state = (
             estimated_state
-            if self._skip_first_transition
+            if self._skip_first
             else self._prediction(estimated_state, transition_matrix)
         )  # (batch_size, state_dim)
         return predicted_next_state
@@ -140,9 +141,7 @@ class TransitionStepMixin(nn.Module, Generic[T, TC]):
         self, estimated_state: torch.Tensor, predicted_next_state: torch.Tensor
     ) -> None:
         self._estimated_state = (
-            predicted_next_state
-            if self._skip_first_transition
-            else estimated_state
+            predicted_next_state if self._skip_first else estimated_state
         )
 
     def process(
@@ -151,12 +150,12 @@ class TransitionStepMixin(nn.Module, Generic[T, TC]):
         batch_size, horizon, _ = likelihood_state_trajectory.shape
         # (batch_size, horizon, state_dim)
 
-        estimated_state_trajectory = torch.zeros(
+        estimated_state_trajectory = torch.empty(
             (batch_size, horizon, self._state_dim),
             device=likelihood_state_trajectory.device,
         )
 
-        predicted_next_state_trajectory = torch.zeros(
+        predicted_next_state_trajectory = torch.empty(
             (batch_size, horizon, self._state_dim),
             device=likelihood_state_trajectory.device,
         )

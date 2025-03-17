@@ -1,7 +1,25 @@
-from typing import Callable, Generic, Optional, Self, Tuple, TypeVar, cast
+from typing import Callable, Generic, Tuple, cast
 
 from dataclasses import dataclass, field
 
+from ss.estimation.filtering.hmm.learning.module.emission.config import (
+    EmissionConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.estimation.config import (
+    EstimationConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.filter.config import (
+    FilterConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.block.config import (
+    TransitionBlockConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.config import (
+    TransitionConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.layer.config import (
+    TransitionLayerConfig,
+)
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.module.config import BaseLearningConfig
@@ -9,25 +27,17 @@ from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
 from ss.utility.learning.parameter.transformer.config import TC
-from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
-    MinZeroNormTransformerConfig,
-)
-
-# from ss.utility.learning.parameter.transformer.softmax.config import SoftmaxTC, SoftmaxTransformerConfig
-from ss.utility.learning.parameter.transformer.softmax.linear.config import (
-    LinearSoftmaxTransformerConfig,
-)
 from ss.utility.logging import Logging
 
-from ._config_emission import EmissionProcessConfig
-from ._config_estimation import EstimationConfig
-from ._config_filter import FilterConfig
-from ._config_prediction import PredictionConfig
-from ._config_transition import (
-    TransitionBlockConfig,
-    TransitionLayerConfig,
-    TransitionProcessConfig,
-)
+# from ._config_emission import EmissionProcessConfig
+# from ._config_estimation import EstimationConfig
+# from ._config_filter import FilterConfig
+# from ._config_prediction import PredictionConfig
+# from ._config_transition import (
+#     TransitionBlockConfig,
+#     TransitionLayerConfig,
+#     TransitionProcessConfig,
+# )
 
 logger = Logging.get_logger(__name__)
 
@@ -42,68 +52,36 @@ class FilterDescriptor(DataclassDescriptor[FilterConfig]):
         super().__set__(obj, value)
 
 
-class TransitionDescriptor(
-    DataclassDescriptor[TransitionProcessConfig[TC]],
-    Generic[TC],
-):
-    # def __init__(self, value: Optional[TransitionProcessConfig[TC_SOFTMAX]] = None):
-    #     if value is None:
-    #         value = TransitionProcessConfig[TC_SOFTMAX]()
-    #     super().__init__(value)
-
-    def __set__(
-        self,
-        obj: object,
-        value: TransitionProcessConfig[TC],
-    ) -> None:
-        assert isinstance(value, TransitionProcessConfig)
-        super().__set__(obj, value)
-
-
-class EmissionDescriptor(
-    DataclassDescriptor[EmissionProcessConfig[TC]], Generic[TC]
-):
-    def __set__(
-        self,
-        obj: object,
-        value: EmissionProcessConfig[TC],
-    ) -> None:
-        assert isinstance(value, EmissionProcessConfig)
-        super().__set__(obj, value)
-
-
 @dataclass
 class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC]):
     """
     Configuration of the `LearningHmmFilter` class.
     """
 
-    filter: FilterDescriptor = FilterDescriptor(
-        field(default_factory=lambda: FilterConfig())
-    )
-    transition: TransitionDescriptor[TC] = TransitionDescriptor[TC](
-        field(
-            default_factory=cast(
-                Callable[[], TransitionProcessConfig[TC]],
-                TransitionProcessConfig[TC],
-            )
+    filter: FilterConfig = field(
+        default_factory=cast(
+            Callable[[], FilterConfig],
+            FilterConfig,
         )
     )
-    emission: EmissionDescriptor[TC] = EmissionDescriptor[TC](
-        field(default_factory=lambda: EmissionProcessConfig[TC]())
+    transition: TransitionConfig[TC] = field(
+        default_factory=cast(
+            Callable[[], TransitionConfig[TC]],
+            TransitionConfig[TC],
+        )
     )
-    estimation: EstimationConfig = field(
-        default_factory=lambda: EstimationConfig()
+    emission: EmissionConfig[TC] = field(default_factory=EmissionConfig[TC])
+    estimation: EstimationConfig[TC] = field(
+        default_factory=EstimationConfig[TC]
     )
-    prediction: PredictionConfig = field(
-        default_factory=lambda: PredictionConfig()
-    )
+    # prediction: PredictionConfig = field(default_factory=PredictionConfig)
 
     @classmethod
     def basic_config(
         cls,
         state_dim: int,
         discrete_observation_dim: int,
+        estimation_dim: int = 0,
         block_dims: int | Tuple[int, ...] = 1,
         dropout_rate: float = 0.0,
         probability_option: ProbabilityParameterConfig.Option = (
@@ -119,6 +97,8 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC]):
             The dimension of the state.
         discrete_observation_dim : int
             The dimension of the discrete observation.
+        estimation_dim : int
+            The dimension of the estimation.
         block_dims : int | Tuple[int, ...]
             The dimension of blocks for each layer.
             The length of the tuple is the number of layers.
@@ -154,30 +134,40 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC]):
             layers.append(TransitionLayerConfig[TC](blocks=tuple(blocks)))
 
         # Prepare filter configuration
-        filter_config = FilterConfig()
-        filter_config.state_dim = state_dim
-        filter_config.discrete_observation_dim = discrete_observation_dim
+        filter_config = FilterConfig(
+            state_dim=state_dim,
+            discrete_observation_dim=discrete_observation_dim,
+            estimation_dim=estimation_dim,
+        )
 
         # Prepare module configuration
         config = cls(
             filter=filter_config,
-            transition=TransitionProcessConfig[TC](layers=tuple(layers)),
-            emission=EmissionProcessConfig[TC](),
+            transition=TransitionConfig[TC](layers=tuple(layers)),
         )
+
+        # Update estimation configuration
+        if estimation_dim > 0:
+            config.estimation.option = (
+                EstimationConfig.Option.LINEAR_TRANSFORM_PREDICTION
+            )
 
         # Update probability parameter configuration
         config.emission.block.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.estimation.matrix.probability_parameter = (
             ProbabilityParameterConfig[TC].from_option(probability_option)
         )
         for layer in config.transition.layers:
             layer.coefficient.probability_parameter = (
                 ProbabilityParameterConfig[TC].from_option(probability_option)
             )
-            layer.initial_state.probability_parameter = (
+            layer.step.initial_state.probability_parameter = (
                 ProbabilityParameterConfig[TC].from_option(probability_option)
             )
             for block in layer.blocks:
-                block.initial_state.probability_parameter = (
+                block.step.initial_state.probability_parameter = (
                     ProbabilityParameterConfig[TC].from_option(
                         probability_option
                     )
@@ -192,13 +182,16 @@ class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC]):
         config.emission.block.matrix.probability_parameter.dropout.rate = (
             dropout_rate
         )
+        config.estimation.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
         for layer in config.transition.layers:
             layer.coefficient.probability_parameter.dropout.rate = dropout_rate
-            layer.initial_state.probability_parameter.dropout.rate = (
+            layer.step.initial_state.probability_parameter.dropout.rate = (
                 dropout_rate
             )
             for block in layer.blocks:
-                block.initial_state.probability_parameter.dropout.rate = (
+                block.step.initial_state.probability_parameter.dropout.rate = (
                     dropout_rate
                 )
                 block.matrix.probability_parameter.dropout.rate = dropout_rate

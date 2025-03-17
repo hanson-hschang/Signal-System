@@ -1,1 +1,1 @@
-from ._emission import EmissionProcess
+from ._emission import EmissionModule

@@ -54,6 +54,7 @@ class SoftmaxTransformer(
     def bind_with(self, transformer: Self) -> None:
         self._temperature.bind_with(transformer.temperature_parameter)
 
+    @torch.compile
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
         return torch.nn.functional.softmax(
             parameter / self._temperature(), dim=-1

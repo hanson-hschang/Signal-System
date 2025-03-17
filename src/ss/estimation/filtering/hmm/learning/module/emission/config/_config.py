@@ -9,14 +9,12 @@ from ss.utility.learning.parameter.probability.config import (
 )
 from ss.utility.learning.parameter.transformer.config import TC
 
-# TC = TypeVar("TC", bound=TransformerConfig)
-
 
 @dataclass
 class EmissionMatrixConfig(BaseLearningConfig, Generic[TC]):
 
     probability_parameter: ProbabilityParameterConfig[TC] = field(
-        default_factory=lambda: ProbabilityParameterConfig[TC]()
+        default_factory=ProbabilityParameterConfig[TC]
     )
 
 
@@ -28,13 +26,24 @@ class EmissionBlockConfig(BaseLearningConfig, Generic[TC]):
 
     option: Option = Option.FULL_MATRIX
     matrix: EmissionMatrixConfig[TC] = field(
-        default_factory=lambda: EmissionMatrixConfig[TC]()
+        default_factory=EmissionMatrixConfig[TC]
     )
 
 
 @dataclass
-class EmissionProcessConfig(BaseLearningConfig, Generic[TC]):
+class ObservationConfig(BaseLearningConfig):
+
+    class Option(StrEnum):
+        CATEGORY = auto()
+        PROBABILITY = auto()
+
+    option: Option = Option.CATEGORY
+
+
+@dataclass
+class EmissionConfig(BaseLearningConfig, Generic[TC]):
 
     block: EmissionBlockConfig[TC] = field(
-        default_factory=lambda: EmissionBlockConfig[TC]()
+        default_factory=EmissionBlockConfig[TC]
     )
+    observation: ObservationConfig = field(default_factory=ObservationConfig)
