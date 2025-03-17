@@ -61,10 +61,10 @@ from . import analysis, inference, training
 )
 def main(
     mode: BaseLearningProcess.Mode,
-    data_foldername: Path,
-    data_filename: Path,
-    model_foldername: Optional[Path],
-    model_filename: Path,
+    data_foldername: str,
+    data_filename: str,
+    model_foldername: Optional[str],
+    model_filename: str,
     verbose: bool,
     debug: bool,
     result_directory: Optional[Path],

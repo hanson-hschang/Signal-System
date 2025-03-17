@@ -4,22 +4,22 @@ from pathlib import Path
 
 import torch
 
-from ss.estimation.filtering.hmm.learning import dataset as Dataset
+from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
-from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.config import (
+    LearningHmmFilterConfig,
+)
 from ss.estimation.filtering.hmm.learning.process import (
     LearningHmmFilterProcess,
 )
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
-from ss.utility.learning.parameter.probability.config import (
-    ProbabilityParameterConfig,
+from ss.utility.learning.module import BaseLearningModule
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
 )
-from ss.utility.learning.parameter.transformer.norm.min_zero import (
-    MinZeroNormTransformer,
-)
-from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
-    MinZeroNormTransformerConfig,
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
 )
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.learning.process.config import TrainingConfig
@@ -31,7 +31,7 @@ logger = Logging.get_logger(__name__)
 def training(
     data_filepath: Path,
     model_folderpath: Path,
-    model_filename: Path,
+    model_filename: str,
     result_directory: Path,
     new_training: bool = True,
 ) -> None:
@@ -48,7 +48,7 @@ def training(
         evaluation_loader,
         testing_loader,
     ) = (
-        Dataset.HmmObservationDataset(
+        HmmObservationDataset(
             observation=observation,
             number_of_systems=number_of_systems,
             max_length=256,
@@ -65,7 +65,7 @@ def training(
     )
 
     # Prepare module configuration
-    config = Config.LearningHmmFilterConfig.basic_config(
+    config = LearningHmmFilterConfig[SoftmaxTransformerConfig].basic_config(
         state_dim=int(data.meta_info["discrete_state_dim"]),
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
@@ -73,13 +73,15 @@ def training(
     )
 
     # Prepare module
-    learning_filter = LearningHmmFilter(config)
+    learning_filter = LearningHmmFilter[
+        SoftmaxTransformer, SoftmaxTransformerConfig
+    ](config)
 
     # Define learning process
     class LearningProcess(LearningHmmFilterProcess):
         def __init__(
             self,
-            module: LearningHmmFilter,
+            module: BaseLearningModule,
             loss_function: Callable[..., torch.Tensor],
             optimizer: torch.optim.Optimizer,
             # extra arguments
@@ -146,7 +148,7 @@ def training(
     training_config.checkpoint.filename = model_filename
     training_config.checkpoint.per_epoch_period = 4
     if not new_training:
-        training_config.validation.at_initial = False
+        training_config.validation.initial.skip = True
 
     # Train model
     with device_manager.monitor_performance(

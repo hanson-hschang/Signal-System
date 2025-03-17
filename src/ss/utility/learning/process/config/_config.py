@@ -1,9 +1,10 @@
-from typing import Optional, Protocol, Self
+from typing import Callable, Optional, Protocol, cast
 
 from dataclasses import dataclass, field
 from enum import Enum, Flag, auto
 
 from ss.utility.condition import Condition
+from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.process.checkpoint.config import CheckpointConfig
 from ss.utility.logging import Logging
 
@@ -38,8 +39,24 @@ class TestingConfig:
 
 @dataclass
 class ValidationConfig:
+
+    @dataclass
+    class Initial:
+
+        class SkipDescriptor(DataclassDescriptor[bool]):
+            def __set__(
+                self,
+                obj: object,
+                value: bool,
+            ) -> None:
+                super().__set__(obj, value)
+
+        skip: SkipDescriptor = SkipDescriptor(False)
+
     per_iteration_period: int = 1
-    at_initial: bool = True
+    initial: Initial = field(
+        default_factory=cast(Callable[[], Initial], Initial)
+    )
     max_batch: Optional[int] = None
 
     def __post_init__(self) -> None:
@@ -158,4 +175,6 @@ class TerminationConfig:
 class TrainingConfig:
     termination: TerminationConfig = field(default_factory=TerminationConfig)
     validation: ValidationConfig = field(default_factory=ValidationConfig)
-    checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
+    checkpoint: CheckpointConfig = field(
+        default_factory=cast(Callable[[], CheckpointConfig], CheckpointConfig)
+    )

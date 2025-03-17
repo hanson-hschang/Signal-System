@@ -12,15 +12,13 @@ from ss.utility.learning.parameter.positive.config import (
     PositiveParameterConfig,
 )
 from ss.utility.learning.parameter.transformer.config import TransformerConfig
-from ss.utility.learning.parameter.transformer.exp.config import (
-    ExpTransformerConfig,
-)
+from ss.utility.learning.parameter.transformer.exp.config import ExpTC
 
-TC = TypeVar("TC", bound=TransformerConfig, default=ExpTransformerConfig)
+# TC = TypeVar("TC", bound=TransformerConfig, default=ExpTransformerConfig)
 
 
 @dataclass
-class TemperatureConfig(PositiveParameterConfig[TC], Generic[TC]):
+class TemperatureConfig(PositiveParameterConfig[ExpTC], Generic[ExpTC]):
     initializer: InitializerProtocol = field(
         default_factory=lambda: NormalDistributionInitializer.basic_config(
             mean=0.0, std=0.0
@@ -33,7 +31,7 @@ class TemperatureConfig(PositiveParameterConfig[TC], Generic[TC]):
 
 
 @dataclass
-class SoftmaxTransformerConfig(TransformerConfig):
+class SoftmaxTransformerConfig(TransformerConfig, Generic[ExpTC]):
 
     class LogZeroOffsetDescriptor(DataclassDescriptor[int]):
         def __set__(self, instance: object, value: int) -> None:
@@ -43,8 +41,8 @@ class SoftmaxTransformerConfig(TransformerConfig):
             super().__set__(instance, value)
 
     log_zero_offset: LogZeroOffsetDescriptor = LogZeroOffsetDescriptor(10)
-    temperature: TemperatureConfig = field(
-        default_factory=lambda: cast(TemperatureConfig, TemperatureConfig())
+    temperature: TemperatureConfig[ExpTC] = field(
+        default_factory=lambda: TemperatureConfig[ExpTC]()
     )
     # How to remove the cast above? Does not seem right with it...
     # There is one try shown in the following commented out code. It has no error running but has some trouble loading the module.
@@ -54,3 +52,8 @@ class SoftmaxTransformerConfig(TransformerConfig):
 # @dataclass
 # class SoftmaxTransformerConfig(TransformerConfig, Generic[TC]):
 #     temperature: TemperatureConfig[TC] = field(default_factory=TemperatureConfig[TC])
+
+
+SoftmaxTC = TypeVar(
+    "SoftmaxTC", bound=TransformerConfig, default=SoftmaxTransformerConfig
+)

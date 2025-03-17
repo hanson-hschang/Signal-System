@@ -1,1 +1,1 @@
-from ._softmax import SoftmaxTransformer
+from ._softmax import SoftmaxT, SoftmaxTransformer

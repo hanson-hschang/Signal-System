@@ -34,8 +34,13 @@ logger = Logging.get_logger(__name__)
 
 def initialize_safe_callables() -> None:
     if not serialization.SafeCallables.initialized:
-        serialization.add_subclasses(
+        from ss.utility.learning.parameter.transformer import Transformer
+
+        serialization.add_subclass(
             Config.BaseLearningConfig, "ss"
+        ).to_registered_safe_callables()
+        serialization.add_type_var(
+            Transformer, "ss"
         ).to_registered_safe_callables()
         serialization.add_builtin().to_registered_safe_callables()
         # Uncomment the following line to register numpy types
@@ -56,7 +61,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         ), f"{type(config) = } must be a subclass of {Config.BaseLearningConfig.__name__}"
         self._config = config
         self._inference = not self.training
-        self._device_manager = DeviceManager()
+        # self._device_manager = DeviceManager()
 
     @property
     def config(self) -> Config.BLC:

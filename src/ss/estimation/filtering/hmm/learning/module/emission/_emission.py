@@ -1,44 +1,63 @@
-from typing import Generic, Optional, TypeVar
+from typing import Callable, Generic, assert_never
 
 import torch
+import torch.nn as nn
 
-from ss.estimation.filtering.hmm.learning.module import config as Config
+from ss.estimation.filtering.hmm.learning.module.emission.config import (
+    EmissionConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.filter.config import (
+    FilterConfig,
+)
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
-from ss.utility.learning.parameter.probability.config import (
-    ProbabilityParameterConfig,
-)
-from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.softmax import (
-    SoftmaxTransformer,
-)
-
-T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
+from ss.utility.learning.parameter.transformer import T
+from ss.utility.learning.parameter.transformer.config import TC
+from ss.utility.map import transform
 
 
-class EmissionProcess(
-    BaseLearningModule[Config.EmissionProcessConfig], Generic[T]
-):
+@torch.compile
+def to_probability(
+    estimation_trajectory: torch.Tensor,
+) -> torch.Tensor:
+    return nn.functional.normalize(
+        estimation_trajectory,
+        p=1,
+        dim=-1,
+    )
+
+
+class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
     def __init__(
         self,
-        config: Config.EmissionProcessConfig,
-        filter_config: Config.FilterConfig,
+        config: EmissionConfig[TC],
+        filter_config: FilterConfig,
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
         self._discrete_observation_dim = filter_config.discrete_observation_dim
 
-        self._matrix: ProbabilityParameter[
-            ProbabilityParameterConfig, T
-        ] = ProbabilityParameter[ProbabilityParameterConfig, T](
+        self._matrix = ProbabilityParameter[T, TC](
             self._config.block.matrix.probability_parameter,
             (self._state_dim, self._discrete_observation_dim),
         )
 
+        self._forward: Callable[[torch.Tensor], torch.Tensor]
+        self._init_forward()
+
+    def _init_forward(self) -> None:
+        match self._config.observation.option:
+            case self._config.observation.Option.CATEGORY:
+                self._forward = self._forward_category
+            case self._config.observation.Option.PROBABILITY:
+                self._forward = self._forward_probability
+            case _ as _option:
+                assert_never(_option)
+
     @property
     def matrix_parameter(
         self,
-    ) -> ProbabilityParameter[ProbabilityParameterConfig, T]:
+    ) -> ProbabilityParameter[T, TC]:
         return self._matrix
 
     @property
@@ -50,17 +69,96 @@ class EmissionProcess(
     def matrix(self, matrix: torch.Tensor) -> None:
         self._matrix.set_value(matrix)
 
+    def _forward_category(
+        self,
+        observation_trajectory: torch.Tensor,
+    ) -> torch.Tensor:
+        # observation_trajectory: (batch_size, horizon)
+
+        emission_matrix = self.matrix  # (state_dim, discrete_observation_dim)
+
+        # Get emission based on each observation in the trajectory
+        emission_trajectory = torch.moveaxis(
+            emission_matrix[:, observation_trajectory], 0, 2
+        )  # (batch_size, horizon, state_dim)
+
+        return emission_trajectory
+
+    def _forward_probability(
+        self,
+        observation_trajectory: torch.Tensor,
+    ) -> torch.Tensor:
+        # observation_trajectory: (batch_size, horizon, discrete_observation_dim)
+
+        emission_matrix = self.matrix  # (state_dim, discrete_observation_dim)
+
+        emission_trajectory = torch.matmul(
+            observation_trajectory,  # (batch_size, horizon, discrete_observation_dim)
+            emission_matrix.T,  # (discrete_observation_dim, state_dim)
+        )  # (batch_size, horizon, state_dim)
+
+        return emission_trajectory
+
     def forward(
         self,
-        state_probability_trajectory: torch.Tensor,
-        emission_matrix: Optional[torch.Tensor] = None,
+        observation_trajectory: torch.Tensor,
     ) -> torch.Tensor:
-        if emission_matrix is None:
-            emission_matrix = self.matrix
 
-        observation_probability_trajectory = torch.matmul(
-            state_probability_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
-            emission_matrix,  # (state_dim, discrete_observation_dim)
-        )  # (batch_size, horizon, discrete_observation_dim) or (batch_size, discrete_observation_dim)
+        # shape of observation_trajectory is based on the observation option
+        # if the option is CATEGORY, then the shape is (batch_size, horizon)
+        # if the option is PROBABILITY, then the shape is (batch_size, horizon, discrete_observation_dim)
 
-        return observation_probability_trajectory
+        # emission_trajectory = nn.functional.normalize(
+        #     self._forward(observation_trajectory),
+        #     p=1,
+        #     dim=-1,
+        # )  # (batch_size, horizon, state_dim)
+
+        emission_trajectory = transform(
+            self._forward(observation_trajectory),
+            to_probability,
+        )  # (batch_size, horizon, state_dim)
+
+        return emission_trajectory
+
+    def validate_observation_shape(
+        self, observation: torch.Tensor, number_of_systems: int = 1
+    ) -> torch.Tensor:
+        match self._config.observation.option:
+            case self._config.observation.Option.CATEGORY:
+                if observation.ndim == 0:
+                    observation = observation.unsqueeze(0)  # (horizon=1,)
+                if observation.ndim == 1:
+                    if number_of_systems == 1:
+                        observation = observation.unsqueeze(
+                            0
+                        )  # (batch_size=1, horizon)
+                    else:
+                        observation = observation.unsqueeze(
+                            1
+                        )  # (batch_size, horizon=1)
+                assert observation.ndim == 2, (
+                    f"observation must be in the shape of (batch_size, horizon). "
+                    f"observation given has the shape of {observation.shape}."
+                )
+            case self._config.observation.Option.PROBABILITY:
+                if observation.ndim == 1:
+                    observation = observation.unsqueeze(
+                        0
+                    )  # (horizon=1, discrete_observation_dim)
+                if observation.ndim == 2:
+                    if number_of_systems == 1:
+                        observation = observation.unsqueeze(
+                            0
+                        )  # (batch_size=1, horizon, discrete_observation_dim)
+                    else:
+                        observation = observation.unsqueeze(
+                            1
+                        )  # (batch_size, horizon=1, discrete_observation_dim)
+                assert observation.ndim == 3, (
+                    f"observation must be in the shape of (batch_size, horizon, discrete_observation_dim). "
+                    f"observation given has the shape of {observation.shape}."
+                )
+            case _ as _option:
+                assert_never(_option)
+        return observation

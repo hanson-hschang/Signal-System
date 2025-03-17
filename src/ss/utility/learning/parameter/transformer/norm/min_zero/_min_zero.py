@@ -1,19 +1,19 @@
-from typing import Self, Tuple
+from typing import Self, Tuple, TypeVar
 
 import torch
 
 from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.norm.min_zero import (
-    config as Config,
+from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
+    MinZeroNormTransformerConfig,
 )
 
 
 class MinZeroNormTransformer(
-    Transformer[Config.MinZeroNormTransformerConfig],
+    Transformer[MinZeroNormTransformerConfig],
 ):
     def __init__(
         self,
-        config: Config.MinZeroNormTransformerConfig,
+        config: MinZeroNormTransformerConfig,
         shape: Tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
@@ -45,3 +45,8 @@ class MinZeroNormTransformer(
                 f"value must be normalized with order = {self._order}."
             )
         return value
+
+
+MinZeroNormT = TypeVar(
+    "MinZeroNormT", bound=Transformer, default=MinZeroNormTransformer
+)

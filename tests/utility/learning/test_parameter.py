@@ -132,9 +132,11 @@ class TestParameter:
     def test_parameter_set_value(self, simple_module: SimpleModule) -> None:
         simple_module.parameter_1 = torch.full((3, 4), 1.0)
         simple_module.parameter_2 = torch.full((4, 4), 2.0)
-        with simple_module.evaluation_mode():
-            parameter_1: torch.Tensor = simple_module.parameter_1
-            parameter_2: torch.Tensor = simple_module.parameter_2
+
+        with torch.compiler.set_stance("force_eager"):
+            with simple_module.evaluation_mode():
+                parameter_1: torch.Tensor = simple_module.parameter_1
+                parameter_2: torch.Tensor = simple_module.parameter_2
         assert np.allclose(parameter_1.detach().numpy(), np.full((3, 4), 1.0))
         assert np.allclose(parameter_2.detach().numpy(), np.full((4, 4), 2.0))
 
@@ -144,9 +146,11 @@ class TestParameter:
         )
         simple_module.parameter_3 = torch.full((3, 4), 1.0)
         simple_module.parameter_2 = torch.eye(4)
-        with simple_module.evaluation_mode():
-            parameter_1: torch.Tensor = simple_module.parameter_1
-            result: torch.Tensor = simple_module()
+
+        with torch.compiler.set_stance("force_eager"):
+            with simple_module.evaluation_mode():
+                parameter_1: torch.Tensor = simple_module.parameter_1
+                result: torch.Tensor = simple_module()
         assert np.allclose(parameter_1.detach().numpy(), np.full((3, 4), 1.0))
         assert np.allclose(result.detach().numpy(), np.full((3, 4), 2.0))
 
@@ -172,17 +176,16 @@ class ComplexConfig(Config.BaseLearningConfig):
 class ComplexModule(BaseLearningModule[ComplexConfig]):
     def __init__(self, config: ComplexConfig) -> None:
         super().__init__(config)
-        self._number = Parameter[ParameterConfig](self._config.number, (3, 4))
-        self._positive_number = PositiveParameter[PositiveParameterConfig](
+        self._number: Parameter = Parameter(self._config.number, (3, 4))
+        self._positive_number: PositiveParameter = PositiveParameter(
             self._config.positive_number, (3, 4)
         )
-        self._probability_1 = ProbabilityParameter[ProbabilityParameterConfig](
+        self._probability_1: ProbabilityParameter = ProbabilityParameter(
             self._config.probability_1, (3, 4)
         )
-        self._probability_2 = ProbabilityParameter[
-            ProbabilityParameterConfig[MinZeroNormTransformerConfig],
-            MinZeroNormTransformer,
-        ](self._config.probability_2, (3, 4))
+        self._probability_2: ProbabilityParameter = ProbabilityParameter(
+            self._config.probability_2, (3, 4)
+        )
 
     @property
     def number(self) -> torch.Tensor:
@@ -228,10 +231,7 @@ class ComplexModule(BaseLearningModule[ComplexConfig]):
     @property
     def probability_2_parameter(
         self,
-    ) -> ProbabilityParameter[
-        ProbabilityParameterConfig[MinZeroNormTransformerConfig],
-        MinZeroNormTransformer,
-    ]:
+    ) -> ProbabilityParameter:
         return self._probability_2
 
     @property
@@ -269,10 +269,12 @@ class TestManifoldParameter:
         self, complex_config: ComplexConfig
     ) -> None:
         complex_module = ComplexModule(complex_config)
-        with complex_module.evaluation_mode():
-            positive_number = complex_module.positive_number
-            probability_1 = complex_module.probability_1
-            probability_2 = complex_module.probability_2
+
+        with torch.compiler.set_stance("force_eager"):
+            with complex_module.evaluation_mode():
+                positive_number = complex_module.positive_number
+                probability_1 = complex_module.probability_1
+                probability_2 = complex_module.probability_2
         assert positive_number.min() >= 0.0
         assert probability_1.min() >= 0.0
         assert probability_1.max() <= 1.0
@@ -287,11 +289,13 @@ class TestManifoldParameter:
 
     def test_parameter_shape(self, complex_module: ComplexModule) -> None:
 
-        number = complex_module.number
-        positive_number = complex_module.positive_number
-        probability_1 = complex_module.probability_1
-        probability_2 = complex_module.probability_2
-        result: torch.Tensor = complex_module()
+        with torch.compiler.set_stance("force_eager"):
+            with complex_module.evaluation_mode():
+                number = complex_module.number
+                positive_number = complex_module.positive_number
+                probability_1 = complex_module.probability_1
+                probability_2 = complex_module.probability_2
+                result: torch.Tensor = complex_module()
         assert number.shape == (3, 4)
         assert positive_number.shape == (3, 4)
         assert probability_1.shape == (3, 4)
@@ -302,10 +306,12 @@ class TestManifoldParameter:
         complex_module.positive_number = torch.full((3, 4), 5.0)
         complex_module.probability_1 = torch.full((3, 4), 0.25)
         complex_module.probability_2 = torch.full((3, 4), 0.25)
-        with complex_module.evaluation_mode():
-            positive_number = complex_module.positive_number
-            probability_1 = complex_module.probability_1
-            probability_2 = complex_module.probability_2
+
+        with torch.compiler.set_stance("force_eager"):
+            with complex_module.evaluation_mode():
+                positive_number = complex_module.positive_number
+                probability_1 = complex_module.probability_1
+                probability_2 = complex_module.probability_2
         assert np.allclose(
             positive_number.detach().numpy(), np.full((3, 4), 5.0)
         )
@@ -326,9 +332,11 @@ class TestManifoldParameter:
             complex_module.positive_number_parameter,
         )
         complex_module.positive_number = torch.full((3, 4), torch.e)
-        with complex_module.evaluation_mode():
-            probability_1 = complex_module.probability_1
-            probability_2 = complex_module.probability_2
+
+        with torch.compiler.set_stance("force_eager"):
+            with complex_module.evaluation_mode():
+                probability_1 = complex_module.probability_1
+                probability_2 = complex_module.probability_2
         assert np.allclose(
             probability_1.detach().numpy(), np.full((3, 4), 0.25)
         )

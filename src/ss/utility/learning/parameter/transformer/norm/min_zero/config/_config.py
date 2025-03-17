@@ -1,3 +1,5 @@
+from typing import Final, TypeVar
+
 from dataclasses import dataclass
 
 from ss.utility.assertion.validator import (
@@ -45,3 +47,10 @@ class MinZeroNormTransformerConfig(TransformerConfig):
     order: OrderDescriptor = OrderDescriptor(1)
     even_power: EvenPowerDescriptor = EvenPowerDescriptor(2)
     epsilon: EpsilonDescriptor = EpsilonDescriptor(1e-8)
+
+
+MinZeroNormTC = TypeVar(
+    "MinZeroNormTC",
+    bound=TransformerConfig,
+    default=MinZeroNormTransformerConfig,
+)

@@ -1,1 +1,1 @@
-from ._config import TransformerConfig
+from ._config import TC, TransformerConfig

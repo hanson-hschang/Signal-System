@@ -1,19 +1,36 @@
-from typing import Generic, TypeVar, cast
+from typing import Generic, Tuple, TypeVar, cast
 
 from ss.utility.learning.parameter.manifold import ManifoldParameter
-from ss.utility.learning.parameter.positive import config as Config
-from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.exp import ExpTransformer
-
-C = TypeVar(
-    "C",
-    bound=Config.PositiveParameterConfig,
-    default=Config.PositiveParameterConfig,
+from ss.utility.learning.parameter.positive.config import (
+    PositiveParameterConfig,
 )
-T = TypeVar("T", bound=Transformer, default=ExpTransformer)
+from ss.utility.learning.parameter.transformer import T, Transformer
+from ss.utility.learning.parameter.transformer.config import TC
+from ss.utility.learning.parameter.transformer.exp import ExpTransformer
+from ss.utility.learning.parameter.transformer.exp.config import (
+    ExpTransformerConfig,
+)
+
+# TC = TypeVar("TC", bound=TransformerConfig)
+# T = TypeVar("T", bound=Transformer)
 
 
-class PositiveParameter(ManifoldParameter[C, T], Generic[C, T]):
+class PositiveParameter(
+    ManifoldParameter[T, PositiveParameterConfig[TC]], Generic[T, TC]
+):
+
+    def __init__(
+        self, config: PositiveParameterConfig[TC], shape: Tuple[int, ...]
+    ) -> None:
+        super().__init__(config, shape)
 
     def _init_transformer(self) -> T:
-        return cast(T, ExpTransformer(self._config.transformer, self._shape))
+        transformer: Transformer
+        if isinstance(self._config.transformer, ExpTransformerConfig):
+            transformer = ExpTransformer(self._config.transformer, self._shape)
+        else:
+            raise ValueError(
+                f"Unknown transformer config: {self._config.transformer}"
+            )
+        return cast(T, transformer)
+        # return cast(T, ExpTransformer(self._config.transformer, self._shape))

@@ -4,21 +4,24 @@ import torch
 import torch.nn as nn
 
 from ss.utility.learning.parameter import Parameter
-from ss.utility.learning.parameter.manifold import config as Config
-from ss.utility.learning.parameter.transformer import Transformer
+from ss.utility.learning.parameter.manifold.config import (
+    ManifoldParameterConfig,
+)
+from ss.utility.learning.parameter.transformer import T
+from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
 
-C = TypeVar("C", bound=Config.ManifoldParameterConfig)
-T = TypeVar("T", bound=Transformer, default=Transformer)
+MPC = TypeVar("MPC", bound=ManifoldParameterConfig)
+# T = TypeVar("T", bound=Transformer)
 
 
-class ManifoldParameter(Parameter[C], Generic[C, T]):
+class ManifoldParameter(Parameter[MPC], Generic[T, MPC]):
     def __init__(
         self,
-        config: C,
+        config: MPC,
         shape: Tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
@@ -40,6 +43,7 @@ class ManifoldParameter(Parameter[C], Generic[C, T]):
         ):
             self._transformer.bind_with(cast(T, parameter.transformer))
 
+    @torch.compile
     def forward(self) -> torch.Tensor:
         return self._transformer.forward(super().forward())
 

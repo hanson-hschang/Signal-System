@@ -12,9 +12,9 @@ class Memory:
     percent: float
     used: int
     free: int
-    active: int
-    inactive: int
-    wired: int
+    # active: int
+    # inactive: int
+    # wired: int
 
 
 class CpuPerformance(Performance):
@@ -62,7 +62,7 @@ class CpuPerformance(Performance):
             percent=memory.percent,
             used=memory.used,
             free=memory.free,
-            active=memory.active,
-            inactive=memory.inactive,
-            wired=memory.wired,
+            # active=memory.active,
+            # inactive=memory.inactive,
+            # wired=memory.wired,
         )

@@ -2,7 +2,10 @@ from typing import Any, Tuple
 
 from dataclasses import dataclass, field
 
-from ss.utility.assertion.validator import PositiveIntegerValidator
+from ss.utility.assertion.validator import (
+    NonnegativeIntegerValidator,
+    PositiveIntegerValidator,
+)
 from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.module import config as Config
 
@@ -28,7 +31,13 @@ class FilterConfig(Config.BaseLearningConfig):
             value = PositiveIntegerValidator(value).get_value()
             super().__set__(instance, value)
 
+    class EstimationDimDescriptor(DataclassDescriptor[int]):
+        def __set__(self, instance: Any, value: int) -> None:
+            value = NonnegativeIntegerValidator(value).get_value()
+            super().__set__(instance, value)
+
     state_dim: StateDimDescriptor = StateDimDescriptor(1)
     discrete_observation_dim: DiscreteObservationDimDescriptor = (
         DiscreteObservationDimDescriptor(1)
     )
+    estimation_dim: EstimationDimDescriptor = EstimationDimDescriptor(0)

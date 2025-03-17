@@ -7,6 +7,7 @@ from numpy.typing import ArrayLike, NDArray
 from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
 from ss.system.markov import HiddenMarkovModel
+from ss.utility.descriptor import ReadOnlyDescriptor
 
 
 class HmmFilter(Filter):
@@ -34,7 +35,10 @@ class HmmFilter(Filter):
             estimation_model=estimation_model,
             number_of_systems=number_of_systems,
         )
+        self._discrete_observation_dim = self._system.discrete_observation_dim
         self.reset()
+
+    discrete_observation_dim = ReadOnlyDescriptor[int]()
 
     def duplicate(self, number_of_systems: int) -> "HmmFilter":
         """

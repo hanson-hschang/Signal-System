@@ -1,30 +1,62 @@
-from typing import Generic, Type, TypeVar, cast
+from typing import Generic, Type, TypeVar, assert_never, cast
 
 from dataclasses import dataclass, field
+from enum import StrEnum, auto
 
 from ss.utility.learning.parameter.manifold.config import (
     ManifoldParameterConfig,
 )
-from ss.utility.learning.parameter.transformer import Transformer
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
-from ss.utility.learning.parameter.transformer.softmax import (
-    SoftmaxTransformer,
-)
-from ss.utility.learning.parameter.transformer.softmax import config as Config
 
-# T = TypeVar("T", bound=Transformer, default=SoftmaxTransformer)
-C = TypeVar(
-    "C",
-    bound=TransformerConfig,
-    # default=Config.SoftmaxTransformerConfig,
+# from ss.utility.learning.parameter.transformer.config import TC as TC_SOFTMAX
+from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
+    MinZeroNormTransformerConfig,
 )
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTC,
+    SoftmaxTransformerConfig,
+)
+from ss.utility.learning.parameter.transformer.softmax.linear.config import (
+    LinearSoftmaxTransformerConfig,
+)
+
+# TC_SOFTMAX = TypeVar("TC_SOFTMAX", bound=TransformerConfig, default=SoftmaxTransformerConfig)
 
 
 @dataclass
-class ProbabilityParameterConfig(ManifoldParameterConfig[C], Generic[C]):
-    # Transformer: Type[T] = field(
-    #     default_factory=lambda: cast(Type[T], SoftmaxTransformer)
-    # )
-    transformer: C = field(
-        default_factory=lambda: cast(C, Config.SoftmaxTransformerConfig())
+class ProbabilityParameterConfig(
+    ManifoldParameterConfig[SoftmaxTC], Generic[SoftmaxTC]
+):
+
+    class Option(StrEnum):
+        SOFTMAX = auto()
+        MIN_ZERO_NORM = auto()
+        LINEAR_SOFTMAX = auto()
+
+    transformer: SoftmaxTC = field(
+        default_factory=lambda: cast(SoftmaxTC, SoftmaxTransformerConfig())
     )
+
+    @classmethod
+    def from_option(
+        cls, option: Option
+    ) -> "ProbabilityParameterConfig[SoftmaxTC]":
+        match option:
+            case cls.Option.SOFTMAX:
+                return cls(
+                    transformer=cast(SoftmaxTC, SoftmaxTransformerConfig())
+                )
+            case cls.Option.MIN_ZERO_NORM:
+                return cls(
+                    transformer=cast(SoftmaxTC, MinZeroNormTransformerConfig())
+                )
+            case cls.Option.LINEAR_SOFTMAX:
+                return cls(
+                    transformer=cast(
+                        SoftmaxTC, LinearSoftmaxTransformerConfig()
+                    )
+                )
+            case _ as _probability_option:
+                assert_never(_probability_option)
+
+    def get_transformer_type(self) -> Type[SoftmaxTC]:
+        return type(self.transformer)

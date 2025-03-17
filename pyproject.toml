@@ -135,6 +135,9 @@ warn_return_any = true
 warn_unreachable = false
 warn_unused_configs = true
 warn_unused_ignores = true
+exclude = [
+    'src/draft/.*\.py$',
+]
 
 [tool.pytest.ini_options]
 norecursedirs = [

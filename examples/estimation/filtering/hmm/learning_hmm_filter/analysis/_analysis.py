@@ -11,6 +11,12 @@ from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 from ss.utility.learning.process.checkpoint import CheckpointInfo
 from ss.utility.logging import Logging
 
@@ -23,7 +29,7 @@ logger = Logging.get_logger(__name__)
 def analysis(
     data_filepath: Path,
     model_folderpath: Path,
-    model_filename: Path,
+    model_filename: str,
     result_directory: Path,
 ) -> None:
     model_filepath = model_folderpath / model_filename
@@ -58,7 +64,9 @@ def analysis(
     module_filename = model_filepath.with_suffix(
         LearningHmmFilter.FILE_EXTENSIONS[0]
     )
-    learning_filter, _ = LearningHmmFilter.load(
+    learning_filter, _ = LearningHmmFilter[
+        SoftmaxTransformer, SoftmaxTransformerConfig
+    ].load(
         module_filename,
         safe_callables={
             torch.nn.functional.cross_entropy,
@@ -105,25 +113,38 @@ def analysis(
 
     ## Compute the empirical optimal loss
     empirical_optimal_loss = loss_conversion(
-        Utility.compute_optimal_loss(
+        Utility.compute_loss(
             filter.duplicate(number_of_systems),
             observation_trajectory,
+            filter.discrete_observation_dim,
         )
     )
     logger.info(f"empirical optimal loss = {float(empirical_optimal_loss)}")
 
-    ## Compute the average loss of the learning_filter over layers
-    loss_mean_over_layer = loss_conversion(
-        Utility.compute_layer_loss_trajectory(
-            learning_filter=learning_filter,
-            observation_trajectory=observation_trajectory,
+    # Compute the empirical loss of the learning_filter
+    learning_filter.number_of_systems = number_of_systems
+    empirical_learning_filter_loss = loss_conversion(
+        Utility.compute_loss(
+            learning_filter,
+            observation_trajectory,
+            learning_filter.discrete_observation_dim,
         )
     )
-    logger.info(f"empirical average loss (over layers):")
-    for l, loss in enumerate(loss_mean_over_layer):
-        logger.info(f"    layer {l}: {float(loss)}")
+    logger.info(
+        f"empirical loss of learned HMM filter = {float(empirical_learning_filter_loss)}"
+    )
+    # loss_mean_over_layer = loss_conversion(
+    #     Utility.compute_layer_loss_trajectory(
+    #         learning_filter=learning_filter,
+    #         observation_trajectory=observation_trajectory,
+    #     )
+    # )
+    # logger.info(f"empirical average loss (over layers):")
+    # for l, loss in enumerate(loss_mean_over_layer):
+    #     logger.info(f"    layer {l}: {float(loss)}")
 
     ## Compute an example loss trajectory of the filter and learning_filter
+    learning_filter.number_of_systems = 1
     filter_result_trajectory, learning_filter_result_trajectory = (
         Utility.compute_loss_trajectory(
             filter=filter,
@@ -156,13 +177,19 @@ def analysis(
         log_base=loss_conversion.log_base,
         text_offset=(64, -48),
     )
-    for l, loss in enumerate(loss_mean_over_layer):
-        Figure.add_loss_line(
-            loss_figure.loss_plot_ax,
-            loss,
-            f"loss on layer {l}" + ": {:.3f}",
-            log_base=loss_conversion.log_base,
-        )
+    Figure.add_loss_line(
+        loss_figure.loss_plot_ax,
+        empirical_learning_filter_loss,
+        "learning filter loss: {:.3f}\n",
+        log_base=loss_conversion.log_base,
+    )
+    # for l, loss in enumerate(loss_mean_over_layer):
+    #     Figure.add_loss_line(
+    #         loss_figure.loss_plot_ax,
+    #         loss,
+    #         f"loss on layer {l}" + ": {:.3f}",
+    #         log_base=loss_conversion.log_base,
+    #     )
     Figure.update_loss_ylim(
         loss_figure.loss_plot_ax, (empirical_optimal_loss, random_guess_loss)
     )

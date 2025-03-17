@@ -7,8 +7,16 @@ from numpy.typing import NDArray
 from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
+from ss.utility.learning.parameter.transformer.softmax import (
+    SoftmaxTransformer,
+)
+from ss.utility.learning.parameter.transformer.softmax.config import (
+    SoftmaxTransformerConfig,
+)
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
+from ss.utility.random.sampler import Sampler
+from ss.utility.random.sampler.config import SamplerConfig
 
 logger = Logging.get_logger(__name__)
 
@@ -16,12 +24,12 @@ logger = Logging.get_logger(__name__)
 def inference(
     data_filepath: Path,
     model_folderpath: Path,
-    model_filename: Path,
+    model_filename: str,
     result_directory: Path,
 ) -> None:
     model_filepath = model_folderpath / model_filename
 
-    DeviceManager()
+    device_manager = DeviceManager()
 
     # Prepare data
     data = Data.load(data_filepath)
@@ -39,7 +47,9 @@ def inference(
     module_filename = model_filepath.with_suffix(
         LearningHmmFilter.FILE_EXTENSIONS[0]
     )
-    learning_filter, _ = LearningHmmFilter.load(
+    learning_filter, _ = LearningHmmFilter[
+        SoftmaxTransformer, SoftmaxTransformerConfig
+    ].load(
         module_filename,
         safe_callables={
             torch.nn.functional.cross_entropy,
@@ -48,44 +58,50 @@ def inference(
         },
     )
 
-    learning_filter.config.prediction.option = (
-        learning_filter.config.prediction.Option.TOP_P
-    )
-    learning_filter.config.prediction.probability_threshold = 0.9
-    learning_filter.config.prediction.temperature = 0.5
+    # Set the sampler configuration
+    sampler_config = SamplerConfig(temperature=0.5)
+    sampler_config.option = SamplerConfig.Option.TOP_P
+    sampler_config.probability_threshold = 0.9
+
+    # Prepare the sampler
+    sampler = Sampler(sampler_config)
 
     # Inference
-    given_time_horizon = 20  # This is like prompt length
-    future_time_steps = 10  # This is like how many next token to predict
-    number_of_samples = 5  # This is like number of answers to generate based on the same prompt (test-time compute)
+    given_time_horizon = 15
+    future_time_steps = 10
+    number_of_samples = 5
 
+    logger.info(
+        f"The sequence of the first {given_time_horizon} observations from the data is: "
+        f"{observation_trajectory[:given_time_horizon]} (given observation)"
+    )
+    logger.info(
+        f"The sequence of the next {future_time_steps} observations from the data is: "
+        f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
+    )
+    torch_int_dtype = torch.int32
+    _observation_trajectory = device_manager.load_data(
+        torch.tensor(
+            observation_trajectory[:given_time_horizon], dtype=torch_int_dtype
+        ).repeat(number_of_samples, 1)
+    )
+
+    learning_filter.number_of_systems = number_of_samples
     with BaseLearningProcess.inference_mode(learning_filter):
-        _observation_trajectory = torch.tensor(
-            observation_trajectory[:given_time_horizon], dtype=torch.int64
-        )
-        logger.info(
-            f"The sequence of the first {given_time_horizon} observations from the data is: "
-            f"{observation_trajectory[:given_time_horizon]} (given observation)"
-        )
-        logger.info(
-            f"The sequence of the next {future_time_steps} observations from the data is: "
-            f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
-        )
-        _observation_trajectory = _observation_trajectory.repeat(
-            number_of_samples, 1
-        )
         learning_filter.update(_observation_trajectory)
 
         predicted_next_observation_trajectory = torch.empty(
-            (number_of_samples, 1, future_time_steps), dtype=torch.int64
+            (number_of_samples, 1, future_time_steps), dtype=torch_int_dtype
         )
         logger.info("")
         logger.info(
             f"Inferring {number_of_samples} samples of sequence of the next {future_time_steps} predictions based on the given observation: "
         )
         for k in logger.progress_bar(range(future_time_steps)):
-            predicted_next_observation = learning_filter.predict()
-            predicted_next_observation_trajectory[:, :, k] = (
+            predicted_next_observation = (
+                sampler.sample(learning_filter.estimate())
+            ).to(dtype=torch_int_dtype)
+            predicted_next_observation_trajectory[:, 0, k] = (
                 predicted_next_observation
             )
             learning_filter.update(predicted_next_observation)
