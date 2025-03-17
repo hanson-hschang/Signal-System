@@ -79,9 +79,10 @@ def inference(
         f"The sequence of the next {future_time_steps} observations from the data is: "
         f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
     )
+    torch_int_dtype = torch.int32
     _observation_trajectory = device_manager.load_data(
         torch.tensor(
-            observation_trajectory[:given_time_horizon], dtype=torch.int64
+            observation_trajectory[:given_time_horizon], dtype=torch_int_dtype
         ).repeat(number_of_samples, 1)
     )
 
@@ -90,16 +91,16 @@ def inference(
         learning_filter.update(_observation_trajectory)
 
         predicted_next_observation_trajectory = torch.empty(
-            (number_of_samples, 1, future_time_steps), dtype=torch.int64
+            (number_of_samples, 1, future_time_steps), dtype=torch_int_dtype
         )
         logger.info("")
         logger.info(
             f"Inferring {number_of_samples} samples of sequence of the next {future_time_steps} predictions based on the given observation: "
         )
         for k in logger.progress_bar(range(future_time_steps)):
-            predicted_next_observation = torch.from_numpy(
-                sampler.sample(learning_filter.estimate().detach().numpy())
-            ).to(dtype=predicted_next_observation_trajectory.dtype)
+            predicted_next_observation = (
+                sampler.sample(learning_filter.estimate())
+            ).to(dtype=torch_int_dtype)
             predicted_next_observation_trajectory[:, 0, k] = (
                 predicted_next_observation
             )

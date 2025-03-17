@@ -407,7 +407,7 @@ class LearningHmmFilter(
             self._filter.estimated_state,  # (batch_size, state_dim)
             self._filter.predicted_state,  # (batch_size, state_dim)
         )
-        return estimation
+        return estimation.detach()
 
     # @torch.inference_mode()
     # def _estimate(self) -> torch.Tensor:

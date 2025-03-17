@@ -16,6 +16,6 @@ class ParameterConfig(BaseLearningConfig):
 
     dropout: DropoutConfig = field(default_factory=lambda: DropoutConfig())
     initializer: InitializerProtocol = field(
-        default_factory=NormalDistributionInitializer
+        default_factory=lambda: NormalDistributionInitializer()
     )
     require_training: bool = True

@@ -24,7 +24,7 @@ class TemperatureDescriptor(DataclassDescriptor[float]):
 class MaxNumberOfChoicesDescriptor(DataclassDescriptor[int, "SamplerConfig"]):
     def _validate_instance(self, instance: "SamplerConfig") -> None:
         if instance.option != SamplerConfig.Option.TOP_K:
-            raise ValueError(
+            raise AttributeError(
                 "option must be TOP_K to access max_number_of_choices."
             )
 
@@ -38,7 +38,7 @@ class ProbabilityThresholdDescriptor(
 ):
     def _validate_instance(self, instance: "SamplerConfig") -> None:
         if instance.option != SamplerConfig.Option.TOP_P:
-            raise ValueError(
+            raise AttributeError(
                 "option must be TOP_P to access probability_threshold."
             )
 
@@ -76,15 +76,15 @@ class SamplerConfig:
 
     def __str__(self) -> str:
         result = f"SamplerConfig(temperature={self.temperature}, option={self.option}"
-
-        # Only include max_number_of_choices if relevant
-        if self.option == SamplerConfig.Option.TOP_K:
-            result += f", max_number_of_choices={self.max_number_of_choices}"
-
-        # Only include probability_threshold if relevant
-        if self.option == SamplerConfig.Option.TOP_P:
-            result += f", probability_threshold={self.probability_threshold}"
-
+        match self.option:
+            case SamplerConfig.Option.TOP_K:
+                result += (
+                    f", max_number_of_choices={self.max_number_of_choices}"
+                )
+            case SamplerConfig.Option.TOP_P:
+                result += (
+                    f", probability_threshold={self.probability_threshold}"
+                )
         result += ")"
         return result
 

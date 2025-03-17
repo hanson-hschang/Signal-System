@@ -121,6 +121,7 @@ def module_info(learning_filter: LearningHmmFilter) -> None:
     logger.info(
         f"    observation dimension: {learning_filter.discrete_observation_dim}"
     )
+    logger.info(f"    estimation dimension: {learning_filter.estimation_dim}")
 
     # layer_dim = learning_filter.layer_dim - 1
     np.set_printoptions(precision=3, suppress=True)
@@ -129,6 +130,21 @@ def module_info(learning_filter: LearningHmmFilter) -> None:
         transition_module_info(learning_filter.transition)
         estimation_module_info(learning_filter.estimation)
 
+    total_parameters = 0
+    trainable_parameters = 0
+    non_trainable_parameters = 0
+    for name, p in learning_filter.named_parameters():
+        number_of_parameters = p.numel()
+        total_parameters += number_of_parameters
+        if p.requires_grad:
+            trainable_parameters += number_of_parameters
+        else:
+            non_trainable_parameters += number_of_parameters
+
+    logger.info(f"total number of parameters: {total_parameters}")
     logger.info(
-        f"total number of parameters: {sum(p.numel() for p in learning_filter.parameters())}"
+        f"    trainable parameters: {trainable_parameters} ({trainable_parameters/total_parameters*100:.2f}%)"
+    )
+    logger.info(
+        f"    non-trainable parameters: {non_trainable_parameters} ({non_trainable_parameters/total_parameters*100:.2f}%)"
     )

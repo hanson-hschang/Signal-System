@@ -1,6 +1,7 @@
-from typing import Callable, Tuple, assert_never
+from typing import Callable, Tuple, TypeVar, assert_never
 
 import numpy as np
+import torch
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
 from scipy.special import softmax
@@ -73,6 +74,9 @@ def top_p(probability: NDArray, p: float) -> NDArray:
     top_p_probability[indices] = probability[indices]
     top_p_probability /= top_p_probability.sum()
     return top_p_probability
+
+
+T = TypeVar("T", NDArray, torch.Tensor)
 
 
 class Sampler:
@@ -176,9 +180,30 @@ class Sampler:
 
         return samples.reshape(sample_shape)
 
-    def sample(self, probability: ArrayLike) -> NDArray:
-        _probability = transform(
-            np.array(probability), self.to_scaled_probability
+    def sample(self, probability: T) -> T:
+        _probability: NDArray
+        match probability:
+            case torch.Tensor():
+                _probability = probability.numpy()
+            case np.ndarray():
+                _probability = probability
+            case tuple() | list():
+                _probability = np.array(probability)
+            case _:
+                raise TypeError(
+                    f"Unsupported type for probability: {type(probability)}"
+                )
+
+        sample = self._sample(
+            transform(_probability, self.to_scaled_probability)
         )
-        sample = self._sample(_probability)
-        return sample
+
+        match probability:
+            case torch.Tensor():
+                return torch.tensor(sample)
+            case np.ndarray():
+                return sample
+            case list():
+                return sample.tolist()
+            case tuple():
+                return tuple(sample.tolist())

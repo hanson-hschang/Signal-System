@@ -19,6 +19,9 @@ from ss.estimation.filtering.hmm.learning.module.transition.step import (
 )
 from ss.utility.descriptor import ReadOnlyDescriptor
 from ss.utility.learning.module import BaseLearningModule, reset_module
+from ss.utility.learning.parameter.initializer.normal_distribution import (
+    NormalDistributionInitializer,
+)
 from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
@@ -107,6 +110,16 @@ class TransitionLayer(
             del self._initial_state
             self._forward = self._forward_unbound_initial_state
 
+        if self._block_dim == 1:
+            self._config.coefficient.probability_parameter.require_training = (
+                False
+            )
+            self._config.coefficient.probability_parameter.initializer = (
+                NormalDistributionInitializer.basic_config(
+                    mean=0.0,
+                    std=0.0,
+                )
+            )
         self._coefficient = ProbabilityParameter[T, TC](
             self._config.coefficient.probability_parameter,
             (
