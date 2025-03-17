@@ -14,10 +14,11 @@ from ss.utility.random.sampler.config import SamplerConfig
 @njit(cache=True)  # type: ignore
 def reshape_probability(probability: NDArray) -> Tuple[NDArray, NDArray]:
     sample_shape = np.array(probability.shape[:-1])
+    number_of_choices = probability.shape[-1]
 
     # Reshape probs to 2D: (batch_size, number_of_choices)
-    batch_size = np.prod(sample_shape) if sample_shape else 1
-    reshaped_probability = probability.reshape(batch_size, -1)
+    batch_size = int(np.prod(sample_shape)) if sample_shape.size > 0 else 1
+    reshaped_probability = probability.reshape(batch_size, number_of_choices)
     return reshaped_probability, sample_shape
 
 
