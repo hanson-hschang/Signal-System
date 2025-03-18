@@ -82,7 +82,8 @@ def main(
         if model_foldername is None
         else path_manager.get_directory(model_foldername)
     )
-    result_directory = path_manager.result_directory
+    if result_directory is None:
+        result_directory = path_manager.result_directory
     match mode:
         case BaseLearningProcess.Mode.TRAINING:
             # model_filepath = model_folderpath / "checkpoints" / model_filename
