@@ -8,6 +8,7 @@ from typing import (
     Type,
     TypeAlias,
     Union,
+    override,
 )
 
 import logging
@@ -76,23 +77,70 @@ class Logger(logging.Logger):
     def indent(self, level: int = 1) -> str:
         return "    " * level
 
-    def error(
+    @override
+    def debug(
         self,
         message: object,
         *args: object,
+        indent_level: int = 0,
         exc_info: Optional[ExcInfoType] = None,
         stack_info: bool = False,
         stacklevel: int = 1,
         extra: Optional[Mapping[str, object]] = None,
     ) -> None:
-        super().error(
-            message,
-            *args,
-            exc_info=exc_info,
-            stack_info=stack_info,
-            stacklevel=stacklevel,
-            extra=extra,
-        )
+        messages = str(message).split("\n")
+        for _message in messages:
+            super().debug(
+                self.indent(indent_level) + _message,
+                *args,
+                exc_info=exc_info,
+                stack_info=stack_info,
+                stacklevel=stacklevel,
+                extra=extra,
+            )
+
+    @override
+    def info(
+        self,
+        message: object,
+        *args: object,
+        indent_level: int = 0,
+        exc_info: Optional[ExcInfoType] = None,
+        stack_info: bool = False,
+        stacklevel: int = 1,
+        extra: Optional[Mapping[str, object]] = None,
+    ) -> None:
+        messages = str(message).split("\n")
+        for _message in messages:
+            super().info(
+                self.indent(indent_level) + _message,
+                *args,
+                exc_info=exc_info,
+                stack_info=stack_info,
+                stacklevel=stacklevel,
+                extra=extra,
+            )
+
+    def error(
+        self,
+        message: object,
+        *args: object,
+        indent_level: int = 0,
+        exc_info: Optional[ExcInfoType] = None,
+        stack_info: bool = False,
+        stacklevel: int = 1,
+        extra: Optional[Mapping[str, object]] = None,
+    ) -> None:
+        messages = str(message).split("\n")
+        for _message in messages:
+            super().error(
+                self.indent(indent_level) + _message,
+                *args,
+                exc_info=exc_info,
+                stack_info=stack_info,
+                stacklevel=stacklevel,
+                extra=extra,
+            )
         raise ValueError(message)
 
 
