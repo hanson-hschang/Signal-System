@@ -185,7 +185,7 @@ class Sampler:
         _probability: NDArray
         match probability:
             case torch.Tensor():
-                _probability = probability.numpy()
+                _probability = probability.cpu().numpy()
             case np.ndarray():
                 _probability = probability
             case tuple() | list():
@@ -201,7 +201,7 @@ class Sampler:
 
         match probability:
             case torch.Tensor():
-                return torch.tensor(sample)
+                return torch.tensor(sample).to(device=probability.device)
             case np.ndarray():
                 return sample
             case list():
