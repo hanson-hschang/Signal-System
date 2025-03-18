@@ -20,5 +20,5 @@ class Initializer(BaseLearningConfig):
         raise NotImplementedError
 
     @classmethod
-    def basic_config(cls: Type[I], **kwargs: Any) -> I:
+    def basic_config(cls: Type[I]) -> I:
         raise NotImplementedError

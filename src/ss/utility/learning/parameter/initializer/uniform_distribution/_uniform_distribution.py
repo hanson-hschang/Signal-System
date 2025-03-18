@@ -48,8 +48,9 @@ class UniformDistributionInitializer(Initializer):
 
     @classmethod
     @override
-    def basic_config(  # type: ignore[override]
+    def basic_config(
         cls: Type["UniformDistributionInitializer"],
+        *,
         min: float = 0.0,
         max: float = 1.0,
     ) -> "UniformDistributionInitializer":

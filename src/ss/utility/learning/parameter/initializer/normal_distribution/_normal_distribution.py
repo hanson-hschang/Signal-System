@@ -50,8 +50,9 @@ class NormalDistributionInitializer(Initializer):
 
     @classmethod
     @override
-    def basic_config(  # type: ignore[override]
+    def basic_config(
         cls: Type["NormalDistributionInitializer"],
+        *,
         mean: float = 0.0,
         std: float = 1.0,
     ) -> "NormalDistributionInitializer":
