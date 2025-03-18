@@ -1,4 +1,4 @@
-from typing import Callable, Generic, List, Tuple, TypeVar, cast
+from typing import Callable, Generic, List, Optional, Tuple, TypeVar, cast
 
 import torch
 from torch import nn
@@ -88,8 +88,58 @@ class TransitionLayer(
         # self._initial_state: ProbabilityParameter
 
         self._forward: Callable[
-            [torch.Tensor], Tuple[torch.Tensor, torch.Tensor]
+            [torch.Tensor, Optional[torch.Tensor]],
+            Tuple[torch.Tensor, torch.Tensor],
         ]
+        self._init_forward()
+        # if self._block_state_binding:
+        #     # self._initial_state = ProbabilityParameter(
+        #     #     self._config.initial_state.probability_parameter,
+        #     #     (self._state_dim,),
+        #     # )
+        #     # self._is_initialized = False
+        #     # self._estimated_state = (
+        #     #     torch.ones(self._state_dim) / self._state_dim
+        #     # ).repeat(
+        #     #     1, 1
+        #     # )  # (batch_size, state_dim)
+        #     for block in self._blocks:
+        #         cast(
+        #             BaseTransitionBlock[T, TC], block
+        #         ).initial_state_parameter.bind_with(self._initial_state)
+        #     self._forward = self._forward_bound_initial_state
+        # else:
+        #     del self._initial_state
+        #     self._forward = self._forward_unbound_initial_state
+
+        # if self._block_dim == 1:
+        #     self._config.coefficient.probability_parameter.require_training = (
+        #         False
+        #     )
+        #     self._config.coefficient.probability_parameter.initializer = (
+        #         NormalDistributionInitializer.basic_config(
+        #             mean=0.0,
+        #             std=0.0,
+        #         )
+        #     )
+        self._update_coefficient_config()
+
+        self._coefficient: ProbabilityParameter[T, TC]
+        self.init_coefficient()
+        # self._coefficient = ProbabilityParameter[T, TC](
+        #     self._config.coefficient.probability_parameter,
+        #     (
+        #         (self._state_dim, self._block_dim)
+        #         if self._block_state_binding
+        #         else (self._block_dim,)
+        #     ),
+        # )
+
+    id = ReadOnlyDescriptor[int]()
+    block_dim = ReadOnlyDescriptor[int]()
+    block_state_binding = ReadOnlyDescriptor[bool]()
+
+    def _init_forward(self) -> None:
         if self._block_state_binding:
             # self._initial_state = ProbabilityParameter(
             #     self._config.initial_state.probability_parameter,
@@ -110,6 +160,7 @@ class TransitionLayer(
             del self._initial_state
             self._forward = self._forward_unbound_initial_state
 
+    def _update_coefficient_config(self) -> None:
         if self._block_dim == 1:
             self._config.coefficient.probability_parameter.require_training = (
                 False
@@ -120,6 +171,8 @@ class TransitionLayer(
                     std=0.0,
                 )
             )
+
+    def init_coefficient(self) -> None:
         self._coefficient = ProbabilityParameter[T, TC](
             self._config.coefficient.probability_parameter,
             (
@@ -128,10 +181,6 @@ class TransitionLayer(
                 else (self._block_dim,)
             ),
         )
-
-    id = ReadOnlyDescriptor[int]()
-    block_dim = ReadOnlyDescriptor[int]()
-    block_state_binding = ReadOnlyDescriptor[bool]()
 
     @property
     def coefficient_parameter(
@@ -147,6 +196,9 @@ class TransitionLayer(
     @coefficient.setter
     def coefficient(self, coefficient: torch.Tensor) -> None:
         self._coefficient.set_value(coefficient)
+
+    def delete_coefficient(self) -> None:
+        del self._coefficient
 
     # @property
     # def initial_state_parameter(self) -> ProbabilityParameter:
@@ -219,7 +271,9 @@ class TransitionLayer(
             )
 
     def _forward_bound_initial_state(
-        self, likelihood_state_trajectory: torch.Tensor
+        self,
+        likelihood_state_trajectory: torch.Tensor,
+        coefficient: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         (
             estimated_state_trajectory,
@@ -232,10 +286,12 @@ class TransitionLayer(
         )
 
     def _forward_unbound_initial_state(
-        self, likelihood_state_trajectory: torch.Tensor
+        self,
+        likelihood_state_trajectory: torch.Tensor,
+        coefficient: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
-        # (1, 1, block_dim)
+        if coefficient is None:
+            coefficient = self.coefficient  # (block_dim,)
 
         estimated_state_trajectory = torch.zeros_like(
             likelihood_state_trajectory,
@@ -259,12 +315,12 @@ class TransitionLayer(
             estimated_state_trajectory = weighted_sum(
                 estimated_state_trajectory,
                 _estimated_state_trajectory,
-                coefficient[:, :, b],
+                coefficient[b],
             )
             predicted_next_state_trajectory = weighted_sum(
                 predicted_next_state_trajectory,
                 _predicted_next_state_trajectory,
-                coefficient[:, :, b],
+                coefficient[b],
             )
 
         return (
@@ -273,13 +329,18 @@ class TransitionLayer(
         )
 
     def forward(
-        self, likelihood_state_trajectory: torch.Tensor
+        self,
+        likelihood_state_trajectory: torch.Tensor,
+        coefficient: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         (
             estimated_state_trajectory,
             predicted_next_state_trajectory,
-        ) = self._forward(likelihood_state_trajectory)
+        ) = self._forward(
+            likelihood_state_trajectory,
+            coefficient,
+        )
         # coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(dim=0)
         # # (1, 1, state_dim, block_dim) or (1, 1, block_dim)
 
