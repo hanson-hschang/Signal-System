@@ -59,9 +59,9 @@ class BaseClickConfig:
     @classmethod
     def options(
         cls: Type[CC], allow_file_overwrite: bool = False
-    ) -> Callable[..., _AnyCallable]:
+    ) -> Callable[[FC], FC]:
 
-        def decorator(func: _AnyCallable) -> _AnyCallable:
+        def decorator(func: FC) -> FC:
 
             # Add the config-filepath option
             if allow_file_overwrite:
@@ -124,7 +124,7 @@ def extract_choices_from_comment(help_text: str) -> Tuple[Optional[List], str]:
 
 def create_option(
     field_name: str, field_type: Type, help_text: str
-) -> Callable[[FC], FC] | Callable[[FC], FC]:
+) -> Callable[[FC], FC]:
     """Create a Click option from a dataclass field."""
     choices, help_text = extract_choices_from_comment(help_text)
 

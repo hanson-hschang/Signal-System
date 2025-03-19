@@ -1,1 +1,1 @@
-from ._config import ClickConfig
+from ._config import UserConfig

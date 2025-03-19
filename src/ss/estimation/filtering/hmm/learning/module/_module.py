@@ -344,7 +344,7 @@ class LearningHmmFilter(
             shape = (batch_size, horizon) or (batch_size, horizon, discrete_observation_dim)
         """
         observation = self._emission.validate_observation_shape(
-            observation, number_of_systems=self._filter.batch_size
+            observation, number_of_systems=self.number_of_systems
         )
 
         # if observation.ndim == 0:

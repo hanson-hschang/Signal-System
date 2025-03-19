@@ -7,7 +7,7 @@ from ss.utility.learning.process import BaseLearningProcess
 
 
 @dataclass
-class ClickConfig(BaseClickConfig):
+class UserConfig(BaseClickConfig):
     mode: BaseLearningProcess.Mode = (
         BaseLearningProcess.Mode.INFERENCE
     )  # The learning process mode [ training | analysis | inference ]

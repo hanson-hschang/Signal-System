@@ -1,4 +1,4 @@
 from .analysis import analysis
-from .config import ClickConfig
+from .config import UserConfig
 from .inference import inference
 from .training import training

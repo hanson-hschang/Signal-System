@@ -7,11 +7,11 @@ import click
 from ss.utility import basic_config
 from ss.utility.learning.process import BaseLearningProcess
 
-from . import ClickConfig, analysis, inference, training
+from . import UserConfig, analysis, inference, training
 
 
 @click.command()
-@ClickConfig.options(allow_file_overwrite=True)
+@UserConfig.options(allow_file_overwrite=True)
 @click.option(
     "--verbose",
     is_flag=True,
@@ -35,7 +35,7 @@ def main(
     **kwargs: Any,
 ) -> None:
 
-    click_config = ClickConfig.load(config_filepath, **kwargs)
+    user_config = UserConfig.load(config_filepath, **kwargs)
 
     path_manager = basic_config(
         __file__,
@@ -45,18 +45,18 @@ def main(
     )
 
     data_filepath = (
-        path_manager.get_directory(click_config.data_foldername)
-        / click_config.data_filename
+        path_manager.get_directory(user_config.data_foldername)
+        / user_config.data_filename
     )
     model_folderpath = (
         path_manager.result_directory
-        if click_config.model_foldername is None
-        else path_manager.get_directory(click_config.model_foldername)
+        if user_config.model_foldername is None
+        else path_manager.get_directory(user_config.model_foldername)
     )
     if result_directory is None:
         result_directory = path_manager.result_directory
-    model_filename = click_config.model_filename
-    match click_config.mode:
+    model_filename = user_config.model_filename
+    match user_config.mode:
         case BaseLearningProcess.Mode.TRAINING:
             # model_filepath = model_folderpath / "checkpoints" / model_filename
             training(
@@ -64,7 +64,7 @@ def main(
                 model_folderpath,
                 model_filename,
                 result_directory,
-                not click_config.continue_training,
+                not user_config.continue_training,
             )
         case BaseLearningProcess.Mode.ANALYSIS:
             # model_filepath = model_folderpath / model_filename

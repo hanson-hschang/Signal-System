@@ -45,7 +45,10 @@ def weighted_sum(
     incoming_tensor: torch.Tensor,
     weight: torch.Tensor,
 ) -> torch.Tensor:
-    return base_tensor + incoming_tensor * weight
+    state_dim = incoming_tensor.shape[-1]
+    return base_tensor + incoming_tensor * weight.unsqueeze(-1).expand(
+        *weight.shape, state_dim
+    )
 
 
 class TransitionLayer(
@@ -291,7 +294,9 @@ class TransitionLayer(
         coefficient: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         if coefficient is None:
-            coefficient = self.coefficient  # (block_dim,)
+            coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(
+                dim=0
+            )  # (1, 1, block_dim,)
 
         estimated_state_trajectory = torch.zeros_like(
             likelihood_state_trajectory,
@@ -315,12 +320,12 @@ class TransitionLayer(
             estimated_state_trajectory = weighted_sum(
                 estimated_state_trajectory,
                 _estimated_state_trajectory,
-                coefficient[b],
+                coefficient[:, :, b],
             )
             predicted_next_state_trajectory = weighted_sum(
                 predicted_next_state_trajectory,
                 _predicted_next_state_trajectory,
-                coefficient[b],
+                coefficient[:, :, b],
             )
 
         return (
