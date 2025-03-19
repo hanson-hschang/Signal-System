@@ -18,6 +18,10 @@ from pathlib import Path
 
 import click
 
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
+
 _AnyCallable = Callable[..., Any]
 FC = TypeVar("FC", bound=Union[_AnyCallable, click.core.Command])
 CC = TypeVar("CC", bound="BaseClickConfig")
@@ -25,6 +29,9 @@ CC = TypeVar("CC", bound="BaseClickConfig")
 
 @dataclass
 class BaseClickConfig:
+
+    def __str__(self) -> str:
+        return json.dumps(self.__dict__, indent=len(logger.indent()))
 
     @classmethod
     def load(
@@ -104,7 +111,7 @@ def extract_choices_from_comment(help_text: str) -> Tuple[Optional[List], str]:
     """Extract choices from help text if it's in format [choice1|choice2|choice3]."""
 
     found = re.search(r"\[\s*([\w\|\s]+)\s*\]", help_text)
-    if found:
+    if found and found.group(1):
         # Split the choices by |
         choices = [choice.strip() for choice in found.group(1).split("|")]
         # Remove the choices part from the help text
