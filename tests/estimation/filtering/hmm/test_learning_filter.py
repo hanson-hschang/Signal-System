@@ -8,6 +8,8 @@ from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.estimation.filtering.hmm.learning.module.config import (
     LearningHmmFilterConfig,
 )
+from ss.utility.learning.compile import CompileContext
+from ss.utility.learning.compile.config import CompileConfig
 from ss.utility.learning.process import BaseLearningProcess
 
 
@@ -158,7 +160,10 @@ class TestLearningHmmFilter:
         for block in [transition_block_1, transition_block_2]:
             assert block.matrix.shape == (3, 3)
             assert block.initial_state.shape == (3,)
-        with torch.compiler.set_stance("force_eager"):
+
+        compile_config = CompileConfig()
+        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        with CompileContext(compile_config):
             with BaseLearningProcess.inference_mode(learning_filter):
                 assert_allclose(
                     transition_layer.coefficient,
@@ -202,7 +207,10 @@ class TestLearningHmmFilter:
         # learning_filter.estimation_option = (
         #     Config.EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS
         # )
-        with torch.compiler.set_stance("force_eager"):
+
+        compile_config = CompileConfig()
+        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        with CompileContext(compile_config):
             with BaseLearningProcess.inference_mode(learning_filter):
                 transition_block_1 = learning_filter.transition.layers[
                     0

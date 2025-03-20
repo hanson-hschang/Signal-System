@@ -24,7 +24,6 @@ from ss.utility.assertion.validator import (
     ReservedKeyNameValidator,
 )
 from ss.utility.device import Device
-from ss.utility.device.manager import DeviceManager
 from ss.utility.learning import serialization
 from ss.utility.learning.module import config as Config
 from ss.utility.logging import Logging

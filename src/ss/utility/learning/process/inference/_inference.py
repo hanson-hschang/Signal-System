@@ -7,7 +7,7 @@ from ss.utility.device.manager import DeviceManager
 from ss.utility.learning import module as Module
 
 
-class InferenceContext(ContextManager[None]):
+class InferenceContext(ContextManager):
     def __init__(self, *modules: Module.BaseLearningModule) -> None:
         self._device_manager = DeviceManager()
         self._modules = tuple(
