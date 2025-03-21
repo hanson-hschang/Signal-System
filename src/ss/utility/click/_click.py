@@ -14,6 +14,7 @@ import inspect
 import json
 import re
 from dataclasses import dataclass, fields
+from enum import StrEnum
 from pathlib import Path
 
 import click
@@ -37,12 +38,8 @@ class BaseClickConfig:
     def load(
         cls: Type[CC], filepath: Optional[Path] = None, **kwargs: Any
     ) -> CC:
-        if filepath is None:
-            try:
-                config = cls()
-            except ValueError as e:
-                raise ValueError(f"Failed to load the configuration.") from e
-        else:
+        config = cls()
+        if filepath is not None:
             try:
                 with open(filepath) as file:
                     config = cls(**json.load(file))
@@ -53,6 +50,8 @@ class BaseClickConfig:
 
         for key, value in kwargs.items():
             if value is not None:
+                if isinstance(_value := getattr(config, key), StrEnum):
+                    value = type(_value)[str(value).upper()]
                 setattr(config, key, value)
         return config
 

@@ -13,6 +13,8 @@ class CompileConfig:
     class Stance(StrEnum):
         DEFAULT = auto()
         FORCE_EAGER = auto()
+        EAGER_ON_RECOMPILE = auto()
+        FAIL_ON_RECOMPILE = auto()
 
     stance: Stance = Stance.DEFAULT
     static_shape: bool = False
