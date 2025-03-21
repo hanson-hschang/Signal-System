@@ -50,8 +50,8 @@ class BaseClickConfig:
 
         for key, value in kwargs.items():
             if value is not None:
-                if isinstance(_value := getattr(config, key), StrEnum):
-                    value = type(_value)[str(value).upper()]
+                if isinstance(original_value := getattr(config, key), StrEnum):
+                    value = type(original_value)[str(value).upper()]
                 setattr(config, key, value)
         return config
 
