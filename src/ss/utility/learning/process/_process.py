@@ -1,17 +1,13 @@
 from typing import (
     Any,
     Callable,
-    DefaultDict,
     Dict,
-    List,
     Optional,
     Self,
     Set,
     Tuple,
 )
 
-from collections import defaultdict
-from enum import StrEnum, auto
 from pathlib import Path
 
 import numpy as np
@@ -23,7 +19,7 @@ from ss.utility.assertion.validator import ReservedKeyNameValidator
 from ss.utility.device.manager import DeviceManager
 from ss.utility.learning import module as Module
 from ss.utility.learning import serialization
-from ss.utility.learning.process.checkpoint import Checkpoint, CheckpointInfo
+from ss.utility.learning.process.checkpoint import Checkpoint
 from ss.utility.learning.process.config import (
     EvaluationConfigProtocol,
     TestingConfig,
@@ -38,11 +34,6 @@ logger = Logging.get_logger(__name__)
 
 
 class BaseLearningProcess(LearningProcessInfoMixin):
-
-    class Mode(StrEnum):
-        TRAINING = auto()
-        ANALYSIS = auto()
-        INFERENCE = auto()
 
     def __init__(
         self,

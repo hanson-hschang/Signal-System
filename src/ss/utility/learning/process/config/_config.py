@@ -1,7 +1,7 @@
 from typing import Callable, Optional, Protocol, cast
 
 from dataclasses import dataclass, field
-from enum import Enum, Flag, auto
+from enum import Enum, Flag, StrEnum, auto
 
 from ss.utility.condition import Condition
 from ss.utility.descriptor import DataclassDescriptor
@@ -178,3 +178,14 @@ class TrainingConfig:
     checkpoint: CheckpointConfig = field(
         default_factory=cast(Callable[[], CheckpointConfig], CheckpointConfig)
     )
+
+
+@dataclass
+class ProcessConfig:
+
+    class Mode(StrEnum):
+        TRAINING = auto()
+        ANALYSIS = auto()
+        INFERENCE = auto()
+
+    mode: Mode = Mode.TRAINING

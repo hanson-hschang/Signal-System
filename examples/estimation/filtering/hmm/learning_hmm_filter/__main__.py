@@ -5,7 +5,7 @@ from pathlib import Path
 import click
 
 from ss.utility import basic_config
-from ss.utility.learning.process import BaseLearningProcess
+from ss.utility.learning.process.config import ProcessConfig
 
 from . import UserConfig, analysis, inference, training
 
@@ -57,7 +57,7 @@ def main(
         result_directory = path_manager.result_directory
     model_filename = user_config.model_filename
     match user_config.mode:
-        case BaseLearningProcess.Mode.TRAINING:
+        case ProcessConfig.Mode.TRAINING:
             # model_filepath = model_folderpath / "checkpoints" / model_filename
             training(
                 data_filepath,
@@ -66,7 +66,7 @@ def main(
                 result_directory,
                 not user_config.continue_training,
             )
-        case BaseLearningProcess.Mode.ANALYSIS:
+        case ProcessConfig.Mode.ANALYSIS:
             # model_filepath = model_folderpath / model_filename
             analysis(
                 data_filepath,
@@ -74,7 +74,7 @@ def main(
                 model_filename,
                 result_directory,
             )
-        case BaseLearningProcess.Mode.INFERENCE:
+        case ProcessConfig.Mode.INFERENCE:
             # model_filepath = model_folderpath / model_filename
             inference(
                 data_filepath,

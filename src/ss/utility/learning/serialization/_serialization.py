@@ -59,6 +59,21 @@ class SafeCallables(set):
         self.__class__.registered_safe_callables.update(self)
 
 
+def add_config() -> SafeCallables:
+    from ss.utility.learning.process.config import ProcessConfig
+    from ss.utility.random.sampler.config import SamplerConfig
+
+    safe_callables = SafeCallables(
+        {
+            ProcessConfig,
+            ProcessConfig.Mode,
+            SamplerConfig,
+            SamplerConfig.Option,
+        }
+    )
+    return safe_callables
+
+
 def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
     """
     Register all subclasses of base_class found in the package to be safe callables

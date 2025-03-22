@@ -35,6 +35,7 @@ def initialize_safe_callables() -> None:
     if not serialization.SafeCallables.initialized:
         from ss.utility.learning.parameter.transformer import Transformer
 
+        serialization.add_config().to_registered_safe_callables()
         serialization.add_subclass(
             Config.BaseLearningConfig, "ss"
         ).to_registered_safe_callables()

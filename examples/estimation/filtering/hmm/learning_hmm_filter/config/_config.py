@@ -3,13 +3,13 @@ from typing import Optional
 from dataclasses import dataclass
 
 from ss.utility.click import BaseClickConfig
-from ss.utility.learning.process import BaseLearningProcess
+from ss.utility.learning.process.config import ProcessConfig
 
 
 @dataclass
 class UserConfig(BaseClickConfig):
-    mode: BaseLearningProcess.Mode = (
-        BaseLearningProcess.Mode.INFERENCE
+    mode: ProcessConfig.Mode = (
+        ProcessConfig.Mode.INFERENCE
     )  # The learning process mode [ training | analysis | inference ]
     data_foldername: str = (
         "hmm_filter_result"  # The foldername where the data is stored

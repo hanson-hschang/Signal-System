@@ -1,1 +1,1 @@
-from ._process import BaseLearningProcess, CheckpointInfo
+from ._process import BaseLearningProcess

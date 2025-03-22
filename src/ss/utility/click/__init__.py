@@ -1,1 +1,1 @@
-from ._click import BaseClickConfig
+from ._click import CC, BaseClickConfig
