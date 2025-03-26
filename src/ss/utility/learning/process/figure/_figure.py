@@ -12,6 +12,7 @@ class IterationFigure(SequenceTrajectoryFigure):
         self,
         training_loss_history: Dict[str, List],
         validation_loss_history: Optional[Dict[str, List]] = None,
+        iteration_log_scale: bool = True,
         scaling: float = 1.0,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
@@ -38,6 +39,7 @@ class IterationFigure(SequenceTrajectoryFigure):
             fig_title=fig_title,
             fig_layout=fig_layout,
         )
+        self._iteration_log_scale = iteration_log_scale
         self._sup_xlabel = "iteration"
         self._loss_plot = self._subplots[0][0]
 
@@ -112,7 +114,8 @@ class IterationFigure(SequenceTrajectoryFigure):
                 zorder=2,
             )
         self._loss_plot.legend()
-        # self._loss_plot.set_xscale('log')
+        if self._iteration_log_scale:
+            self._loss_plot.set_xscale("log")
 
     def _plot_statistic_training_trajectory(self) -> None:
         pass
