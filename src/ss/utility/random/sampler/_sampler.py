@@ -70,7 +70,7 @@ def top_p(probability: NDArray, p: float) -> NDArray:
     threshold_index = np.where(cumulative_probability > p)[0][0]
 
     # Get the top p probability
-    indices = sorted_indices[:threshold_index]
+    indices = sorted_indices[: threshold_index + 1]
     top_p_probability = np.zeros_like(probability)
     top_p_probability[indices] = probability[indices]
     top_p_probability /= top_p_probability.sum()

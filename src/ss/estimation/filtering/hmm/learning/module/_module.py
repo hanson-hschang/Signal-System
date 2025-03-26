@@ -212,15 +212,15 @@ class LearningHmmFilter(
         """
         forward method for the `LearningHmmFilter` class
 
-        Arguments:
+        Parameters
         ----------
-            observation_trajectory : torch.Tensor
-                shape (batch_size, horizon)
+        observation_trajectory : torch.Tensor
+            shape (batch_size, horizon)
 
-        Returns:
-        --------
-            predicted_next_observation_log_probability_trajectory : torch.Tensor
-                shape (batch_size, discrete_observation_dim, horizon)
+        Returns
+        -------
+        estimation_trajectory : torch.Tensor
+            shape (batch_size, horizon, estimation_dim)
         """
         (
             estimated_state_trajectory,
