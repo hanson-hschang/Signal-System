@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 from numba import njit
@@ -16,18 +16,25 @@ class DualHmmFilter:
     def __init__(
         self,
         system: HiddenMarkovModel,
-        time_horizon: int,
+        max_horizon_of_observation_history: int,
         initial_distribution: Optional[ArrayLike] = None,
         terminal_estimation: Optional[ArrayLike] = None,
     ) -> None:
         self._system = system
-        self._time_horizon = time_horizon
+        self._horizon_of_observation_history = 0
+        self._max_horizon_of_observation_history = (
+            max_horizon_of_observation_history
+        )
         self._discrete_state_dim = self._system.discrete_state_dim
         self._observation_dim = self._system.observation_dim
+        assert self._observation_dim == 1, (
+            f"observation_dim must be 1. "
+            f"observation_dim given is {self._observation_dim}."
+        )
         self._discrete_observation_dim = self._system.discrete_observation_dim
 
         self._initial_distribution = (
-            np.ones(self._discrete_state_dim) / self._discrete_state_dim
+            np.full(self._discrete_state_dim, 1 / self._discrete_state_dim)
             if initial_distribution is None
             else np.array(initial_distribution)
         )
@@ -38,33 +45,35 @@ class DualHmmFilter:
         )
 
         self._number_of_systems = self._system.number_of_systems
-        self._observation_history = np.zeros(
+        self._observation_history = np.full(
             (
                 self._number_of_systems,
                 self._observation_dim,
-                self._time_horizon,
+                self._max_horizon_of_observation_history,
             ),
+            np.nan,
             dtype=np.float64,
         )
-        self._emission_difference_history = np.zeros(
+        self._emission_history = np.full(
             (
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._time_horizon,
+                self._max_horizon_of_observation_history,
             ),
+            np.nan,
             dtype=np.float64,
         )
-        self._estimated_distribution_history = np.zeros(
+        self._estimated_distribution_history = np.empty(
             (
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._time_horizon,
+                self._max_horizon_of_observation_history,
             ),
             dtype=np.float64,
         )
-        for k in range(self._time_horizon):
-            for n in range(self._number_of_systems):
-                self._estimated_distribution_history[n, :, k] = (
+        for k in range(self._max_horizon_of_observation_history):
+            for i in range(self._number_of_systems):
+                self._estimated_distribution_history[i, :, k] = (
                     self._initial_distribution.copy()
                 )
 
@@ -80,17 +89,17 @@ class DualHmmFilter:
     observation_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_observation_dim",
-        "_time_horizon",
+        "_horizon_of_observation_history",
     )
     emission_difference_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_discrete_state_dim",
-        "_time_horizon",
+        "_horizon_of_observation_history",
     )
     estimated_distribution_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_discrete_state_dim",
-        "_time_horizon",
+        "_horizon_of_observation_history",
     )
 
     def update(self, observation: ArrayLike) -> None:
@@ -103,7 +112,7 @@ class DualHmmFilter:
             shape = (number_of_systems, observation_dim)
             The observation to be updated.
         """
-        observation = np.array(observation, dtype=np.float64)
+        observation = np.array(observation, dtype=np.int64)
         if observation.ndim == 1:
             observation = observation[np.newaxis, :]
         assert observation.shape == (
@@ -115,159 +124,310 @@ class DualHmmFilter:
         )
         self._update_observation(
             observation=observation,
-            observation_history=self._observation_history,
-            emission_difference_history=self._emission_difference_history,
             emission_matrix=self._system.emission_matrix,
+            observation_history=self._observation_history,
+            emission_history=self._emission_history,
             estimated_distribution_history=self._estimated_distribution_history,
+        )
+        self._horizon_of_observation_history = min(
+            self._horizon_of_observation_history + 1,
+            self._max_horizon_of_observation_history,
         )
 
     @staticmethod
     @njit(cache=True)  # type: ignore
     def _update_observation(
-        observation: NDArray[np.float64],
-        observation_history: NDArray[np.float64],
-        emission_difference_history: NDArray[np.float64],
+        observation: NDArray[np.int64],
         emission_matrix: NDArray[np.float64],
+        observation_history: NDArray[np.float64],
+        emission_history: NDArray[np.float64],
         estimated_distribution_history: NDArray[np.float64],
     ) -> None:
-        number_of_systems, observation_dim, _ = observation_history.shape
+        number_of_systems, _, _ = observation_history.shape
         discrete_state_dim, _ = emission_matrix.shape
 
-        # Move the observation, emission difference, and estimated distribution history one step into the past
+        # Move the observation, emission, and estimated distribution history one step into the past
         for i in range(number_of_systems):
-            for m in range(observation_dim):
-                observation_history[i, m, :] = np.roll(
-                    observation_history[i, m, :], -1
-                )
+            # numba v0.61.0 does not support np.roll with axis argument
+            observation_history[i, 0, :] = np.roll(
+                observation_history[i, 0, :], shift=-1
+            )
             for d in range(discrete_state_dim):
-                emission_difference_history[i, d, :] = np.roll(
-                    emission_difference_history[i, d, :], -1
+                emission_history[i, d, :] = np.roll(
+                    emission_history[i, d, :], shift=-1
                 )
                 estimated_distribution_history[i, d, :] = np.roll(
-                    estimated_distribution_history[i, d, :], -1
+                    estimated_distribution_history[i, d, :], shift=-1
                 )
-            emission = emission_matrix[:, int(observation[i, 0])]
-            emission_difference_history[i, :, -1] = 2 * emission - 1
-            estimated_distribution_history[i, :, -1] = emission / np.sum(
-                emission
-            )
 
-        # Update the most recent history with the new observation
+        # Update the most recent history based on the new observation
+        emission_column = emission_matrix[
+            :, observation[:, 0]
+        ].T  # (number_of_systems, discrete_state_dim)
+        emission_history[:, :, -1] = 2 * emission_column - 1
+        for i in range(number_of_systems):
+            # numba v0.61.0 does not support np.sum with axis argument
+            estimated_distribution_history[i, :, -1] = emission_column[
+                i, :
+            ] / np.sum(emission_column[i, :])
         observation_history[:, :, -1] = observation
-        # emission_difference_history[:, :, 0] = 2 * emission_matrix[:, observation[:, 0].astype(np.int64)] - 1
 
-    def estimate(self) -> NDArray:
+    def estimate(
+        self, number_of_iterations: int = 1
+    ) -> Tuple[NDArray, NDArray]:
+        """
+        Estimate the distribution of the system.
+
+        Parameters
+        ----------
+        number_of_iterations : int
+            The number of iterations to run the estimation.
+
+        Returns
+        -------
+        estimated_distribution : NDArray
+            The estimated distribution of the system.
+        """
+        number_of_dual_function = self._terminal_dual_function.shape[1]
+        control_history = np.empty(
+            (
+                number_of_iterations,
+                self._number_of_systems,
+                number_of_dual_function,
+                self._max_horizon_of_observation_history,
+            ),
+            dtype=np.float64,
+        )
+        estimated_distribution_history = np.empty(
+            (
+                number_of_iterations,
+                self._number_of_systems,
+                self._discrete_state_dim,
+                self._max_horizon_of_observation_history,
+            ),
+            dtype=np.float64,
+        )
+        for i in range(number_of_iterations):
+            control_history[i, ...] = self._estimate()
+            estimated_distribution_history[i, ...] = (
+                self._estimated_distribution_history.copy()
+            )
+        if number_of_iterations == 1:
+            control_history = control_history[0, ...]
+            estimated_distribution_history = estimated_distribution_history[
+                0, ...
+            ]
+        return control_history, estimated_distribution_history
+
+    def _estimate(self) -> NDArray:
+        number_of_dual_function = self._terminal_dual_function.shape[1]
         dual_function_history = np.empty(
             (
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._discrete_state_dim,
-                self._time_horizon + 1,
+                number_of_dual_function,
+                self._max_horizon_of_observation_history + 1,
             ),
             dtype=np.float64,
         )
+        dual_function_history[0, :, :, -1] = (
+            self._terminal_dual_function.copy()
+        )
+
         control_history = np.empty(
             (
                 self._number_of_systems,
-                self._discrete_state_dim,
-                self._time_horizon,
+                number_of_dual_function,
+                self._max_horizon_of_observation_history,
             ),
             dtype=np.float64,
         )
 
         # Backward in time
-        dual_function_history[0, :, :, -1] = (
-            self._terminal_dual_function.copy()
-        )
-        for k in range(self._time_horizon):
-            dual_function = dual_function_history[0, :, :, -1 - k]
-            emission_difference = self._emission_difference_history[
-                0, :, -1 - k
-            ]
-            estimated_distribution = (
-                self._initial_distribution
-                if k == (self._time_horizon - 1)
-                else self._estimated_distribution_history[0, :, -1 - k - 1]
-            )
+        for k in range(self._horizon_of_observation_history):
+            dual_function = dual_function_history[
+                :, :, :, -1 - k
+            ]  # (number_of_systems, discrete_state_dim, number_of_dual_functions)
+            emission = self._emission_history[
+                :, :, -1 - k
+            ]  # (number_of_systems, discrete_state_dim)
 
-            control = self._compute_control(
-                self._system.transition_matrix @ dual_function,
-                emission_difference,
-                estimated_distribution,
-            )
-            dual_function_history[0, :, :, -1 - k - 1] = self._backward_step(
+            # estimated_distribution = (
+            #     self._initial_distribution
+            #     if k == (self._horizon_of_observation_history - 1)
+            #     else self._estimated_distribution_history[0, :, -1 - k - 1]
+            # )
+            estimated_distribution = (
+                np.repeat(
+                    self._initial_distribution[np.newaxis, :],
+                    self._number_of_systems,
+                    axis=0,
+                )
+                if k == (self._horizon_of_observation_history - 1)
+                else self._estimated_distribution_history[:, :, -1 - k - 1]
+            )  # (number_of_systems, discrete_state_dim)
+
+            past_dual_function = self._compute_past_dual_function(
                 self._system.transition_matrix,
                 dual_function,
-                emission_difference,
+            )
+
+            # Compute the control
+            control = self._compute_control(
+                past_dual_function,
+                emission,
+                estimated_distribution,
+            )  # (number_of_systems, number_of_dual_functions)
+
+            # Update the dual function
+            dual_function_history[:, :, :, -1 - k - 1] = self._backward_step(
+                past_dual_function,
+                emission,
                 control,
             )
 
-            control_history[0, :, -1 - k] = control
+            control_history[:, :, -1 - k] = control
 
-        estimator = (
-            self._initial_distribution @ dual_function_history[0, :, :, 0]
-        )
+        # Compute the initial estimator
+        estimator = self._compute_initial_estimator(
+            self._initial_distribution,
+            dual_function_history[..., -1 - k - 1],
+        )  # (number_of_systems, number_of_dual_function)
+
+        # estimator = (
+        #     self._initial_distribution @ dual_function_history[0, :, :, 0]
+        # )
 
         # Update the estimated distribution
-        for k in range(self._time_horizon):
-            estimator = estimator - control_history[0, :, k]
-            self._estimated_distribution_history[0, :, k] = (
+        for k in range(
+            self._max_horizon_of_observation_history
+            - self._horizon_of_observation_history,
+            self._max_horizon_of_observation_history,
+        ):
+            estimator = self._compute_estimator(
+                estimator,
+                control_history[:, :, k],
+            )
+            # estimator = estimator - control_history[0, :, k]
+            self._estimated_distribution_history[:, :, k] = (
                 self._update_estimated_distribution(
-                    dual_function_history[0, :, :, k + 1],
+                    dual_function_history[:, :, :, k + 1],
                     estimator,
                 )
             )
 
-        return self._estimated_distribution_history[0, :, -1]
+        return control_history
 
-    def _compute_control(
-        self,
-        dual_function: NDArray[np.float64],
-        emission_difference: NDArray[np.float64],
-        estimated_distribution: NDArray[np.float64],
-    ) -> NDArray[np.float64]:
-        denominator = 1 - (estimated_distribution @ emission_difference) ** 2
-        if denominator == 0:
-            return np.zeros_like(estimated_distribution)
-        expected_emission = estimated_distribution @ emission_difference
-        _, dual_function_dim = dual_function.shape
-        control = np.zeros(dual_function_dim)
-        for d in range(dual_function_dim):
-            control[d] = (
-                -estimated_distribution
-                @ (
-                    dual_function[:, d]
-                    * (emission_difference - expected_emission)
-                )
-                / denominator
-            )
-        return control
-
-    def _backward_step(
-        self,
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _compute_past_dual_function(
         transition_matrix: NDArray[np.float64],
         dual_function: NDArray[np.float64],
-        emission_difference: NDArray[np.float64],
-        control: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        result = transition_matrix @ dual_function + np.outer(
-            emission_difference, control
+        number_of_systems, _, _ = dual_function.shape
+        past_dual_function = np.empty_like(dual_function)
+        for i in range(number_of_systems):
+            past_dual_function[i, :, :] = (
+                transition_matrix @ dual_function[i, :, :]
+            )
+        return past_dual_function
+
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _compute_control(
+        past_dual_function: NDArray[np.float64],
+        emission: NDArray[np.float64],
+        estimated_distribution: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
+        number_of_systems, _, number_of_dual_functions = (
+            past_dual_function.shape
         )
-        return result
+        control = np.empty((number_of_systems, number_of_dual_functions))
+        for i in range(number_of_systems):
 
-    def _compute_estimator(
-        self,
-        estimator: NDArray[np.float64],
+            expected_emission = estimated_distribution[i, :] @ emission[i, :]
+            denominator = 1 - (expected_emission**2)
+
+            if denominator == 0:
+                control[i, :] = 0
+                continue
+
+            for d in range(number_of_dual_functions):
+                control[i, d] = (
+                    (
+                        (
+                            estimated_distribution[i, :]
+                            @ past_dual_function[i, :, d]
+                        )
+                        * expected_emission
+                    )
+                    - (
+                        estimated_distribution[i, :]
+                        @ (past_dual_function[i, :, d] * emission[i, :])
+                    )
+                ) / denominator
+        return control
+
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _backward_step(
+        past_dual_function: NDArray[np.float64],
+        emission: NDArray[np.float64],
         control: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        return estimator - control
+        number_of_systems, _, _ = past_dual_function.shape
+        updated_past_dual_function = np.empty_like(past_dual_function)
+        for i in range(number_of_systems):
+            updated_past_dual_function[i, :, :] = past_dual_function[
+                i, :, :
+            ] + np.outer(emission[i, :], control[i, :])
+        # result = past_dual_function + np.outer(
+        #     emission, control
+        # )
+        return updated_past_dual_function
 
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _compute_initial_estimator(
+        initial_distribution: NDArray[np.float64],
+        dual_function: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
+        number_of_systems, _, number_of_dual_functions = dual_function.shape
+        initial_estimator = np.empty(
+            (number_of_systems, number_of_dual_functions)
+        )
+        for i in range(number_of_systems):
+            initial_estimator[i, :] = (
+                initial_distribution @ dual_function[i, :, :]
+            )
+        return initial_estimator
+
+    @staticmethod
+    @njit(cache=True)  # type: ignore
+    def _compute_estimator(
+        past_estimator: NDArray[np.float64],
+        control: NDArray[np.float64],
+    ) -> NDArray[np.float64]:
+        return past_estimator - control
+
+    @staticmethod
+    @njit(cache=True)  # type: ignore
     def _update_estimated_distribution(
-        self,
         dual_function: NDArray[np.float64],
         estimator: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        result = np.linalg.solve(dual_function.T, estimator)
-        result = np.maximum(result, 0)
-        result /= np.sum(result)
-        return result
+        number_of_systems, discrete_state_dim, _ = dual_function.shape
+        estimated_distribution = np.empty(
+            (number_of_systems, discrete_state_dim)
+        )
+        for i in range(number_of_systems):
+            result = np.linalg.solve(
+                dual_function[i, :, :].T,
+                estimator[i, :],
+            )  # (discrete_state_dim,)
+            result = np.maximum(result, 0)
+            estimated_distribution[i, :] = result / np.sum(result)
+        # result = np.linalg.solve(dual_function.T, estimator)
+        # result = np.maximum(result, 0)
+        # result /= np.sum(result)
+        return estimated_distribution

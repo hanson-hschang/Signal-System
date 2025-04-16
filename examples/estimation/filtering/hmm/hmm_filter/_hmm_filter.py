@@ -56,11 +56,11 @@ def hmm_filtering(
         estimator=estimator,
     )
 
-    time_window = 10
+    time_window = 20
 
     dual_estimator = DualHmmFilter(
         system=system,
-        time_horizon=time_window,
+        max_horizon_of_observation_history=time_window,
     )
 
     current_time = 0.0
@@ -75,8 +75,7 @@ def hmm_filtering(
         estimation = estimator.estimate()
 
         dual_estimator.update(observation)
-        for _ in range(1):
-            dual_estimator.estimate()
+        dual_estimator.estimate()
         result = dual_estimator.estimated_distribution_history.copy()
 
         # Record the system and the estimator
