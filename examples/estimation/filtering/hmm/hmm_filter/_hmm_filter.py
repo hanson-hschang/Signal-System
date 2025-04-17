@@ -56,7 +56,7 @@ def hmm_filtering(
         estimator=estimator,
     )
 
-    time_window = 20
+    time_window = 10
 
     dual_estimator = DualHmmFilter(
         system=system,
@@ -75,7 +75,7 @@ def hmm_filtering(
         estimation = estimator.estimate()
 
         dual_estimator.update(observation)
-        dual_estimator.estimate()
+        dual_estimator.estimate(6)
         result = dual_estimator.estimated_distribution_history.copy()
 
         # Record the system and the estimator
@@ -117,18 +117,6 @@ def hmm_filtering(
     # Record the system and the estimator
     system_callback.record(simulation_time_steps, current_time)
     estimator_callback.record(simulation_time_steps, current_time)
-    # for i in range(10):
-    #     result = dual_estimator.estimated_distribution_history
-    #     Figure.DualHmmFigure(
-    #         time_trajectory=estimator_callback["time"],
-    #         estimation_trajectory=estimation_trajectory,
-    #         dual_estimation_trajectory=result,
-    #         fig_title="Dual Hidden Markov Model Filter - iteration step " + str(i),
-    #     ).plot()
-    #     Figure.show()
-    #     dual_estimator.estimate()
-
-    quit()
 
     # Save the data
     system_callback.save(result_directory / "system.hdf5")
