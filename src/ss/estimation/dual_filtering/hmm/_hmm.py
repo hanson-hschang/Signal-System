@@ -281,7 +281,7 @@ class DualHmmFilter:
             #     if k == (self._horizon_of_observation_history - 1)
             #     else self._estimated_distribution_history[0, :, -1 - k - 1]
             # )
-            estimated_distribution = (
+            past_estimated_distribution = (
                 np.repeat(
                     self._initial_distribution[np.newaxis, :],
                     self._number_of_systems,
@@ -300,7 +300,7 @@ class DualHmmFilter:
             control = self._compute_control(
                 past_dual_function,
                 emission,
-                estimated_distribution,
+                past_estimated_distribution,
             )  # (number_of_systems, number_of_dual_functions)
 
             # Update the dual function
@@ -333,13 +333,23 @@ class DualHmmFilter:
                 control_history[:, :, k],
             )
             # estimator = estimator - control_history[0, :, k]
+
             estimated_distribution_history[:, :, k] = (
                 self._update_estimated_distribution(
                     dual_function_history[:, :, :, k + 1],
                     estimator,
                 )
             )
-
+            # except np.linalg.LinAlgError:
+            #     if np.any(estimated_distribution_history==np.nan):
+            #         print("estimated_distribution_history contains NaN")
+            #     if np.any(dual_function_history == np.nan):
+            #         print("dual_function_history contains NaN")
+            #     if np.any(estimator == np.nan):
+            #         print("estimator contains NaN")
+            #     print(dual_function_history[:, :, :, k + 1])
+            #     print(estimator)
+            #     quit()
         return control_history, estimated_distribution_history
 
     @staticmethod
@@ -348,7 +358,7 @@ class DualHmmFilter:
         transition_matrix: NDArray[np.float64],
         dual_function: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        number_of_systems, _, _ = dual_function.shape
+        number_of_systems = dual_function.shape[0]
         past_dual_function = np.empty_like(dual_function)
         for i in range(number_of_systems):
             # copy is used to avoid the following performance warning
@@ -412,7 +422,7 @@ class DualHmmFilter:
         emission: NDArray[np.float64],
         control: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        number_of_systems, _, _ = past_dual_function.shape
+        number_of_systems = past_dual_function.shape[0]
         updated_past_dual_function = np.empty_like(past_dual_function)
         for i in range(number_of_systems):
             updated_past_dual_function[i, :, :] = past_dual_function[
@@ -462,7 +472,7 @@ class DualHmmFilter:
             (number_of_systems, discrete_state_dim)
         )
         for i in range(number_of_systems):
-            result = np.linalg.solve(
+            result, _, _, _ = np.linalg.lstsq(
                 dual_function[i, :, :].T,
                 estimator[i, :],
             )  # (discrete_state_dim,)
