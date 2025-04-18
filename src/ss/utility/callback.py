@@ -1,4 +1,4 @@
-from typing import Any, DefaultDict, List, Optional, Union, cast
+from typing import Any, DefaultDict, List, Optional, Self, Union, cast
 
 from collections import defaultdict
 from pathlib import Path
@@ -12,12 +12,15 @@ from ss.utility.data import MetaData, MetaInfo, MetaInfoValueType
 
 
 class Callback:
+    FILE_EXTENSION = ".hdf5"
+
     def __init__(self, step_skip: int) -> None:
         self._data_file_extension = ".hdf5"
-        self.sample_every = step_skip
+        self.sample_every = int(step_skip)
         self._callback_params: DefaultDict[str, List] = defaultdict(list)
         self._meta_data: MetaData = MetaData()
         self._meta_info: MetaInfo = MetaInfo()
+        self._meta_info["__step_skip__"] = int(self.sample_every)
 
     @property
     def meta_data(self) -> MetaData:
@@ -188,3 +191,40 @@ class Callback:
                 name=key,
                 data=cls.to_numpy_array(value),
             )
+
+    @classmethod
+    def load(cls, filename: Union[str, Path]) -> Self:
+        filepath = FilePathValidator(
+            filename, cls.FILE_EXTENSION
+        ).get_filepath()
+        with h5py.File(filepath, "r") as f:
+            callback = cls(cast(int, f.attrs["__step_skip__"]))
+            callback._load_meta_info(f)
+            callback._load_meta_data(cast(h5py.Group, f[MetaData.NAME]))
+            callback._load_callback_params(f)
+        return callback
+
+    def _load_meta_info(self, h5_file: h5py.File) -> None:
+        for key, value in h5_file.attrs.items():
+            if key == "__step_skip__":
+                continue
+            match type(value):
+                case np.int64:
+                    self._meta_info[key] = int(value)
+                case np.float64:
+                    self._meta_info[key] = float(value)
+
+    def _load_meta_data(self, h5_group: h5py.Group) -> None:
+        for key, value in h5_group.items():
+            if isinstance(value, h5py.Group):
+                self._meta_data[key] = MetaData.from_hdf5_group(value)
+            elif isinstance(value, h5py.Dataset):
+                self._meta_data[key] = np.array(value)
+
+    def _load_callback_params(self, h5_group: h5py.Group) -> None:
+        for key, value in h5_group.items():
+            if key == MetaData.NAME:
+                continue
+            signal_trajectory = np.array(value)
+            for k in range(signal_trajectory.shape[-1]):
+                self._callback_params[key].append(signal_trajectory[..., k])
