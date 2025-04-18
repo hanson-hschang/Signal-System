@@ -56,7 +56,7 @@ class SequenceTrajectoryFigure(Figure):
         )
 
         self._sequence_trajectory = sequence_trajectory
-        self._sequence_length = sequence_trajectory.shape[0]
+        self._sequence_length = int(sequence_trajectory.shape[0])
         self._number_of_systems = number_of_systems
         self._default_color = "C0"
         self._default_alpha = 0.2

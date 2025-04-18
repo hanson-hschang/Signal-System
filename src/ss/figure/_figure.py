@@ -33,7 +33,8 @@ class Figure:
     def plot(self) -> Self:
         if self._fig_title is not None:
             self._fig.suptitle(self._fig_title)
-        self._fig.supxlabel(self._sup_xlabel)
+        if self._sup_xlabel != "":
+            self._fig.supxlabel(self._sup_xlabel)
         self._fig.tight_layout()
         return self
 
