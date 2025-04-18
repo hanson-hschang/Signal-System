@@ -56,7 +56,7 @@ def hmm_filtering(
         estimator=estimator,
     )
 
-    time_window = 10
+    time_window = 20
 
     dual_estimator = DualHmmFilter(
         system=system,
@@ -74,9 +74,11 @@ def hmm_filtering(
         estimator.update(observation)
         estimation = estimator.estimate()
 
+        # Compute the estimation from dual estimator
         dual_estimator.update(observation)
-        dual_estimator.estimate(6)
+        dual_estimator.estimate(16)
         result = dual_estimator.estimated_distribution_history.copy()
+        result = result[..., 1:]
 
         # Record the system and the estimator
         system_callback.record(k, current_time)
@@ -93,6 +95,8 @@ def hmm_filtering(
             result[:, : -1 - k] = np.nan
         estimation_trajectory[:, -1] = estimation
         time_trajectory = np.arange(k - time_window + 1, k + 1)
+
+        # Plot the data
         figure = Figure.DualHmmFigure(
             time_trajectory=time_trajectory,
             estimation_trajectory=estimation_trajectory,
