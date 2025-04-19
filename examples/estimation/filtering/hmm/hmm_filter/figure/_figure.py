@@ -48,6 +48,7 @@ class DualHmmFigure(SequenceTrajectoryFigure):
                 self._dual_estimation_trajectory[i],
                 label="Dual Estimation",
                 color="C0",
+                linestyle="--",
             )
             self._subplots[i][0].set_ylabel(f"State {i}")
             self._subplots[i][0].set_ylim(-0.1, 1.1)

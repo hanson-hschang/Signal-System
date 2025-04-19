@@ -30,6 +30,12 @@ def hmm_filtering(
         state_dim, discrete_observation_dim, temperature=6
     )
 
+    transition_matrix = np.roll(np.identity(state_dim), 1, axis=0)
+    emission_matrix = np.zeros((state_dim, discrete_observation_dim))
+    for r in range(state_dim):
+        values = np.exp(np.random.rand(discrete_observation_dim))
+        emission_matrix[r, :] = values / np.sum(values)
+
     np.set_printoptions(precision=3)
     logger.info("transition_matrix:")
     for row in transition_matrix:
@@ -56,7 +62,7 @@ def hmm_filtering(
         estimator=estimator,
     )
 
-    time_window = 20
+    time_window = 100
 
     dual_estimator = DualHmmFilter(
         system=system,
@@ -91,9 +97,12 @@ def hmm_filtering(
             estimation_trajectory[d, :] = np.roll(
                 estimation_trajectory[d, :], -1
             )
+        estimation_trajectory[:, -1] = estimation
+
         if k < time_window:
             result[:, : -1 - k] = np.nan
-        estimation_trajectory[:, -1] = estimation
+            continue
+
         time_trajectory = np.arange(k - time_window + 1, k + 1)
 
         # Plot the data

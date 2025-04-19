@@ -191,7 +191,7 @@ class DualHmmFilter:
                 emission_history[i, :, 0] = np.nan
             if observation_history[i, 0, 0] != np.nan:
                 observation_history[i, 0, 0] = np.nan
-        observation_history[:, :, -1] = observation
+        observation_history[:, :, -1] = observation.copy()
 
     def estimate(
         self, number_of_iterations: int = 1
@@ -244,6 +244,15 @@ class DualHmmFilter:
         self._estimated_distribution_history[
             ..., -1 - self._horizon_of_observation_history :
         ] = estimated_distribution_history[-1, ...].copy()
+
+        if (
+            self._horizon_of_observation_history
+            == self._max_horizon_of_observation_history - 1
+        ):
+            self._initial_distribution = self._estimated_distribution_history[
+                ..., -self._horizon_of_observation_history
+            ].copy()
+
         return control_history, estimated_distribution_history
 
     def _estimate(
@@ -266,13 +275,12 @@ class DualHmmFilter:
             axis=0,
         )
 
-        control_history = np.full(
+        control_history = np.empty(
             (
                 self._number_of_systems,
                 self._number_of_dual_function,
                 self._horizon_of_observation_history + 1,
             ),
-            np.nan,
             dtype=np.float64,
         )
 
@@ -394,6 +402,7 @@ class DualHmmFilter:
                 continue
 
             for d in range(number_of_dual_functions):
+                # The following implementation is equivalent to the one below (but faster?)
                 # control[i, d] = -(
                 #     np.sum(
                 #         estimated_distribution[i, :] * (
@@ -465,7 +474,7 @@ class DualHmmFilter:
         estimator: NDArray[np.float64],
     ) -> NDArray[np.float64]:
         number_of_systems, discrete_state_dim, _ = dual_function.shape
-        estimated_distribution = np.empty(
+        updated_estimated_distribution = np.empty(
             (number_of_systems, discrete_state_dim)
         )
         for i in range(number_of_systems):
@@ -474,5 +483,5 @@ class DualHmmFilter:
                 estimator[i, :],
             )  # (discrete_state_dim,)
             result = np.maximum(result, 0)
-            estimated_distribution[i, :] = result / np.sum(result)
-        return estimated_distribution
+            updated_estimated_distribution[i, :] = result / np.sum(result)
+        return updated_estimated_distribution
