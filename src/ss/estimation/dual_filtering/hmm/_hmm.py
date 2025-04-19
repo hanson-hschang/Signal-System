@@ -93,6 +93,9 @@ class DualHmmFilter:
             np.nan,
             dtype=np.float64,
         )
+        self._estimated_distribution_history[:, :, -1] = (
+            self._likelihood_history[:, :, -1].copy()
+        )
 
     observation_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
@@ -176,9 +179,9 @@ class DualHmmFilter:
                 likelihood_history[i, d, :] = np.roll(
                     likelihood_history[i, d, :], shift=-1
                 )
-                # estimated_distribution_history[i, d, :] = np.roll(
-                #     estimated_distribution_history[i, d, :], shift=-1
-                # )
+                estimated_distribution_history[i, d, :] = np.roll(
+                    estimated_distribution_history[i, d, :], shift=-1
+                )
 
         # Update the most recent history based on the new observation
         emission_column = emission_matrix[
@@ -196,18 +199,18 @@ class DualHmmFilter:
                 emission_history[i, :, 0] = np.nan
             if observation_history[i, 0, 0] != np.nan:
                 observation_history[i, 0, 0] = np.nan
-        # estimated_distribution_history[:, :, -1] = likelihood_history[:, :, -1].copy()
+        estimated_distribution_history[:, :, -1] = likelihood_history[
+            :, :, -1
+        ].copy()
         observation_history[:, :, -1] = observation.copy()
 
-    def estimate(
-        self, number_of_iterations: int = 1
-    ) -> Tuple[NDArray, NDArray]:
+    def estimate(self, iterations: int = 1) -> Tuple[NDArray, NDArray]:
         """
         Estimate the distribution of the system.
 
         Parameters
         ----------
-        number_of_iterations : int
+        iterations : int
             The number of iterations to run the estimation.
 
         Returns
@@ -218,7 +221,7 @@ class DualHmmFilter:
         number_of_dual_functions = self._terminal_dual_function.shape[1]
         control_history = np.empty(
             (
-                number_of_iterations,
+                iterations,
                 self._number_of_systems,
                 number_of_dual_functions,
                 self._horizon_of_observation_history + 1,
@@ -226,7 +229,7 @@ class DualHmmFilter:
         )
         estimated_distribution_history = np.empty(
             (
-                number_of_iterations + 1,
+                iterations + 1,
                 self._number_of_systems,
                 self._discrete_state_dim,
                 self._horizon_of_observation_history + 1,
@@ -239,7 +242,7 @@ class DualHmmFilter:
         #     ..., -1 - self._horizon_of_observation_history :
         # ].copy()
 
-        for i in range(number_of_iterations):
+        for i in range(iterations):
             (
                 control_history[i, ...],
                 estimated_distribution_history[i + 1, ...],

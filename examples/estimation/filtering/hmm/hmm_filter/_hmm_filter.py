@@ -86,7 +86,7 @@ def hmm_filtering(
 
         # Compute the estimation from dual estimator
         dual_estimator.update(observation)
-        dual_estimator.estimate(128)
+        dual_estimator.estimate(iterations=2)
         result = dual_estimator.estimated_distribution_history.copy()
         result = result[..., 1:]
 
