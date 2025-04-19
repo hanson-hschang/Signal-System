@@ -56,4 +56,5 @@ class DualHmmFigure(SequenceTrajectoryFigure):
         self._subplots[0][0].legend(
             bbox_to_anchor=(1.0, 1.2), loc="upper right", ncol=2
         )
-        return super().plot()
+        super().plot()
+        return self

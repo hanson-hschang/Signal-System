@@ -22,7 +22,7 @@ def get_estimation_model(
 
 
 def softmax(vector: NDArray, temperature: float = 3.0) -> NDArray:
-    exp_vector = np.exp(temperature * vector)
+    exp_vector = np.exp(vector / temperature)
     normalized_vector: NDArray = exp_vector / np.sum(exp_vector)
     return normalized_vector
 

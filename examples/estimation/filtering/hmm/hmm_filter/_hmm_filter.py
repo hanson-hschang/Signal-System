@@ -24,13 +24,17 @@ def hmm_filtering(
 ) -> None:
 
     transition_matrix = get_probability_matrix(
-        state_dim, state_dim, temperature=3
+        state_dim, state_dim, temperature=0.1
     )
-    emission_matrix = get_probability_matrix(
-        state_dim, discrete_observation_dim, temperature=6
-    )
+    # emission_matrix = get_probability_matrix(
+    #     state_dim, discrete_observation_dim, temperature=6
+    # )
 
-    transition_matrix = np.roll(np.identity(state_dim), 1, axis=0)
+    # transition_matrix = np.roll(np.identity(state_dim), 1, axis=0)
+    # transition_matrix = np.zeros((state_dim, state_dim))
+    # for r in range(state_dim):
+    #     values = np.exp(np.random.rand(state_dim)/0.1)
+    #     transition_matrix[r, :] = values / np.sum(values)
     emission_matrix = np.zeros((state_dim, discrete_observation_dim))
     for r in range(state_dim):
         values = np.exp(np.random.rand(discrete_observation_dim))
@@ -82,7 +86,7 @@ def hmm_filtering(
 
         # Compute the estimation from dual estimator
         dual_estimator.update(observation)
-        dual_estimator.estimate(16)
+        dual_estimator.estimate(128)
         result = dual_estimator.estimated_distribution_history.copy()
         result = result[..., 1:]
 
