@@ -1,1 +1,1 @@
-from ._hmm import DualHmmFilter
+from ._hmm import DualHmmFilter, DualHmmFilterCallback

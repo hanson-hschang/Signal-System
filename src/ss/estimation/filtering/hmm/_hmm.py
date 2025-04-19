@@ -100,11 +100,11 @@ class HmmFilterCallback(EstimatorCallback):
     def __init__(
         self,
         step_skip: int,
-        estimator: HmmFilter,
+        filter: HmmFilter,
     ) -> None:
-        assert issubclass(type(estimator), HmmFilter), (
-            f"estimator must be an instance of HmmFilter or its subclasses. "
-            f"estimator given is an instance of {type(estimator)}."
+        assert issubclass(type(filter), HmmFilter), (
+            f"filter must be an instance of HmmFilter or its subclasses. "
+            f"filter given is an instance of {type(filter)}."
         )
-        super().__init__(step_skip, estimator)
-        self._estimator: HmmFilter = estimator
+        super().__init__(step_skip, filter)
+        self._estimator: HmmFilter = filter

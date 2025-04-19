@@ -5,6 +5,7 @@ from numba import njit
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system.markov import HiddenMarkovModel
+from ss.utility.callback import Callback
 from ss.utility.descriptor import (
     MultiSystemNDArrayDescriptor,
     MultiSystemNdArrayReadOnlyDescriptor,
@@ -16,15 +17,13 @@ class DualHmmFilter:
     def __init__(
         self,
         system: HiddenMarkovModel,
-        max_horizon_of_observation_history: int,
+        max_horizon: int,
         initial_distribution: Optional[ArrayLike] = None,
         terminal_estimation: Optional[ArrayLike] = None,
     ) -> None:
         self._system = system
-        self._horizon_of_observation_history = 0
-        self._max_horizon_of_observation_history = (
-            max_horizon_of_observation_history + 1
-        )
+        self._horizon = 0
+        self._max_horizon = max_horizon + 1
         self._discrete_state_dim = self._system.discrete_state_dim
         self._observation_dim = self._system.observation_dim
         assert self._observation_dim == 1, (
@@ -50,7 +49,7 @@ class DualHmmFilter:
             (
                 self._number_of_systems,
                 self._observation_dim,
-                self._max_horizon_of_observation_history,
+                self._max_horizon,
             ),
             np.nan,
             dtype=np.float64,
@@ -59,7 +58,7 @@ class DualHmmFilter:
             (
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._max_horizon_of_observation_history,
+                self._max_horizon,
             ),
             np.nan,
             dtype=np.float64,
@@ -68,7 +67,7 @@ class DualHmmFilter:
             (
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._max_horizon_of_observation_history,
+                self._max_horizon,
             ),
             np.nan,
             dtype=np.float64,
@@ -88,7 +87,7 @@ class DualHmmFilter:
             (
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._max_horizon_of_observation_history,
+                self._max_horizon,
             ),
             np.nan,
             dtype=np.float64,
@@ -97,25 +96,40 @@ class DualHmmFilter:
             self._likelihood_history[:, :, -1].copy()
         )
 
+        self._control_history = np.full(
+            (
+                self._number_of_systems,
+                self._number_of_dual_function,
+                self._max_horizon,
+            ),
+            np.nan,
+            dtype=np.float64,
+        )
+
     observation_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_observation_dim",
-        "_max_horizon_of_observation_history",
+        "_max_horizon",
     )
     emission_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_discrete_state_dim",
-        "_max_horizon_of_observation_history",
+        "_max_horizon",
     )
     likelihood_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_discrete_state_dim",
-        "_max_horizon_of_observation_history",
+        "_max_horizon",
     )
     estimated_distribution_history = MultiSystemNdArrayReadOnlyDescriptor(
         "_number_of_systems",
         "_discrete_state_dim",
-        "_max_horizon_of_observation_history",
+        "_max_horizon",
+    )
+    control_history = MultiSystemNdArrayReadOnlyDescriptor(
+        "_number_of_systems",
+        "_number_of_dual_function",
+        "_max_horizon",
     )
 
     def update(self, observation: ArrayLike) -> None:
@@ -147,9 +161,9 @@ class DualHmmFilter:
             likelihood_history=self._likelihood_history,
             estimated_distribution_history=self._estimated_distribution_history,
         )
-        self._horizon_of_observation_history = min(
-            self._horizon_of_observation_history + 1,
-            self._max_horizon_of_observation_history - 1,
+        self._horizon = min(
+            self._horizon + 1,
+            self._max_horizon - 1,
         )
 
     @staticmethod
@@ -224,7 +238,7 @@ class DualHmmFilter:
                 iterations,
                 self._number_of_systems,
                 number_of_dual_functions,
-                self._horizon_of_observation_history + 1,
+                self._horizon + 1,
             ),
         )
         estimated_distribution_history = np.empty(
@@ -232,11 +246,11 @@ class DualHmmFilter:
                 iterations + 1,
                 self._number_of_systems,
                 self._discrete_state_dim,
-                self._horizon_of_observation_history + 1,
+                self._horizon + 1,
             ),
         )
         estimated_distribution_history[0, ...] = self._likelihood_history[
-            ..., -1 - self._horizon_of_observation_history :
+            ..., -1 - self._horizon :
         ].copy()
         # estimated_distribution_history[0, ...] = self._estimated_distribution_history[
         #     ..., -1 - self._horizon_of_observation_history :
@@ -248,21 +262,20 @@ class DualHmmFilter:
                 estimated_distribution_history[i + 1, ...],
             ) = self._estimate(
                 estimated_distribution_history[i, ...],
-                self._emission_history[
-                    ..., -1 - self._horizon_of_observation_history :
-                ],
+                self._emission_history[..., -1 - self._horizon :],
             )
 
-        self._estimated_distribution_history[
-            ..., -1 - self._horizon_of_observation_history :
-        ] = estimated_distribution_history[-1, ...].copy()
+        self._control_history[..., -1 - self._horizon :] = control_history[
+            -1, ...
+        ].copy()
 
-        if (
-            self._horizon_of_observation_history
-            == self._max_horizon_of_observation_history - 1
-        ):
+        self._estimated_distribution_history[..., -1 - self._horizon :] = (
+            estimated_distribution_history[-1, ...].copy()
+        )
+
+        if self._horizon == self._max_horizon - 1:
             self._initial_distribution = self._estimated_distribution_history[
-                ..., -self._horizon_of_observation_history
+                ..., -self._horizon
             ].copy()
 
         return control_history, estimated_distribution_history
@@ -446,10 +459,10 @@ def _backward_path(
     transition_matrix: NDArray,
     terminal_dual_function: NDArray,
 ) -> Tuple[NDArray, NDArray]:
-    number_of_systems, discrete_state_dim, horizon_of_observation_history = (
+    number_of_systems, discrete_state_dim, horizon = (
         estimated_distribution_history.shape
     )
-    horizon_of_observation_history -= 1
+    horizon -= 1
     number_of_dual_functions = terminal_dual_function.shape[1]
 
     dual_function_history = np.empty(
@@ -457,23 +470,24 @@ def _backward_path(
             number_of_systems,
             discrete_state_dim,
             number_of_dual_functions,
-            horizon_of_observation_history + 1,
+            horizon + 1,
         ),
         dtype=np.float64,
     )
     for i in range(number_of_systems):
         dual_function_history[i, :, :, -1] = terminal_dual_function.copy()
 
-    control_history = np.empty(
+    control_history = np.full(
         (
             number_of_systems,
             number_of_dual_functions,
-            horizon_of_observation_history + 1,
+            horizon + 1,
         ),
+        np.nan,
         dtype=np.float64,
     )
 
-    for k in range(horizon_of_observation_history, 0, -1):
+    for k in range(horizon, 0, -1):
         dual_function = dual_function_history[
             :, :, :, k
         ]  # (number_of_systems, discrete_state_dim, number_of_dual_functions)
@@ -519,15 +533,15 @@ def _forward_path(
         number_of_systems,
         discrete_state_dim,
         number_of_dual_functions,
-        horizon_of_observation_history,
+        horizon,
     ) = dual_function_history.shape
-    horizon_of_observation_history -= 1
+    horizon -= 1
 
     estimator_history = np.empty(
         (
             number_of_systems,
             number_of_dual_functions,
-            horizon_of_observation_history + 1,
+            horizon + 1,
         ),
         dtype=np.float64,
     )
@@ -536,7 +550,7 @@ def _forward_path(
         (
             number_of_systems,
             discrete_state_dim,
-            horizon_of_observation_history + 1,
+            horizon + 1,
         ),
         dtype=np.float64,
     )
@@ -552,7 +566,7 @@ def _forward_path(
 
     # Update the estimated distribution
     # k = 1, 2, ..., K-1, K
-    for k in range(1, horizon_of_observation_history + 1):
+    for k in range(1, horizon + 1):
 
         estimator_history[:, :, k] = _compute_estimator(
             estimator_history[:, :, k - 1],
@@ -575,10 +589,8 @@ def _update_terminal_estimated_distribution(
     control_history: NDArray,
 ) -> NDArray:
 
-    number_of_systems, _, horizon_of_observation_history = (
-        control_history.shape
-    )
-    horizon_of_observation_history -= 1
+    number_of_systems, _, horizon = control_history.shape
+    horizon -= 1
     updated_terminal_estimated_distribution: NDArray = (
         _compute_initial_estimator(
             initial_estimated_distribution,
@@ -586,7 +598,7 @@ def _update_terminal_estimated_distribution(
         )
     )  # (number_of_systems, number_of_dual_functions)
 
-    for k in range(1, horizon_of_observation_history + 1):
+    for k in range(1, horizon + 1):
         updated_terminal_estimated_distribution -= control_history[:, :, k]
 
     for i in range(number_of_systems):
@@ -604,16 +616,16 @@ def _multi_path(
     terminal_dual_function: NDArray,
 ) -> Tuple[NDArray, NDArray]:
 
-    number_of_systems, discrete_state_dim, horizon_of_observation_history = (
+    number_of_systems, discrete_state_dim, horizon = (
         estimated_distribution_history.shape
     )
-    horizon_of_observation_history -= 1
+    horizon -= 1
 
     updated_estimated_distribution_history = np.empty(
         (
             number_of_systems,
             discrete_state_dim,
-            horizon_of_observation_history + 1,
+            horizon + 1,
         ),
         dtype=np.float64,
     )
@@ -622,7 +634,7 @@ def _multi_path(
         estimated_distribution_history[:, :, 0].copy()
     )
 
-    for k in range(1, horizon_of_observation_history + 1):
+    for k in range(1, horizon + 1):
 
         dual_function_history, control_history = _backward_path(
             estimated_distribution_history[..., : k + 1],
@@ -790,3 +802,26 @@ def _update_estimated_distribution(
         result = np.maximum(result, 0)
         updated_estimated_distribution[i, :] = result / np.sum(result)
     return updated_estimated_distribution
+
+
+class DualHmmFilterCallback(Callback):
+    def __init__(
+        self,
+        step_skip: int,
+        filter: DualHmmFilter,
+    ) -> None:
+        assert issubclass(type(filter), DualHmmFilter), (
+            f"filter must be an instance of DualHmmFilter or its subclasses. "
+            f"filter given is an instance of {type(filter)}."
+        )
+        self._filter = filter
+        super().__init__(step_skip)
+
+    def _record(self, time: float) -> None:
+        super()._record(time)
+        self._callback_params["estimated_distribution_history"].append(
+            self._filter.estimated_distribution_history.copy()
+        )
+        self._callback_params["control_history"].append(
+            self._filter.control_history.copy()
+        )
