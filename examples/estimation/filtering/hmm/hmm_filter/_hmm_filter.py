@@ -54,7 +54,7 @@ def hmm_filtering(
     estimator = HmmFilter(
         system=system,
         estimation_model=get_estimation_model(
-            emission_matrix=transition_matrix,
+            emission_matrix=np.identity(state_dim),
         ),
     )
     estimator_callback = HmmFilterCallback(
