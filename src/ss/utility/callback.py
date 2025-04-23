@@ -200,7 +200,8 @@ class Callback:
         with h5py.File(filepath, "r") as f:
             callback = cls(cast(int, f.attrs["__step_skip__"]))
             callback._load_meta_info(f)
-            callback._load_meta_data(cast(h5py.Group, f[MetaData.NAME]))
+            if MetaData.NAME in f:
+                callback._load_meta_data(cast(h5py.Group, f[MetaData.NAME]))
             callback._load_callback_params(f)
         return callback
 
