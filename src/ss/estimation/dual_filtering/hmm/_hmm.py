@@ -1,16 +1,15 @@
 from typing import Optional, Tuple
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from numpy.typing import ArrayLike, NDArray
 
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.callback import Callback
-from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
-    MultiSystemNdArrayReadOnlyDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.utility.descriptor import MultiSystemNdArrayReadOnlyDescriptor
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 class DualHmmFilter:
@@ -31,12 +30,18 @@ class DualHmmFilter:
             f"observation_dim given is {self._observation_dim}."
         )
         self._discrete_observation_dim = self._system.discrete_observation_dim
+        self._number_of_systems = self._system.number_of_systems
 
-        self._initial_distribution = (
-            np.full(self._discrete_state_dim, 1 / self._discrete_state_dim)
-            if initial_distribution is None
-            else np.array(initial_distribution)
+        self._initial_distribution = np.repeat(
+            (
+                np.full(self._discrete_state_dim, 1 / self._discrete_state_dim)
+                if initial_distribution is None
+                else np.array(initial_distribution)
+            )[np.newaxis, :],
+            self._number_of_systems,
+            axis=0,
         )
+
         self._terminal_dual_function = (
             np.identity(self._system.discrete_state_dim)
             if terminal_estimation is None
@@ -44,7 +49,6 @@ class DualHmmFilter:
         )
         self._number_of_dual_function = self._terminal_dual_function.shape[1]
 
-        self._number_of_systems = self._system.number_of_systems
         self._observation_history = np.full(
             (
                 self._number_of_systems,
@@ -72,16 +76,7 @@ class DualHmmFilter:
             np.nan,
             dtype=np.float64,
         )
-        self._likelihood_history[:, :, -1] = np.repeat(
-            self._initial_distribution[np.newaxis, :],
-            self._number_of_systems,
-            axis=0,
-        )
-        # for k in range(self._max_horizon_of_observation_history):
-        #     for i in range(self._number_of_systems):
-        #         self._likelihood_history[i, :, k] = (
-        #             self._initial_distribution.copy()
-        #         )
+        self._likelihood_history[:, :, -1] = self._initial_distribution.copy()
 
         self._estimated_distribution_history = np.full(
             (
@@ -152,6 +147,7 @@ class DualHmmFilter:
             f"observation must be in the shape of {(self._number_of_systems, self._observation_dim) = }. "
             f"observation given has the shape of {observation.shape}."
         )
+
         self._update_observation(
             observation=observation,
             emission_matrix=self._system.emission_matrix,
@@ -181,12 +177,12 @@ class DualHmmFilter:
         discrete_state_dim, _ = emission_matrix.shape
 
         # Move the observation, emission, and estimated distribution history one step into the past
-        for i in range(number_of_systems):
+        for i in prange(number_of_systems):
             # numba v0.61.0 does not support np.roll with axis argument
             observation_history[i, 0, :] = np.roll(
                 observation_history[i, 0, :], shift=-1
             )
-            for d in range(discrete_state_dim):
+            for d in prange(discrete_state_dim):
                 emission_history[i, d, :] = np.roll(
                     emission_history[i, d, :], shift=-1
                 )
@@ -196,19 +192,18 @@ class DualHmmFilter:
                 estimated_distribution_history[i, d, :] = np.roll(
                     estimated_distribution_history[i, d, :], shift=-1
                 )
-
         # Update the most recent history based on the new observation
         emission_column = emission_matrix[
             :, observation[:, 0]
         ].T  # (number_of_systems, discrete_state_dim)
         emission_history[:, :, -1] = 2 * emission_column - 1
-        for i in range(number_of_systems):
+        for i in prange(number_of_systems):
             # numba v0.61.0 does not support np.sum with axis argument
             likelihood_history[i, :, -1] = emission_column[i, :] / np.sum(
                 emission_column[i, :]
             )
             if likelihood_history[i, 0, 0] != np.nan:
-                likelihood_history[i, :, 0] = initial_distribution.copy()
+                likelihood_history[i, :, 0] = initial_distribution[i, :].copy()
             if emission_history[i, 0, 0] != np.nan:
                 emission_history[i, :, 0] = np.nan
             if observation_history[i, 0, 0] != np.nan:
@@ -218,7 +213,9 @@ class DualHmmFilter:
         ].copy()
         observation_history[:, :, -1] = observation.copy()
 
-    def estimate(self, iterations: int = 1) -> Tuple[NDArray, NDArray]:
+    def estimate(
+        self, iterations: int = 1, show_progress: bool = False
+    ) -> Tuple[NDArray, NDArray]:
         """
         Estimate the distribution of the system.
 
@@ -252,11 +249,10 @@ class DualHmmFilter:
         estimated_distribution_history[0, ...] = self._likelihood_history[
             ..., -1 - self._horizon :
         ].copy()
-        # estimated_distribution_history[0, ...] = self._estimated_distribution_history[
-        #     ..., -1 - self._horizon_of_observation_history :
-        # ].copy()
 
-        for i in range(iterations):
+        for i in logger.progress_bar(
+            range(iterations), show_progress=show_progress
+        ):
             (
                 control_history[i, ...],
                 estimated_distribution_history[i + 1, ...],
@@ -474,7 +470,7 @@ def _backward_path(
         ),
         dtype=np.float64,
     )
-    for i in range(number_of_systems):
+    for i in prange(number_of_systems):
         dual_function_history[i, :, :, -1] = terminal_dual_function.copy()
 
     control_history = np.full(
@@ -589,7 +585,9 @@ def _update_terminal_estimated_distribution(
     control_history: NDArray,
 ) -> NDArray:
 
-    number_of_systems, _, horizon = control_history.shape
+    number_of_systems, number_of_dual_functions, horizon = (
+        control_history.shape
+    )
     horizon -= 1
     updated_terminal_estimated_distribution: NDArray = (
         _compute_initial_estimator(
@@ -601,8 +599,22 @@ def _update_terminal_estimated_distribution(
     for k in range(1, horizon + 1):
         updated_terminal_estimated_distribution -= control_history[:, :, k]
 
-    for i in range(number_of_systems):
-        result = np.maximum(updated_terminal_estimated_distribution[i, :], 0)
+    for i in prange(number_of_systems):
+        positive_mask = updated_terminal_estimated_distribution[i, :] > 0
+        # If all values are negative, set the distribution to be uniform
+        if np.all(np.logical_not(positive_mask)):
+            updated_terminal_estimated_distribution[i, :] = (
+                1 / number_of_dual_functions
+            )
+            continue
+        # min_nonnegative_value = np.min(
+        #     updated_terminal_estimated_distribution[i, positive_mask]
+        # )
+        min_nonnegative_value = 0.0
+        result = np.maximum(
+            updated_terminal_estimated_distribution[i, :],
+            min_nonnegative_value,
+        )
         updated_terminal_estimated_distribution[i, :] = result / np.sum(result)
 
     return updated_terminal_estimated_distribution
@@ -635,9 +647,15 @@ def _multi_path(
     )
 
     for k in range(1, horizon + 1):
+        _estimated_distribution_history = estimated_distribution_history[
+            :, :, : k + 1
+        ].copy()
+        _estimated_distribution_history[:, :, :k] = (
+            updated_estimated_distribution_history[:, :, :k].copy()
+        )
 
         dual_function_history, control_history = _backward_path(
-            estimated_distribution_history[..., : k + 1],
+            _estimated_distribution_history,
             emission_history[..., : k + 1],
             transition_matrix,
             terminal_dual_function,
@@ -692,7 +710,7 @@ def _compute_past_dual_function(
 ) -> NDArray[np.float64]:
     number_of_systems = dual_function.shape[0]
     past_dual_function = np.empty_like(dual_function)
-    for i in range(number_of_systems):
+    for i in prange(number_of_systems):
         # copy is used to avoid the following performance warning
         # NumbaPerformanceWarning: '@' is faster on contiguous arrays
         past_dual_function[i, :, :] = (
@@ -709,7 +727,7 @@ def _compute_control(
 ) -> NDArray[np.float64]:
     number_of_systems, _, number_of_dual_functions = past_dual_function.shape
     control = np.empty((number_of_systems, number_of_dual_functions))
-    for i in range(number_of_systems):
+    for i in prange(number_of_systems):
 
         expected_emission = np.sum(
             estimated_distribution[i, :] * emission[i, :]
@@ -720,7 +738,7 @@ def _compute_control(
             control[i, :] = 0
             continue
 
-        for d in range(number_of_dual_functions):
+        for d in prange(number_of_dual_functions):
             # The following implementation is equivalent to the one below (but faster?)
             # control[i, d] = -(
             #     np.sum(
@@ -755,7 +773,7 @@ def _backward_dual_function_step(
 ) -> NDArray[np.float64]:
     number_of_systems = past_dual_function.shape[0]
     updated_past_dual_function = np.empty_like(past_dual_function)
-    for i in range(number_of_systems):
+    for i in prange(number_of_systems):
         updated_past_dual_function[i, :, :] = past_dual_function[
             i, :, :
         ] + np.outer(emission[i, :], control[i, :])
@@ -769,8 +787,8 @@ def _compute_initial_estimator(
 ) -> NDArray[np.float64]:
     number_of_systems, _, number_of_dual_functions = dual_function.shape
     initial_estimator = np.empty((number_of_systems, number_of_dual_functions))
-    for i in range(number_of_systems):
-        for d in range(number_of_dual_functions):
+    for i in prange(number_of_systems):
+        for d in prange(number_of_dual_functions):
             initial_estimator[i, d] = np.sum(
                 initial_distribution[i, :] * dual_function[i, :, d]
             )
@@ -794,7 +812,7 @@ def _update_estimated_distribution(
     updated_estimated_distribution = np.empty(
         (number_of_systems, discrete_state_dim)
     )
-    for i in range(number_of_systems):
+    for i in prange(number_of_systems):
         result, _, _, _ = np.linalg.lstsq(
             dual_function[i, :, :].T,
             estimator[i, :],
