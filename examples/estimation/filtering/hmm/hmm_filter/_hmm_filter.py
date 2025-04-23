@@ -12,7 +12,7 @@ from ss.system.markov import HiddenMarkovModel, HmmCallback
 from ss.utility.logging import Logging
 
 from . import figure as Figure
-from .utility import get_estimation_model, get_probability_matrix
+from . import utility as Utility
 
 logger = Logging.get_logger(__name__)
 
@@ -26,7 +26,7 @@ def hmm_filtering(
     result_directory: Path,
 ) -> None:
 
-    transition_matrix = get_probability_matrix(
+    transition_matrix = Utility.get_probability_matrix(
         state_dim, state_dim, temperature=0.1
     )
     # emission_matrix = get_probability_matrix(
@@ -60,7 +60,7 @@ def hmm_filtering(
 
     filter = HmmFilter(
         system=system,
-        estimation_model=get_estimation_model(
+        estimation_model=Utility.get_estimation_model(
             emission_matrix=np.identity(state_dim),
         ),
     )
@@ -115,7 +115,7 @@ def hmm_filtering(
 
         if k < max_horizon:
             result[:, : -1 - k] = np.nan
-            continue
+            # continue
 
         time_trajectory = np.arange(k - max_horizon + 1, k + 1)
 
