@@ -69,9 +69,13 @@ class Logger(logging.Logger):
         super().__init__(name, level)
 
     def progress_bar(
-        self, iterable: Iterable, total: Optional[int] = None
+        self,
+        iterable: Iterable,
+        *,
+        total: Optional[int] = None,
+        show_progress: bool = True,
     ) -> tqdm:
-        return tqdm(iterable, total=total)
+        return tqdm(iterable, total=total, disable=not show_progress)
 
     # This is a temporary solution to indent the log messages
     def indent(self, level: int = 1) -> str:
