@@ -1,4 +1,4 @@
-from typing import Any, Dict, Self, Tuple
+from typing import Any, Dict, Self, Tuple, cast
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -111,6 +111,6 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
         ):
             self._plot_statistics_signal_trajectory(
                 state_subplot,
-                mean_state,
-                std_state,
+                cast(NDArray, mean_state),
+                cast(NDArray, std_state),
             )

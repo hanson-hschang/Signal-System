@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, cast
 
 from pathlib import Path
 
@@ -162,10 +162,13 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             f"The initial_distribution given has shape {self._initial_distribution.shape}."
         )
 
-        self._state = np.random.choice(
-            self._discrete_state_dim,
-            size=self._state.shape,
-            p=self._initial_distribution,
+        self._state = cast(
+            NDArray,
+            np.random.choice(
+                self._discrete_state_dim,
+                size=self._state.shape,
+                p=self._initial_distribution,
+            ),
         ).astype(
             np.float64
         )  # (number_of_systems, 1)

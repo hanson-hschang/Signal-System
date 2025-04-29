@@ -179,5 +179,4 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
         self._time_horizon = (
             self._time_trajectory[-1] - self._time_trajectory[0]
         )
-        del self._sequence_trajectory
         self._sup_xlabel = "time (sec)"
