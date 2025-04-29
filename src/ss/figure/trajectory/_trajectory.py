@@ -19,6 +19,8 @@ class SequenceTrajectoryFigure(Figure):
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
+        column_ratio: Optional[Tuple[float, ...]] = None,
+        row_ratio: Optional[Tuple[float, ...]] = None,
     ) -> None:
         sequence_trajectory = np.array(sequence_trajectory)
         assert sequence_trajectory.ndim == 1, (
@@ -53,32 +55,16 @@ class SequenceTrajectoryFigure(Figure):
             fig_size=fig_size,
             fig_title=fig_title,
             fig_layout=fig_layout,
+            column_ratio=column_ratio,
+            row_ratio=row_ratio,
         )
 
-        self._sequence_trajectory = sequence_trajectory
+        self._sequence_trajectory = np.array(sequence_trajectory)
         self._sequence_length = int(sequence_trajectory.shape[0])
         self._number_of_systems = number_of_systems
         self._default_color = "C0"
         self._default_alpha = 0.2
         self._default_std_alpha = 0.5
-
-        # self._fig_size = fig_size
-        # self._fig_title = fig_title
-        # self._fig_layout = fig_layout
-
-        # self._fig = plt.figure(figsize=self._fig_size)
-        # self._grid_spec = gridspec.GridSpec(
-        #     *self._fig_layout, figure=self._fig
-        # )
-        # self._subplots: List[List[Axes]] = []
-        # for row in range(self._fig_layout[0]):
-        #     self._subplots.append([])
-        #     for col in range(self._fig_layout[1]):
-        #         self._subplots[row].append(
-        #             self._fig.add_subplot(self._grid_spec[row, col])
-        #         )
-
-        # self._sup_xlabel = "sequence"
         self._color_map = plt.get_cmap("Greys")
 
     def _plot_signal_trajectory(
@@ -177,6 +163,8 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
+        column_ratio: Optional[Tuple[float, ...]] = None,
+        row_ratio: Optional[Tuple[float, ...]] = None,
     ) -> None:
         super().__init__(
             sequence_trajectory=time_trajectory,
@@ -184,5 +172,12 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
             fig_size=fig_size,
             fig_title=fig_title,
             fig_layout=fig_layout,
+            column_ratio=column_ratio,
+            row_ratio=row_ratio,
         )
+        self._time_trajectory = self._sequence_trajectory.copy()
+        self._time_horizon = (
+            self._time_trajectory[-1] - self._time_trajectory[0]
+        )
+        del self._sequence_trajectory
         self._sup_xlabel = "time (sec)"
