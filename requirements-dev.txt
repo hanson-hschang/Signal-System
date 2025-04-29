@@ -116,8 +116,11 @@ pytest==8.3.4
     # via
     #   Signal-System (pyproject.toml)
     #   pytest-cov
+    #   pytest-dependency
     #   pytest-mock
 pytest-cov==6.0.0
+    # via Signal-System (pyproject.toml)
+pytest-dependency==0.6.0
     # via Signal-System (pyproject.toml)
 pytest-mock==3.14.0
     # via Signal-System (pyproject.toml)
