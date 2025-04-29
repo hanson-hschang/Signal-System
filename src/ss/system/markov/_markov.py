@@ -162,7 +162,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             f"The initial_distribution given has shape {self._initial_distribution.shape}."
         )
 
-        self._state = np.random.choice(
+        self._state[:, :] = np.random.choice(
             self._discrete_state_dim,
             size=(self._number_of_systems, self._state_dim),
             p=self._initial_distribution,
