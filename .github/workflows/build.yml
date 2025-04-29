@@ -66,8 +66,7 @@ jobs:
 
       - name: Run tests
         run: |
-          pwd
-          ls -la
+          python -m pip install --upgrade pytest-dependency
           pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
 
       # upload coverage to codecov when this is enabled
