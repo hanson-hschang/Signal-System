@@ -25,12 +25,12 @@ class DualEstimationConfig(BaseLearningConfig, Generic[TC]):
 
     class Option(StrEnum):
         ESTIMATED_STATE = auto()
-        PREDICTED_STATE = auto()
+        # PREDICTED_STATE = auto()
         PREDICTED_OBSERVATION_PROBABILITY = auto()
         # PREDICTED_STATE_OVER_LAYERS = auto()
         # PREDICTED_OBSERVATION_PROBABILITY_OVER_LAYERS = auto()
-        LINEAR_TRANSFORM_ESTIMATION = auto()
-        LINEAR_TRANSFORM_PREDICTION = auto()
+        ESTIMATION = auto()
+        # LINEAR_TRANSFORM_PREDICTION = auto()
 
     option: Option = Option.PREDICTED_OBSERVATION_PROBABILITY
     matrix: EstimationMatrixConfig[TC] = field(

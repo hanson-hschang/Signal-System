@@ -6,8 +6,10 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
+from ss.estimation.dual_filtering.hmm.learning.module import (
+    LearningDualHmmFilter,
+)
 from ss.estimation.filtering.hmm import HmmFilter
-from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
@@ -62,9 +64,9 @@ def analysis(
 
     # Load module
     module_filename = model_filepath.with_suffix(
-        LearningHmmFilter.FILE_EXTENSIONS[0]
+        LearningDualHmmFilter.FILE_EXTENSIONS[0]
     )
-    learning_filter, _ = LearningHmmFilter[
+    learning_filter, _ = LearningDualHmmFilter[
         SoftmaxTransformer, SoftmaxTransformerConfig
     ].load(
         module_filename,
@@ -126,7 +128,7 @@ def analysis(
     empirical_learning_filter_loss = loss_conversion(
         Utility.compute_loss(
             learning_filter,
-            observation_trajectory,
+            observation_trajectory[..., :50],
             learning_filter.discrete_observation_dim,
         )
     )

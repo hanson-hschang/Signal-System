@@ -32,7 +32,7 @@ logger = Logging.get_logger(__name__)
 
 
 @dataclass
-class LearningHmmDualFilterConfig(BaseLearningConfig, Generic[TC]):
+class LearningDualHmmFilterConfig(BaseLearningConfig, Generic[TC]):
     """
     Configuration of the `LearningHmmDualFilter` class.
     """
@@ -68,7 +68,8 @@ class LearningHmmDualFilterConfig(BaseLearningConfig, Generic[TC]):
         probability_option: ProbabilityParameterConfig.Option = (
             ProbabilityParameterConfig.Option.SOFTMAX
         ),
-    ) -> "LearningHmmDualFilterConfig[TC]":
+        transition_matrix_binding: bool = True,
+    ) -> "LearningDualHmmFilterConfig[TC]":
         """
         Create a basic configuration of the `LearningHmmFilter` module.
 
@@ -125,14 +126,15 @@ class LearningHmmDualFilterConfig(BaseLearningConfig, Generic[TC]):
         # Prepare module configuration
         config = cls(
             filter=filter_config,
-            transition=DualTransitionConfig[TC](layers=tuple(layers)),
+            transition=DualTransitionConfig[TC](
+                layers=tuple(layers),
+                transition_matrix_binding=transition_matrix_binding,
+            ),
         )
 
         # Update estimation configuration
         if estimation_dim > 0:
-            config.estimation.option = (
-                DualEstimationConfig.Option.LINEAR_TRANSFORM_PREDICTION
-            )
+            config.estimation.option = DualEstimationConfig.Option.ESTIMATION
 
         # Update probability parameter configuration
         config.emission.matrix.probability_parameter = (

@@ -4,11 +4,13 @@ from pathlib import Path
 
 import torch
 
-from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
-from ss.estimation.filtering.hmm.learning.module import LearningHmmFilter
-from ss.estimation.filtering.hmm.learning.module.config import (
-    LearningHmmFilterConfig,
+from ss.estimation.dual_filtering.hmm.learning.module import (
+    LearningDualHmmFilter,
 )
+from ss.estimation.dual_filtering.hmm.learning.module.config import (
+    LearningDualHmmFilterConfig,
+)
+from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
 from ss.estimation.filtering.hmm.learning.process import (
     LearningHmmFilterProcess,
 )
@@ -66,15 +68,20 @@ def training(
     )
 
     # Prepare module configuration
-    config = LearningHmmFilterConfig[SoftmaxTransformerConfig].basic_config(
+    config = LearningDualHmmFilterConfig[
+        SoftmaxTransformerConfig
+    ].basic_config(
         state_dim=int(data.meta_info["discrete_state_dim"]),
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
+        history_length=max_length,
+        block_dims=1,
+        transition_matrix_binding=False,
     )
 
     # Prepare module
-    learning_filter = LearningHmmFilter[
+    learning_filter = LearningDualHmmFilter[
         SoftmaxTransformer, SoftmaxTransformerConfig
     ](config)
 
@@ -89,11 +96,11 @@ def training(
         ) -> None:
             super().__init__(module, loss_function, optimizer)
 
-        def save_model_info(self) -> Dict[str, Any]:
-            custom_model_info: Dict[str, Any] = dict(
-                # save extra arguments
-            )
-            return custom_model_info
+        # def save_model_info(self) -> Dict[str, Any]:
+        #     custom_model_info: Dict[str, Any] = dict(
+        #         # save extra arguments
+        #     )
+        #     return custom_model_info
 
         def save_checkpoint_info(self) -> CheckpointInfo:
             custom_checkpoint_info = CheckpointInfo(
@@ -138,6 +145,14 @@ def training(
             },
         )
 
+    # with learning_process.inference_mode(learning_filter):
+    #     learning_filter.transition.layers[0].blocks[0].matrix = torch.tensor(
+    #         data.meta_data["transition_matrix"]
+    #     )
+    #     learning_filter.emission.matrix = torch.tensor(
+    #         data.meta_data["emission_matrix"]
+    #     )
+
     # Prepare training configuration
     training_config = TrainingConfig()
     training_config.validation.per_iteration_period = 300
@@ -147,7 +162,7 @@ def training(
         model_folderpath / training_config.checkpoint.folderpath
     )
     training_config.checkpoint.filename = model_filename
-    training_config.checkpoint.per_epoch_period = 4
+    training_config.checkpoint.per_epoch_period = 1
     if not new_training:
         training_config.validation.initial.skip = True
 
@@ -156,6 +171,7 @@ def training(
         sampling_interval=1.0,
         result_directory=result_directory,
     ):
+
         learning_process.training(
             training_loader, evaluation_loader, training_config
         )

@@ -27,8 +27,15 @@ def hmm_filtering(
 ) -> None:
 
     transition_matrix = Utility.get_probability_matrix(
-        state_dim, state_dim, temperature=0.1
+        state_dim, state_dim, temperature=1 / 3
     )
+    emission_matrix = Utility.get_probability_matrix(
+        state_dim, discrete_observation_dim, temperature=1 / 6
+    )
+
+    # transition_matrix = Utility.get_probability_matrix(
+    #     state_dim, state_dim, temperature=0.1
+    # )
     # emission_matrix = get_probability_matrix(
     #     state_dim, discrete_observation_dim, temperature=6
     # )
@@ -38,10 +45,10 @@ def hmm_filtering(
     # for r in range(state_dim):
     #     values = np.exp(np.random.rand(state_dim)/0.1)
     #     transition_matrix[r, :] = values / np.sum(values)
-    emission_matrix = np.zeros((state_dim, discrete_observation_dim))
-    for r in range(state_dim):
-        values = np.exp(np.random.rand(discrete_observation_dim))
-        emission_matrix[r, :] = values / np.sum(values)
+    # emission_matrix = np.zeros((state_dim, discrete_observation_dim))
+    # for r in range(state_dim):
+    #     values = np.exp(np.random.rand(discrete_observation_dim))
+    #     emission_matrix[r, :] = values / np.sum(values)
 
     np.set_printoptions(precision=3)
     logger.info("transition_matrix:")
@@ -83,7 +90,9 @@ def hmm_filtering(
     )
 
     current_time = 0.0
-    estimation_trajectory = np.empty((state_dim, max_horizon))
+    estimation_trajectory = np.empty(
+        (number_of_systems, state_dim, max_horizon)
+    )
     estimation_trajectory[...] = np.nan
 
     for k in tqdm(range(simulation_time_steps)):
@@ -94,48 +103,48 @@ def hmm_filtering(
         estimation = filter.estimate()
 
         # Compute the estimation from dual estimator
-        dual_filter.update(observation)
-        dual_filter.estimate(iterations)
-        result = dual_filter.estimated_distribution_history.copy()
-        result = result[..., 1:]
+        # dual_filter.update(observation)
+        # dual_filter.estimate(iterations)
+        # result = dual_filter.estimated_distribution_history.copy()
+        # result = result[..., 1:]
 
         # Record the system and the estimator
         system_callback.record(k, current_time)
         filter_callback.record(k, current_time)
-        dual_filter_callback.record(k, current_time)
+        # dual_filter_callback.record(k, current_time)
 
         # Update the system
         current_time = system.process(current_time)
 
-        for d in range(state_dim):
-            estimation_trajectory[d, :] = np.roll(
-                estimation_trajectory[d, :], -1
-            )
-        estimation_trajectory[:, -1] = estimation
+        # for d in range(state_dim):
+        #     estimation_trajectory[d, :] = np.roll(
+        #         estimation_trajectory[d, :], -1
+        #     )
+        # estimation_trajectory[:, :, -1] = estimation
 
-        if k < max_horizon:
-            result[:, : -1 - k] = np.nan
-            # continue
+        # if k < max_horizon:
+        #     result[:, : -1 - k] = np.nan
+        #     # continue
 
-        time_trajectory = np.arange(k - max_horizon + 1, k + 1)
+        # time_trajectory = np.arange(k - max_horizon + 1, k + 1)
 
-        # Plot the data
-        figure = Figure.DualHmmFigure(
-            time_trajectory=time_trajectory,
-            estimation_trajectory=estimation_trajectory,
-            dual_estimation_trajectory=result,
-        ).plot()
-        for t in time_trajectory:
-            for d in range(state_dim):
-                figure._subplots[d][0].set_xlim(
-                    time_trajectory[0] - max_horizon / 20,
-                    time_trajectory[-1] + max_horizon / 20,
-                )
-                if t % 5 == 0:
-                    figure._subplots[d][0].axvline(
-                        t, color="black", linewidth=0.5, linestyle="--"
-                    )
-        Figure.show()
+        # # Plot the data
+        # figure = Figure.DualHmmFigure(
+        #     time_trajectory=time_trajectory,
+        #     estimation_trajectory=estimation_trajectory,
+        #     dual_estimation_trajectory=result,
+        # ).plot()
+        # for t in time_trajectory:
+        #     for d in range(state_dim):
+        #         figure._subplots[d][0].set_xlim(
+        #             time_trajectory[0] - max_horizon / 20,
+        #             time_trajectory[-1] + max_horizon / 20,
+        #         )
+        #         if t % 5 == 0:
+        #             figure._subplots[d][0].axvline(
+        #                 t, color="black", linewidth=0.5, linestyle="--"
+        #             )
+        # Figure.show()
 
     observation = system.observe()
 
@@ -143,18 +152,18 @@ def hmm_filtering(
     filter.update(observation)
     filter.estimate()
 
-    dual_filter.update(observation)
-    dual_filter.estimate(iterations)
+    # dual_filter.update(observation)
+    # dual_filter.estimate(iterations)
 
     # Record the system and the estimator
     system_callback.record(simulation_time_steps, current_time)
     filter_callback.record(simulation_time_steps, current_time)
-    dual_filter_callback.record(simulation_time_steps, current_time)
+    # dual_filter_callback.record(simulation_time_steps, current_time)
 
     # Save the data
     system_callback.save(result_directory / "system.hdf5")
     filter_callback.save(result_directory / "filter.hdf5")
-    dual_filter_callback.save(result_directory / "dual_filter.hdf5")
+    # dual_filter_callback.save(result_directory / "dual_filter.hdf5")
 
     # Plot the data
     state_trajectory = (

@@ -36,6 +36,7 @@ class DualTransitionConfig(BaseLearningConfig, Generic[TC]):
 
     layers: LayersDescriptor[TC] = LayersDescriptor[TC](tuple())
     skip_first_transition: bool = False
+    transition_matrix_binding: bool = True
 
     @property
     def layer_dim(self) -> int:
