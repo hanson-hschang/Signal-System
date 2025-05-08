@@ -22,7 +22,7 @@ install-pre-commit:
 #* Unittests
 .PHONY: test
 test:
-	pytest -c pyproject.toml --cov=src --cov-report=xml --cov-report=term
+	pytest -c pyproject.toml --cov=src --cov-branch --cov-report=xml --cov-report=term
 
 #* Formatters
 .PHONY: formatting
