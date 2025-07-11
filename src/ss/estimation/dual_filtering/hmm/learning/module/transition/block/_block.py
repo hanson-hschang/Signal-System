@@ -1,4 +1,4 @@
-from typing import Generic, Self, Tuple, TypeVar, assert_never
+from typing import Generic, List, Tuple, TypeVar, assert_never
 
 import torch
 
@@ -68,11 +68,13 @@ class BaseDualTransitionBlock(
         self,
         likelihood_state_trajectory: torch.Tensor,
         # emission_difference_trajectory: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
 
-        estimated_state_trajectory = self.process(likelihood_state_trajectory)
+        estimated_state_trajectory, control_trajectories = self.process(
+            likelihood_state_trajectory
+        )
 
-        return estimated_state_trajectory
+        return estimated_state_trajectory, control_trajectories
 
     @classmethod
     def create(
