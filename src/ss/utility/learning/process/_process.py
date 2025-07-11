@@ -162,6 +162,15 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                     )
                     self._record_validation_loss(validation_losses)
 
+                    if training_config.checkpoint.condition(
+                        validation=self.validation_count,
+                    ).satisfied():
+                        self._checkpoint.save(
+                            self._module,
+                            self._save_checkpoint_info(),
+                            self._save_model_info(),
+                        )
+
                 if training_config.termination.condition(
                     iteration=self._iteration
                 ).satisfied():
@@ -212,7 +221,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                 self._record_epoch(training_config.termination.max_epoch)
 
                 if training_config.checkpoint.condition(
-                    epoch=self._epoch
+                    epoch=self._epoch,
                 ).satisfied():
                     self._checkpoint.save(
                         self._module,

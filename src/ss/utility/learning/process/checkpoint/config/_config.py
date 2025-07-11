@@ -1,4 +1,4 @@
-from typing import Callable, cast
+from typing import Callable, Optional, cast
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -89,6 +89,15 @@ class CheckpointConfig:
             value = NonnegativeIntegerValidator(value).get_value()
             super().__set__(obj, value)
 
+    class PerValidationPeriodDescriptor(DataclassDescriptor[int]):
+        def __set__(
+            self,
+            obj: object,
+            value: int,
+        ) -> None:
+            value = NonnegativeIntegerValidator(value).get_value()
+            super().__set__(obj, value)
+
     class FolderpathDescriptor(DataclassDescriptor[Path]):
         def __set__(
             self,
@@ -119,6 +128,9 @@ class CheckpointConfig:
         default_factory=cast(Callable[[], Initial], Initial)
     )
     per_epoch_period: PerEpochPeriodDescriptor = PerEpochPeriodDescriptor(1)
+    per_validation_period: PerValidationPeriodDescriptor = (
+        PerValidationPeriodDescriptor(0)
+    )
 
     # save_last: bool = True
     # save_best: bool = True
@@ -130,18 +142,34 @@ class CheckpointConfig:
         #     )
         self._condition = Condition(any)
 
-    def condition(self, epoch: int, initial: bool = False) -> Condition:
+    def condition(
+        self,
+        epoch: Optional[int] = None,
+        validation: Optional[int] = None,
+        initial: bool = False,
+    ) -> Condition:
         if initial and self.per_epoch_period == 0:
             self.initial.skip = True
             logger.info("checkpoints are saved only at the end of training")
-        self._condition(
-            epoch=(
-                False
-                if self.per_epoch_period == 0
-                else (epoch % self.per_epoch_period) == 0
-            ),
-            initial=not self.initial.skip if initial else False,
-        )
 
+        if epoch is not None:
+            self._condition.reset()
+            self._condition(
+                epoch=(
+                    False
+                    if self.per_epoch_period == 0
+                    else (epoch % self.per_epoch_period) == 0
+                ),
+                initial=not self.initial.skip if initial else False,
+            )
+        if validation is not None:
+            self._condition.reset()
+            self._condition(
+                validation=(
+                    False
+                    if self.per_validation_period == 0
+                    else (validation % self.per_validation_period) == 0
+                )
+            )
         # self._condition(epoch=(epoch % self.per_epoch_period) == 0)
         return self._condition

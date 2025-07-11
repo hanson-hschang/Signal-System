@@ -26,6 +26,18 @@ class LearningProcessInfoMixin:
             defaultdict(list)
         )
 
+    @property
+    def validation_count(self) -> int:
+        """
+        Get the number of validation iterations.
+
+        Returns
+        -------
+        validation_count : int
+            The number of validation iterations.
+        """
+        return max(len(self._validation_loss_history["iteration"]) - 1, 0)
+
     def _record_epoch(self, max_epoch: int) -> None:
         self._epoch_history["iteration"].append(self._iteration)
         self._epoch_history["epoch"].append(self._epoch)
