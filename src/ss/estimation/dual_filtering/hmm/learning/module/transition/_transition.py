@@ -31,6 +31,8 @@ class DualTransitionModule(
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
+        self._horizon = filter_config.history_length
+
         self._transition_matrix_binding = (
             self._config.transition_matrix_binding
         )
@@ -66,6 +68,9 @@ class DualTransitionModule(
             self._estimated_state_over_layers: torch.Tensor = torch.zeros(
                 (self._batch_size, self._layer_dim, self._state_dim),
             )
+            self._control_trajectory_over_layers: List = [
+                torch.nan for _ in range(self._layer_dim)
+            ]
 
     def _check_batch_size(self, batch_size: int) -> None:
         if self._is_initialized:
@@ -100,7 +105,7 @@ class DualTransitionModule(
 
         estimated_state_trajectory: torch.Tensor
         for l, layer in enumerate(self._layers, start=1):
-            estimated_state_trajectory = layer(
+            estimated_state_trajectory, control_trajectory = layer(
                 emission_trajectory,
             )  # (batch_size, horizon, state_dim), (batch_size, horizon, state_dim)
             if self._inference:
@@ -108,6 +113,12 @@ class DualTransitionModule(
                 self._estimated_state_over_layers[:, l, :] = (
                     estimated_state_trajectory[:, -1, :]
                 )  # (batch_size, horizon=-1, state_dim)
+                self._control_trajectory_over_layers[l] = control_trajectory
+                # print(estimated_state_trajectory.shape)
+                # print(control_trajectory.shape)
+                # print(self._state_dim)
+                # print(self._batch_size)
+                # quit()
 
             emission_trajectory = estimated_state_trajectory
 

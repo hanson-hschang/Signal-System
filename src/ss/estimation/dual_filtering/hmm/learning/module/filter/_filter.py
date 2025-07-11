@@ -12,6 +12,9 @@ from ss.utility.descriptor import (
     ReadOnlyDescriptor,
 )
 from ss.utility.learning.module import BaseLearningModule
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 class DualFilterModule(
@@ -55,6 +58,9 @@ class DualFilterModule(
         self._emission_history = torch.zeros(
             self._batch_size, self._max_history_length, self._state_dim
         )
+        self._control_history = torch.zeros(
+            self._batch_size, self._max_history_length, self._state_dim
+        )
         # self._emission_difference_history = torch.zeros(
         #     self._batch_size, self._history_length, self._state_dim
         # )
@@ -68,6 +74,9 @@ class DualFilterModule(
     #     "_batch_size", "_history_length", "_state_dim"
     # )
     emission_history = BatchTensorDescriptor(
+        "_batch_size", "_max_history_length", "_state_dim"
+    )
+    control_history = BatchTensorDescriptor(
         "_batch_size", "_max_history_length", "_state_dim"
     )
 
@@ -92,11 +101,19 @@ class DualFilterModule(
         # estimated_distribution: torch.Tensor,
         # emission_difference: torch.Tensor,
     ) -> None:
+        # logger.info(
+        #     f"Updating history with emission shape: {emission.shape}"
+        # )
+
         self._estimated_state_history = torch.roll(
             self._estimated_state_history, -1, dims=1
         )
         self._emission_history = torch.roll(self._emission_history, -1, dims=1)
         self._emission_history[:, -1, :] = emission[:, 0, :]
+
+        # logger.info(
+        #     f"Updating history with emission shape: {self._emission_history.shape}"
+        # )
 
         self._history_length = min(
             self._history_length + 1, self._max_history_length

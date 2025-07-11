@@ -82,7 +82,7 @@ class DualTransitionLayer(
 
         self._forward: Callable[
             [torch.Tensor, Optional[torch.Tensor]],
-            torch.Tensor,
+            Tuple[torch.Tensor, List[torch.Tensor]],
         ]
         self._init_forward()
 
@@ -216,17 +216,21 @@ class DualTransitionLayer(
         self,
         likelihood_trajectory: torch.Tensor,
         coefficient: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
 
-        estimated_state_trajectory = self.process(likelihood_trajectory)
+        estimated_state_trajectory, control_trajectory = self.process(
+            likelihood_trajectory
+        )
 
-        return estimated_state_trajectory
+        return estimated_state_trajectory, control_trajectory
 
     def _forward_unbound_initial_state(
         self,
         likelihood_trajectory: torch.Tensor,
         coefficient: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        # TODO: the implementation of the unbound initial state is not correct.
+
         if coefficient is None:
             coefficient = self.coefficient.unsqueeze(dim=0).unsqueeze(
                 dim=0
@@ -257,19 +261,30 @@ class DualTransitionLayer(
             #     coefficient[:, :, b],
             # )
 
-        return estimated_state_trajectory
+        control_trajectory = torch.zeros_like(
+            estimated_state_trajectory,
+            device=estimated_state_trajectory.device,
+        )
+
+        return estimated_state_trajectory, [control_trajectory]
 
     def forward(
         self,
         likelihood_trajectory: torch.Tensor,
         coefficient: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
 
-        (estimated_state_trajectory) = self._forward(
+        (estimated_state_trajectory, control_trajectories) = self._forward(
             likelihood_trajectory,
             coefficient,
         )
-        return estimated_state_trajectory
+
+        # for control_trajectory in control_trajectories:
+        #     logger.info(
+        #         control_trajectory.shape
+        #     )
+        # quit()
+        return estimated_state_trajectory, control_trajectories
 
     def reset(self) -> None:
         for block in self._blocks:

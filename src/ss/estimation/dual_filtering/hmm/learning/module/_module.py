@@ -204,7 +204,7 @@ class LearningDualHmmFilter(
 
         self._filter.update_history(emission)
 
-        (estimated_state_trajectory) = self._forward(
+        estimated_state_trajectory = self._forward(
             self._filter.get_emission_history(),
             # self._filter._emission_difference_history,
         )
@@ -212,6 +212,8 @@ class LearningDualHmmFilter(
         # if torch.isnan(estimated_state_trajectory).any():
         #     print(estimated_state_trajectory)
         #     quit()
+
+        # logger.info(self.transition._control_trajectory_over_layers)
 
         self._filter._estimated_state_history = estimated_state_trajectory
         self._filter.estimated_state = estimated_state_trajectory[:, -1, :]

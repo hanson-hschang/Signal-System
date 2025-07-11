@@ -1,4 +1,4 @@
-from typing import Any, Generic, Tuple, cast
+from typing import Any, Generic, List, Tuple, cast
 
 import torch
 import torch.nn as nn
@@ -238,7 +238,7 @@ class DualTransitionStepMixin(nn.Module, Generic[T, TC]):
         self,
         likelihood_state_trajectory: torch.Tensor,
         # emission_difference_trajectory: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, List[torch.Tensor]]:
 
         batch_size, horizon, _ = likelihood_state_trajectory.shape
         # (batch_size, horizon, state_dim)
@@ -261,6 +261,8 @@ class DualTransitionStepMixin(nn.Module, Generic[T, TC]):
         #     device=emission_difference_trajectory.device,
         # )
 
+        control_trajectories = []
+
         for k in range(horizon):
 
             (
@@ -279,6 +281,8 @@ class DualTransitionStepMixin(nn.Module, Generic[T, TC]):
                     control_trajectory,
                 )
             )
+
+            control_trajectories.append(control_trajectory)
 
             # dual_function_history = torch.empty(
             #     (
@@ -361,7 +365,7 @@ class DualTransitionStepMixin(nn.Module, Generic[T, TC]):
             #     _estimator.clone() / torch.sum(_estimator, dim=1, keepdim=True)
             # )
 
-        return estimated_state_trajectory[:, 1:, :]
+        return estimated_state_trajectory[:, 1:, :], control_trajectories
 
     def _compute_backward_path(
         self,
