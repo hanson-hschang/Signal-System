@@ -14,7 +14,6 @@ class StochasticMatrixFigure(MatrixFigure):
         stochastic_matrix: ArrayLike,
         fig_size: Tuple[int, int] = (12, 8),
         fig_title: str = "Stochastic Matrix Analysis",
-        fig_layout: Tuple[int, int] = (2, 2),
     ) -> None:
         stochastic_matrix = np.array(stochastic_matrix)
         assert (
@@ -31,11 +30,14 @@ class StochasticMatrixFigure(MatrixFigure):
             matrix=stochastic_matrix,
             fig_size=fig_size,
             fig_title=fig_title,
-            fig_layout=fig_layout,
         )
 
     def _plot_eigen_value(self, ax: Axes, matrix: NDArray) -> None:
         super()._plot_eigen_value(ax=ax, matrix=matrix)
+        unit_circle = plt.Circle(
+            (0, 0), 1, color="gray", linestyle="--", fill=False, alpha=0.5
+        )
+        ax.add_artist(unit_circle)
         ax.set_xlim(-1.1, 1.1)
         ax.set_ylim(-1.1, 1.1)
 
