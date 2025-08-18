@@ -28,6 +28,12 @@ class PathManager:
         self._logger_filename = self._date + ".log"
 
     @property
+    def working_directory(self) -> Path:
+        if self._file.stem == "__main__":
+            return self._file.parent
+        return self._file.parent / self._file.stem
+
+    @property
     def result_directory(self) -> Path:
         return self._result_directory_path
 
