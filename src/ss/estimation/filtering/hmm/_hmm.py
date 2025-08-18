@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from numpy.typing import ArrayLike, NDArray
 
 from ss.estimation import EstimatorCallback
@@ -87,7 +87,7 @@ class HmmFilter(Filter):
         )
 
         # normalization step (conditional probability)
-        for i in range(number_of_systems):
+        for i in prange(number_of_systems):
             estimated_state[i, :] /= np.sum(estimated_state[i, :])
 
         # prediction step based on model process (predicted probability)
