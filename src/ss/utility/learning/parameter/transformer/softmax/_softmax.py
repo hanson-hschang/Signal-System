@@ -1,4 +1,4 @@
-from typing import Generic, Self, Tuple, TypeVar, cast
+from typing import Generic, Self, Tuple, TypeVar
 
 import torch
 
@@ -9,9 +9,6 @@ from ss.utility.learning.parameter.transformer.exp.config import ExpTC
 from ss.utility.learning.parameter.transformer.softmax.config import (
     SoftmaxTransformerConfig,
 )
-
-# T = TypeVar("T", bound=Transformer)
-# PP = TypeVar("PP", bound=PositiveParameter)
 
 
 class SoftmaxTransformer(

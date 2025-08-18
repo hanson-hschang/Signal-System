@@ -1,4 +1,4 @@
-from typing import Generic, Type, TypeVar, assert_never, cast
+from typing import Generic, Type, assert_never, cast
 
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
@@ -6,8 +6,6 @@ from enum import StrEnum, auto
 from ss.utility.learning.parameter.manifold.config import (
     ManifoldParameterConfig,
 )
-
-# from ss.utility.learning.parameter.transformer.config import TC as TC_SOFTMAX
 from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
     MinZeroNormTransformerConfig,
 )
@@ -18,8 +16,6 @@ from ss.utility.learning.parameter.transformer.softmax.config import (
 from ss.utility.learning.parameter.transformer.softmax.linear.config import (
     LinearSoftmaxTransformerConfig,
 )
-
-# TC_SOFTMAX = TypeVar("TC_SOFTMAX", bound=TransformerConfig, default=SoftmaxTransformerConfig)
 
 
 @dataclass

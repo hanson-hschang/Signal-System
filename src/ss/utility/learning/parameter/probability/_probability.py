@@ -4,7 +4,7 @@ from ss.utility.learning.parameter.manifold import ManifoldParameter
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
 )
-from ss.utility.learning.parameter.transformer import T, Transformer
+from ss.utility.learning.parameter.transformer import T
 from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.learning.parameter.transformer.norm.min_zero import (
     MinZeroNormTransformer,
@@ -24,9 +24,9 @@ from ss.utility.learning.parameter.transformer.softmax.linear import (
 from ss.utility.learning.parameter.transformer.softmax.linear.config import (
     LinearSoftmaxTransformerConfig,
 )
+from ss.utility.logging import Logging
 
-# TC = TypeVar("TC", bound=TransformerConfig)
-# T = TypeVar("T", bound=Transformer)
+logger = Logging.get_logger(__name__)
 
 
 class ProbabilityParameter(
@@ -38,25 +38,22 @@ class ProbabilityParameter(
         super().__init__(config, shape)
 
     def _init_transformer(self) -> T:
-        transformer: Transformer
-        if isinstance(self._config.transformer, SoftmaxTransformerConfig):
-            transformer = SoftmaxTransformer(
-                self._config.transformer, self._shape
+        transformer_map = {
+            SoftmaxTransformerConfig: SoftmaxTransformer,
+            MinZeroNormTransformerConfig: MinZeroNormTransformer,
+            LinearSoftmaxTransformerConfig: LinearSoftmaxTransformer,
+        }
+
+        transformer_class = transformer_map.get(type(self._config.transformer))
+        if transformer_class:
+            return cast(
+                T,
+                transformer_class(
+                    self._config.transformer,
+                    self._shape,
+                ),
             )
-        elif isinstance(
-            self._config.transformer, MinZeroNormTransformerConfig
-        ):
-            transformer = MinZeroNormTransformer(
-                self._config.transformer, self._shape
-            )
-        elif isinstance(
-            self._config.transformer, LinearSoftmaxTransformerConfig
-        ):
-            transformer = LinearSoftmaxTransformer(
-                self._config.transformer, self._shape
-            )
-        else:
-            raise ValueError(
-                f"Unknown transformer config: {self._config.transformer}"
-            )
-        return cast(T, transformer)
+
+        raise ValueError(
+            f"Unknown transformer config: {self._config.transformer}"
+        )
