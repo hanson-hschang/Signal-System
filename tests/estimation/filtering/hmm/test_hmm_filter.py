@@ -20,9 +20,8 @@ class TestHmmFilter:
         return HmmFilter(system=hmm)
 
     def test_hmm_filter(self, filter: HmmFilter) -> None:
+        # Set estimated distribution of initial state
         filter.estimated_state = np.array([1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0])
-
-        # Initial state should be uniform
         assert np.allclose(
             filter.estimated_state, np.array([1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0])
         )
