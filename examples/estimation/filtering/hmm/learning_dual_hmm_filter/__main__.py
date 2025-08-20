@@ -1,4 +1,4 @@
-from typing import Any, Optional, assert_never
+from typing import Any, Optional, assert_never, no_type_check
 
 from pathlib import Path
 
@@ -10,6 +10,7 @@ from ss.utility.learning.process.config import ProcessConfig
 from . import UserConfig, analysis, inference, training
 
 
+@no_type_check
 @click.command()
 @UserConfig.options(allow_file_overwrite=True)
 @click.option(
@@ -58,7 +59,6 @@ def main(
     model_filename = user_config.model_filename
     match user_config.mode:
         case ProcessConfig.Mode.TRAINING:
-            # model_filepath = model_folderpath / "checkpoints" / model_filename
             training(
                 data_filepath,
                 model_folderpath,
@@ -67,7 +67,6 @@ def main(
                 not user_config.continue_training,
             )
         case ProcessConfig.Mode.ANALYSIS:
-            # model_filepath = model_folderpath / model_filename
             analysis(
                 data_filepath,
                 model_folderpath,
@@ -75,7 +74,6 @@ def main(
                 result_directory,
             )
         case ProcessConfig.Mode.INFERENCE:
-            # model_filepath = model_folderpath / model_filename
             inference(
                 data_filepath,
                 model_folderpath,

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, Optional, no_type_check
 
 from pathlib import Path
 
@@ -10,6 +10,7 @@ from ss.utility import basic_config
 from . import UserConfig, hmm_filtering
 
 
+@no_type_check
 @click.command()
 @UserConfig.options(allow_file_overwrite=True)
 @click.option(
