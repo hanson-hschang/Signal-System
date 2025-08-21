@@ -18,16 +18,16 @@ class EmissionMatrixConfig(BaseLearningConfig, Generic[TC]):
     )
 
 
-@dataclass
-class EmissionBlockConfig(BaseLearningConfig, Generic[TC]):
+# @dataclass
+# class EmissionBlockConfig(BaseLearningConfig, Generic[TC]):
 
-    class Option(StrEnum):
-        FULL_MATRIX = auto()
+#     class Option(StrEnum):
+#         FULL_MATRIX = auto()
 
-    option: Option = Option.FULL_MATRIX
-    matrix: EmissionMatrixConfig[TC] = field(
-        default_factory=EmissionMatrixConfig[TC]
-    )
+#     option: Option = Option.FULL_MATRIX
+#     matrix: EmissionMatrixConfig[TC] = field(
+#         default_factory=EmissionMatrixConfig[TC]
+#     )
 
 
 @dataclass
@@ -43,7 +43,10 @@ class ObservationConfig(BaseLearningConfig):
 @dataclass
 class EmissionConfig(BaseLearningConfig, Generic[TC]):
 
-    block: EmissionBlockConfig[TC] = field(
-        default_factory=EmissionBlockConfig[TC]
+    # block: EmissionBlockConfig[TC] = field(
+    #     default_factory=EmissionBlockConfig[TC]
+    # )
+    matrix: EmissionMatrixConfig[TC] = field(
+        default_factory=EmissionMatrixConfig[TC]
     )
     observation: ObservationConfig = field(default_factory=ObservationConfig)

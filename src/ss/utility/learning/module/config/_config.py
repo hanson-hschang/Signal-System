@@ -80,3 +80,57 @@ class BaseLearningConfig:
                 setattr(config, key, value)
 
         return config
+
+    # def __str__(self) -> str:
+    #     """Pretty print with proper indentation for nested dataclasses"""
+    #     return self._pretty_print(0)
+
+    # def _pretty_print(self, indent_level: int = 0) -> str:
+    #     """Recursively pretty print nested dataclasses"""
+    #     indent = "  " * indent_level
+    #     next_indent = "  " * (indent_level + 1)
+
+    #     result = f"{self.__class__.__name__}(\n"
+
+    #     for field in fields(self):
+    #         value = getattr(self, field.name)
+
+    #         if isinstance(value, BaseLearningConfig):
+    #             # Handle other BaseLearningConfig instances
+    #             value_str = value._pretty_print(indent_level + 1)
+    #         elif hasattr(value, '__dataclass_fields__'):
+    #             # Handle other dataclasses that don't inherit from BaseLearningConfig
+    #             value_str = self._format_generic_dataclass(value, indent_level + 1)
+    #         else:
+    #             # Handle regular values (primitives, enums, etc.)
+    #             value_str = repr(value)
+
+    #         result += f"{next_indent}{field.name}={value_str},\n"
+
+    #     result += f"{indent})"
+    #     return result
+
+    # def _format_generic_dataclass(self, obj: Any, indent_level: int) -> str:
+    #     """Format dataclasses that don't inherit from BaseLearningConfig"""
+    #     if not hasattr(obj, '__dataclass_fields__'):
+    #         return repr(obj)
+
+    #     indent = "  " * indent_level
+    #     next_indent = "  " * (indent_level + 1)
+
+    #     result = f"{obj.__class__.__name__}(\n"
+
+    #     for field in fields(obj):
+    #         value = getattr(obj, field.name)
+
+    #         if isinstance(value, BaseLearningConfig):
+    #             value_str = value._pretty_print(indent_level + 1)
+    #         elif hasattr(value, '__dataclass_fields__'):
+    #             value_str = self._format_generic_dataclass(value, indent_level + 1)
+    #         else:
+    #             value_str = repr(value)
+
+    #         result += f"{next_indent}{field.name}={value_str},\n"
+
+    #     result += f"{indent})"
+    #     return result

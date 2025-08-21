@@ -38,70 +38,71 @@ def emission_module_info(
         logger.info(f"        {emission_matrix[k]}")
 
 
-def transition_block_info(
-    transition_block: BaseTransitionBlock,
-    block_dim: int,
-    show_initial_state: bool = True,
+def transition_module_info(
+    transition: TransitionModule,
+    # block_dim: int,
+    # show_initial_state: bool = True,
 ) -> None:
     start_index = len("Transition")
-    block_type_name = type(transition_block).__name__[start_index:]
+    block_type_name = type(transition).__name__[start_index:]
 
-    logger.info(
-        f"    (block {transition_block.id+1} / {block_dim}) learned transition block ({block_type_name}):"
-    )
-    if show_initial_state:
-        initial_state = transition_block.initial_state.detach().numpy()
-        logger.info("        initial state:")
-        logger.info(f"            {initial_state}")
+    # logger.info(
+    #     f"    (block {transition.id+1} / {block_dim}) learned transition block ({block_type_name}):"
+    # )
+    logger.info(f"    learned transition ({block_type_name}):")
+    # if show_initial_state:
+    initial_state = transition.initial_state.detach().numpy()
+    logger.info("        initial state:")
+    logger.info(f"            {initial_state}")
 
-    transition_matrix = transition_block.matrix.detach().numpy()
+    transition_matrix = transition.matrix.detach().numpy()
     logger.info(f"        transition matrix:")
     for k in range(transition_matrix.shape[0]):
         logger.info(f"            {transition_matrix[k]}")
 
 
-def transition_layer_info(
-    transition_layer: TransitionLayer,
-    # layer_dim: int,
-) -> None:
-    block_dim = transition_layer.block_dim
-    # logger.info(
-    #     f"(layer {transition_layer.id} / {layer_dim}) learned transition module ({block_dim} block(s)):"
-    # )
-    logger.info(f"learned transition module ({block_dim} block(s)):")
-    coefficient = transition_layer.coefficient.detach().numpy()
-    if transition_layer.block_state_binding:
-        initial_state = transition_layer.initial_state.detach().numpy()
-        logger.info("    initial state:")
-        logger.info(f"        {initial_state}")
-        transition_matrix = transition_layer.matrix.detach().numpy()
-        coefficient = transition_layer.coefficient.detach().numpy()
-        logger.info(f"    equivalent transition matrix:")
-        for k in range(transition_matrix.shape[0]):
-            logger.info(
-                f"        {transition_matrix[k]} with block coefficient(s) {coefficient[k]}"
-                if transition_layer.block_dim > 1
-                else f"        {transition_matrix[k]}"
-            )
-    else:
-        if transition_layer.block_dim > 1:
-            logger.info(f"    block coefficient(s):")
-            logger.info(f"        {coefficient}")
+# def transition_layer_info(
+#     transition_layer: TransitionLayer,
+#     # layer_dim: int,
+# ) -> None:
+#     block_dim = transition_layer.block_dim
+#     # logger.info(
+#     #     f"(layer {transition_layer.id} / {layer_dim}) learned transition module ({block_dim} block(s)):"
+#     # )
+#     logger.info(f"learned transition module ({block_dim} block(s)):")
+#     coefficient = transition_layer.coefficient.detach().numpy()
+#     if transition_layer.block_state_binding:
+#         initial_state = transition_layer.initial_state.detach().numpy()
+#         logger.info("    initial state:")
+#         logger.info(f"        {initial_state}")
+#         transition_matrix = transition_layer.matrix.detach().numpy()
+#         coefficient = transition_layer.coefficient.detach().numpy()
+#         logger.info(f"    equivalent transition matrix:")
+#         for k in range(transition_matrix.shape[0]):
+#             logger.info(
+#                 f"        {transition_matrix[k]} with block coefficient(s) {coefficient[k]}"
+#                 if transition_layer.block_dim > 1
+#                 else f"        {transition_matrix[k]}"
+#             )
+#     else:
+#         if transition_layer.block_dim > 1:
+#             logger.info(f"    block coefficient(s):")
+#             logger.info(f"        {coefficient}")
 
-    for transition_block in transition_layer.blocks:
-        transition_block_info(
-            transition_block,
-            block_dim,
-            show_initial_state=not transition_layer.block_state_binding,
-        )
+#     for transition_block in transition_layer.blocks:
+#         transition_block_info(
+#             transition_block,
+#             block_dim,
+#             show_initial_state=not transition_layer.block_state_binding,
+#         )
 
 
-def transition_module_info(
-    transition: TransitionModule,
-    # layer_dim: int,
-) -> None:
-    for transition_layer in transition.layers:
-        transition_layer_info(transition_layer)
+# def transition_module_info(
+#     transition: TransitionModule,
+#     # layer_dim: int,
+# ) -> None:
+#     for transition_layer in transition.layers:
+#         transition_layer_info(transition_layer)
 
 
 def estimation_module_info(estimation: EstimationModule) -> None:

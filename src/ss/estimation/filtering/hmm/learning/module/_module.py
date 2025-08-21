@@ -222,16 +222,17 @@ class LearningHmmFilter(
         estimation_trajectory : torch.Tensor
             shape (batch_size, horizon, estimation_dim)
         """
-        (
-            estimated_state_trajectory,
-            predicted_state_trajectory,
-        ) = self._forward(
+        # (
+        # estimated_state_trajectory,
+        # predicted_state_trajectory,
+        # )
+        estimated_state_trajectory = self._forward(
             observation_trajectory  # (batch_size, horizon)
         )
 
         estimation_trajectory: torch.Tensor = self._estimation(
             estimated_state_trajectory,  # (batch_size, horizon, state_dim)
-            predicted_state_trajectory,  # (batch_size, horizon, state_dim)
+            # predicted_state_trajectory,  # (batch_size, horizon, state_dim)
         )  # (batch_size, horizon, estimation_dim)
 
         # predicted_next_observation_trajectory = self._emission(
@@ -258,7 +259,7 @@ class LearningHmmFilter(
     def _forward(
         self,
         observation_trajectory: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         """
         _forward method for the `LearningHmmFilter` class
 
@@ -287,18 +288,22 @@ class LearningHmmFilter(
 
         emission_trajectory = self._emission(observation_trajectory)
 
-        (
-            estimated_state_trajectory,  # (batch_size, horizon, state_dim)
-            predicted_state_trajectory,  # (batch_size, horizon, state_dim)
-        ) = self._transition(emission_trajectory)
+        # (
+        # estimated_state_trajectory,  # (batch_size, horizon, state_dim)
+        # predicted_state_trajectory,  # (batch_size, horizon, state_dim)
+        # )
+        estimated_state_trajectory: torch.Tensor = self._transition(
+            emission_trajectory
+        )
 
         # return estimated_state_trajectory, estimation_trajectory
 
-        return (
-            estimated_state_trajectory,
-            predicted_state_trajectory,
-            # emission_matrix,
-        )
+        return estimated_state_trajectory
+        # return (
+        # estimated_state_trajectory,
+        # predicted_state_trajectory,
+        # emission_matrix,
+        # )
 
     def reset(self) -> None:
         # self._is_initialized = False
@@ -371,14 +376,15 @@ class LearningHmmFilter(
         # estimated_state_trajectory, predicted_next_state_trajectory, _ = (
         #     self._forward(observation_trajectory)
         # )
-        (
-            estimated_state_trajectory,
-            predicted_state_trajectory,
-        ) = self._forward(
+        # (
+        # estimated_state_trajectory,
+        # predicted_state_trajectory,
+        # )
+        estimated_state_trajectory = self._forward(
             observation  # (batch_size, horizon)
         )
         self._filter.estimated_state = estimated_state_trajectory[:, -1, :]
-        self._filter.predicted_state = predicted_state_trajectory[:, -1, :]
+        # self._filter.predicted_state = predicted_state_trajectory[:, -1, :]
 
         # self._estimated_state = estimated_state_trajectory[
         #     :, -1, :
@@ -405,7 +411,7 @@ class LearningHmmFilter(
         # return self._estimation.result
         estimation: torch.Tensor = self._estimation(
             self._filter.estimated_state,  # (batch_size, state_dim)
-            self._filter.predicted_state,  # (batch_size, state_dim)
+            # self._filter.predicted_state,  # (batch_size, state_dim)
         )
         return estimation.detach()
 

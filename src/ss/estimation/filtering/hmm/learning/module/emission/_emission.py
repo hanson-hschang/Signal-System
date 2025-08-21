@@ -38,7 +38,7 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
         self._discrete_observation_dim = filter_config.discrete_observation_dim
 
         self._matrix = ProbabilityParameter[T, TC](
-            self._config.block.matrix.probability_parameter,
+            self._config.matrix.probability_parameter,
             (self._state_dim, self._discrete_observation_dim),
         )
 

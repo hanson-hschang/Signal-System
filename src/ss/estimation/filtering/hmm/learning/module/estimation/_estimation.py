@@ -25,32 +25,28 @@ class EstimationModule(
         super().__init__(config)
         self._state_dim = filter_config.state_dim
         self._estimation_dim = filter_config.estimation_dim
-        # self._estimation_dim = (
-        #     filter_config.estimation_dim
-        #     if filter_config.estimation_dim > 0
-        #     else filter_config.discrete_observation_dim
-        # )
 
         self._matrix = ProbabilityParameter[T, TC](
             self._config.matrix.probability_parameter,
             (self._state_dim, self._estimation_dim),
         )
 
-        self._forward: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        # self._forward: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        self._forward: Callable[[torch.Tensor], torch.Tensor]
         self._init_forward()
 
     def _init_forward(self) -> None:
         match self._config.option:
             case EstimationConfig.Option.ESTIMATED_STATE:
                 self._forward = self._forward_estimated_state
-            case EstimationConfig.Option.PREDICTED_STATE:
-                self._forward = self._forward_predicted_state
+            # case EstimationConfig.Option.PREDICTED_STATE:
+            #     self._forward = self._forward_predicted_state
             case EstimationConfig.Option.PREDICTED_OBSERVATION_PROBABILITY:
-                self._forward = self._forward_prediction
+                self._forward = self._forward_estimation
             case EstimationConfig.Option.LINEAR_TRANSFORM_ESTIMATION:
                 self._forward = self._forward_estimation
-            case EstimationConfig.Option.LINEAR_TRANSFORM_PREDICTION:
-                self._forward = self._forward_prediction
+            # case EstimationConfig.Option.LINEAR_TRANSFORM_PREDICTION:
+            #     self._forward = self._forward_prediction
             case _ as _estimation_config:
                 assert_never(_estimation_config)
 
@@ -82,25 +78,25 @@ class EstimationModule(
     def _forward_estimated_state(
         self,
         estimated_state_trajectory: torch.Tensor,
-        predicted_state_trajectory: torch.Tensor,
+        # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
         # (batch_size, horizon, estimation_dim=state_dim) or (batch_size, estimation_dim=state_dim)
         return estimated_state_trajectory
 
-    @torch.compile
-    def _forward_predicted_state(
-        self,
-        estimated_state_trajectory: torch.Tensor,
-        predicted_state_trajectory: torch.Tensor,
-    ) -> torch.Tensor:
-        # (batch_size, horizon, estimation_dim=state_dim) or (batch_size, estimation_dim=state_dim)
-        return predicted_state_trajectory
+    # @torch.compile
+    # def _forward_predicted_state(
+    #     self,
+    #     estimated_state_trajectory: torch.Tensor,
+    #     predicted_state_trajectory: torch.Tensor,
+    # ) -> torch.Tensor:
+    #     # (batch_size, horizon, estimation_dim=state_dim) or (batch_size, estimation_dim=state_dim)
+    #     return predicted_state_trajectory
 
     @torch.compile
     def _forward_estimation(
         self,
         estimated_state_trajectory: torch.Tensor,
-        predicted_state_trajectory: torch.Tensor,
+        # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
         estimation_matrix = self.matrix  # (state_dim, estimation_dim)
         estimation = torch.matmul(
@@ -109,26 +105,26 @@ class EstimationModule(
         )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
         return estimation
 
-    @torch.compile
-    def _forward_prediction(
-        self,
-        estimated_state_trajectory: torch.Tensor,
-        predicted_state_trajectory: torch.Tensor,
-    ) -> torch.Tensor:
-        estimation_matrix = self.matrix  # (state_dim, estimation_dim)
-        estimation = torch.matmul(
-            predicted_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
-            estimation_matrix,
-        )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
-        return estimation
+    # @torch.compile
+    # def _forward_prediction(
+    #     self,
+    #     estimated_state_trajectory: torch.Tensor,
+    #     predicted_state_trajectory: torch.Tensor,
+    # ) -> torch.Tensor:
+    #     estimation_matrix = self.matrix  # (state_dim, estimation_dim)
+    #     estimation = torch.matmul(
+    #         predicted_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
+    #         estimation_matrix,
+    #     )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
+    #     return estimation
 
     def forward(
         self,
         estimated_state_trajectory: torch.Tensor,
-        predicted_state_trajectory: torch.Tensor,
+        # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
         estimation_trajectory = self._forward(
             estimated_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
-            predicted_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
+            # predicted_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
         )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
         return estimation_trajectory
