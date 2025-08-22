@@ -1,21 +1,14 @@
-[build-system]
-requires = [
-    "setuptools>=45",
-    "wheel",
-    "setuptools_scm>=6.2",
-]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "Signal-System"
 version = "0.0.2"
-description = "A package for signal and system simulation, design, analysis, and learning"
+description = "A package for signal and system simulation, design, analysis, and learning."
 readme = "README.md"
 requires-python = ">=3.13"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
-    {name = "Heng-Sheng Chang"}
+    {name = "Heng-Sheng Chang", email="hanson.hschang+signal.system@gmail.com"}
 ]
+repository = "https://github.com/hanson-hschang/Signal-System"
 keywords = ["Signal", "System", "Learning"]
 
 # Pypi classifiers: https://pypi.org/classifiers/
@@ -58,9 +51,17 @@ dev = [
     "pip-tools>=7.4.0",
 ]
 
-[tool.setuptools]
-package-dir = {"" = "src"}
-packages = ["ss"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# Tell Hatch where to find your package source code.
+packages = ["src/ss"]
+
+[tool.hatch.build.targets.sdist]
+# Ensure the source directory is included in the source distribution.
+include = ["/src"]
 
 [tool.black]
 # https://github.com/psf/black
