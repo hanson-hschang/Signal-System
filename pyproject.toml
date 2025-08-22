@@ -8,7 +8,6 @@ license = "MIT"
 authors = [
     {name = "Heng-Sheng Chang", email="hanson.hschang+signal.system@gmail.com"}
 ]
-repository = "https://github.com/hanson-hschang/Signal-System"
 keywords = ["Signal", "System", "Learning"]
 
 # Pypi classifiers: https://pypi.org/classifiers/
@@ -34,6 +33,12 @@ dependencies = [
     "click>=8.1.7",
     "psutil>=6.1.1",
 ]
+
+[project.urls]
+# Homepage = "https://example.com"
+# Documentation = "https://readthedocs.org"
+Repository = "https://github.com/hanson-hschang/Signal-System"
+Issues = "https://github.com/hanson-hschang/Signal-System/issues"
 
 [project.optional-dependencies]
 dev = [
