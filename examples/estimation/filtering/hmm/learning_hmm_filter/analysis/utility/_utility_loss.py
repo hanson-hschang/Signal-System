@@ -64,7 +64,7 @@ def compute_loss(
     filter : HiddenMarkovModelFilter
         The filter to be used for the estimation.
     observation_trajectory : NDArray
-        shape = (number_of_systems, 1, time_horizon)
+        shape = (batch_size, 1, time_horizon)
 
     Returns
     -------
@@ -74,8 +74,8 @@ def compute_loss(
     logger.info("")
     logger.info("Computing the empirical loss of a given HMM filter...")
 
-    number_of_systems, _, time_horizon = observation_trajectory.shape
-    loss_trajectory = np.empty((number_of_systems, time_horizon - 1))
+    batch_size, _, time_horizon = observation_trajectory.shape
+    loss_trajectory = np.empty((batch_size, time_horizon - 1))
     for k, (observation, next_observation_one_hot) in logger.progress_bar(
         enumerate(
             observation_generator(
@@ -113,13 +113,13 @@ def compute_loss(
 #     learning_filter : LearningHiddenMarkovModelFilter
 #         The learning filter to be used for the estimation.
 #     observation_trajectory : NDArray
-#         shape = (number_of_systems, 1, time_horizon)
+#         shape = (batch_size, 1, time_horizon)
 
 #     Returns
 #     -------
 #     loss_trajectory : NDArray
 #         The loss trajectory of the learning_filter for each layer.
-#         shape = (number_of_systems, layer_dim, time_horizon - 1)
+#         shape = (batch_size, layer_dim, time_horizon - 1)
 #     loss_mean_over_layers : NDArray
 #         The average loss of the learning_filter for each layer.
 #         shape = (layer_dim,)
@@ -132,10 +132,10 @@ def compute_loss(
 
 #     if observation_trajectory.ndim == 2:
 #         observation_trajectory = observation_trajectory[np.newaxis, ...]
-#     number_of_systems, _, time_horizon = observation_trajectory.shape
+#     batch_size, _, time_horizon = observation_trajectory.shape
 #     layer_dim = learning_filter.layer_dim
 #     loss_trajectory = np.empty(
-#         (number_of_systems, layer_dim, time_horizon - 1)
+#         (batch_size, layer_dim, time_horizon - 1)
 #     )
 #     # learning_filter.estimation_option = (
 #     #     EstimationConfig.Option.PREDICTED_NEXT_OBSERVATION_PROBABILITY_OVER_LAYERS

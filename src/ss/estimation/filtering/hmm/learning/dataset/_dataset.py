@@ -13,16 +13,16 @@ class HmmObservationDataset(Dataset.BaseDataset):
     def __init__(
         self,
         observation: ArrayLike,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         max_length: int = 256,
         stride: int = 64,
     ) -> None:
         observation = np.array(observation)
-        if number_of_systems == 1:
+        if batch_size == 1:
             observation = observation[np.newaxis, ...]
         assert observation.ndim == 3, (
             "observation must be a ArrayLike of 3 dimensions "
-            "with the shape of (number_of_systems, 1, time_horizon). "
+            "with the shape of (batch_size, 1, time_horizon). "
             f"observation given has the shape of {observation.shape}."
         )
         observation = observation[:, 0, :].astype(np.int64)
@@ -32,7 +32,7 @@ class HmmObservationDataset(Dataset.BaseDataset):
         self._output_trajectory = []
 
         with torch.no_grad():
-            for i in range(number_of_systems):
+            for i in range(batch_size):
                 _observation: torch.Tensor = torch.tensor(
                     observation[i], dtype=torch.int64
                 )  # (time_horizon,)
@@ -83,29 +83,29 @@ class HmmObservationDataset(Dataset.BaseDataset):
         return input_trajectory, output_trajectory
 
 
-@deprecated(
-    alternative_usage="HmmObservationDataset(...).split(...).to_loaders(...)",
-)
-def hmm_observation_data_split_to_loaders(
-    observation: ArrayLike,
-    number_of_systems: int,
-    max_length: int,
-    stride: int,
-    split_ratio: Sequence[float],
-    batch_size: int = 128,
-    shuffle: bool = True,
-    random_seed: Optional[int] = None,
-) -> List[DataLoader]:
-    data_loaders = Dataset.dataset_split_to_loaders(
-        dataset=HmmObservationDataset(
-            observation=observation,
-            number_of_systems=number_of_systems,
-            max_length=max_length,
-            stride=stride,
-        ),
-        split_ratio=split_ratio,
-        batch_size=batch_size,
-        shuffle=shuffle,
-        random_seed=random_seed,
-    )
-    return data_loaders  # type: ignore
+# @deprecated(
+#     alternative_usage="HmmObservationDataset(...).split(...).to_loaders(...)",
+# )
+# def hmm_observation_data_split_to_loaders(
+#     observation: ArrayLike,
+#     batch_size: int,
+#     max_length: int,
+#     stride: int,
+#     split_ratio: Sequence[float],
+#     batch_size: int = 128,
+#     shuffle: bool = True,
+#     random_seed: Optional[int] = None,
+# ) -> List[DataLoader]:
+#     data_loaders = Dataset.dataset_split_to_loaders(
+#         dataset=HmmObservationDataset(
+#             observation=observation,
+#             batch_size=batch_size,
+#             max_length=max_length,
+#             stride=stride,
+#         ),
+#         split_ratio=split_ratio,
+#         batch_size=batch_size,
+#         shuffle=shuffle,
+#         random_seed=random_seed,
+#     )
+#     return data_loaders  # type: ignore

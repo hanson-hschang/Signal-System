@@ -79,7 +79,7 @@ class FilterResultFigure(SequenceTrajectoryFigure):
         ).T
         super().__init__(
             sequence_trajectory=time_trajectory[:-1],
-            number_of_systems=1,
+            batch_size=1,
             fig_size=fig_size,
             fig_title=fig_title,
             fig_layout=(self._number_of_filters + 3, 1),

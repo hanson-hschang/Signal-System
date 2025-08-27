@@ -9,14 +9,14 @@ class TestController:
     def controller(self) -> Controller:
         return Controller(
             control_dim=2,
-            number_of_systems=1,
+            batch_size=1,
         )
 
     @pytest.fixture
     def multi_system_controller(self) -> Controller:
         return Controller(
             control_dim=2,
-            number_of_systems=3,
+            batch_size=3,
         )
 
     def test_controller(self, controller: Controller) -> None:

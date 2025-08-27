@@ -13,7 +13,7 @@ from ss.system.linear import (
 )
 from ss.utility.assertion import is_nonnegative_integer
 from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
+    BatchNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -48,7 +48,7 @@ class LinearQuadraticRegulatorController(Controller):
 
         super().__init__(
             control_dim=system.control_dim,
-            number_of_systems=system.number_of_systems,
+            batch_size=system.batch_size,
         )
 
         self._time_horizon = time_horizon
@@ -90,8 +90,8 @@ class LinearQuadraticRegulatorController(Controller):
             pass
 
     time_horizon = ReadOnlyDescriptor[int]()
-    system_state = MultiSystemNDArrayDescriptor(
-        "_number_of_systems",
+    system_state = BatchNDArrayDescriptor(
+        "_batch_size",
         "_state_dim",
     )
 
@@ -107,10 +107,8 @@ class LinearQuadraticRegulatorController(Controller):
         gain: NDArray[np.float64],
         state: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        number_of_systems = state.shape[0]
-        control = np.zeros(
-            (number_of_systems, gain.shape[0]), dtype=np.float64
-        )
-        for i in range(number_of_systems):
+        batch_size = state.shape[0]
+        control = np.zeros((batch_size, gain.shape[0]), dtype=np.float64)
+        for i in range(batch_size):
             control[i, :] = gain @ state[i, :]
         return control

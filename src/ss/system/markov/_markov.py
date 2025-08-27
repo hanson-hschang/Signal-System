@@ -23,9 +23,9 @@ def one_hot_encoding(
 def one_hot_decoding(
     one_hot_vectors: NDArray[np.float64],
 ) -> NDArray[np.int64]:
-    number_of_systems = one_hot_vectors.shape[0]
-    values = np.empty(number_of_systems, dtype=np.int64)
-    for i in range(number_of_systems):
+    batch_size = one_hot_vectors.shape[0]
+    values = np.empty(batch_size, dtype=np.int64)
+    for i in range(batch_size):
         values[i] = np.argmax(one_hot_vectors[i, :])
     return values
 
@@ -125,7 +125,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         transition_matrix: ArrayLike,
         emission_matrix: ArrayLike,
         initial_distribution: Optional[ArrayLike] = None,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         (
             self._transition_matrix,
@@ -145,7 +145,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         super().__init__(
             state_dim=1,
             observation_dim=1,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
         if initial_distribution is None:
@@ -164,11 +164,11 @@ class HiddenMarkovModel(DiscreteTimeSystem):
 
         self._state[:, :] = np.random.choice(
             self._discrete_state_dim,
-            size=(self._number_of_systems, self._state_dim),
+            size=(self._batch_size, self._state_dim),
             p=self._initial_distribution,
         ).astype(
             np.float64
-        )  # (number_of_systems, 1)
+        )  # (batch_size, 1)
         self._state_encoder_basis = np.identity(
             self._discrete_state_dim, dtype=np.float64
         )
@@ -185,8 +185,8 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         state_one_hot: NDArray = one_hot_encoding(
             self._state[:, 0].astype(dtype=np.int64),
             self._state_encoder_basis,
-        )  # (number_of_systems, discrete_state_dim)
-        if self._number_of_systems == 1:
+        )  # (batch_size, discrete_state_dim)
+        if self._batch_size == 1:
             return state_one_hot[0, :]
         return state_one_hot
 
@@ -195,8 +195,8 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         observation_one_hot: NDArray = one_hot_encoding(
             self._observation[:, 0].astype(dtype=np.int64),
             self._observation_encoder_basis,
-        )  # (number_of_systems, discrete_observation_dim)
-        if self._number_of_systems == 1:
+        )  # (batch_size, discrete_observation_dim)
+        if self._batch_size == 1:
             return observation_one_hot[0, :]
         return observation_one_hot
 
@@ -228,25 +228,25 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             discrete_state_dim=self._discrete_state_dim,
         ).get_matrices()
 
-    def duplicate(self, number_of_systems: int) -> "HiddenMarkovModel":
+    def duplicate(self, batch_size: int) -> "HiddenMarkovModel":
         return HiddenMarkovModel(
             transition_matrix=self._transition_matrix,
             emission_matrix=self._emission_matrix,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     def _compute_state_process(self) -> NDArray:
         state: NDArray = self._process(
             self._state.astype(np.int64),
             self._transition_cumsum_matrix,
-        )  # (number_of_systems, 1)
+        )  # (batch_size, 1)
         return state.astype(np.float64)
 
     def _compute_observation_process(self) -> NDArray:
         observation: NDArray = self._process(
             self._state.astype(np.int64),
             self._emission_cumsum_matrix,
-        )  # (number_of_systems, 1)
+        )  # (batch_size, 1)
         return observation.astype(np.float64)
 
     @staticmethod
@@ -255,9 +255,9 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         input_index: NDArray[np.int64],
         probability_cumsum_matrix: NDArray[np.float64],
     ) -> NDArray[np.int64]:
-        number_of_systems = input_index.shape[0]
-        random_numbers: NDArray = np.random.rand(number_of_systems)
-        output_index = np.empty((number_of_systems, 1), dtype=np.int64)
+        batch_size = input_index.shape[0]
+        random_numbers: NDArray = np.random.rand(batch_size)
+        output_index = np.empty((batch_size, 1), dtype=np.int64)
         for i, random_number in enumerate(random_numbers):
             output_index[i, 0] = np.searchsorted(
                 probability_cumsum_matrix[input_index[i, 0], :],

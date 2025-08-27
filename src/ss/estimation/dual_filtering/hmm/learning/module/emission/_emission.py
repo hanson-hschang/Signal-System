@@ -131,14 +131,14 @@ class DualEmissionModule(
         return emission_trajectory
 
     def validate_observation_shape(
-        self, observation: torch.Tensor, number_of_systems: int = 1
+        self, observation: torch.Tensor, batch_size: int = 1
     ) -> torch.Tensor:
         match self._config.observation.option:
             case self._config.observation.Option.CATEGORY:
                 if observation.ndim == 0:
                     observation = observation.unsqueeze(0)  # (horizon=1,)
                 if observation.ndim == 1:
-                    if number_of_systems == 1:
+                    if batch_size == 1:
                         observation = observation.unsqueeze(
                             0
                         )  # (batch_size=1, horizon)
@@ -156,7 +156,7 @@ class DualEmissionModule(
                         0
                     )  # (horizon=1, discrete_observation_dim)
                 if observation.ndim == 2:
-                    if number_of_systems == 1:
+                    if batch_size == 1:
                         observation = observation.unsqueeze(
                             0
                         )  # (batch_size=1, horizon, discrete_observation_dim)

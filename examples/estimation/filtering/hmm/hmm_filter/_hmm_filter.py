@@ -18,7 +18,7 @@ def hmm_filtering(
     discrete_observation_dim: int,
     simulation_time_steps: int,
     step_skip: int,
-    number_of_systems: int,
+    batch_size: int,
     result_directory: Path,
 ) -> None:
 
@@ -43,7 +43,7 @@ def hmm_filtering(
     system = HiddenMarkovModel(
         transition_matrix=transition_matrix,
         emission_matrix=emission_matrix,
-        number_of_systems=number_of_systems,
+        batch_size=batch_size,
     )
     system_callback = HmmCallback(step_skip=step_skip, system=system)
 
@@ -81,7 +81,7 @@ def hmm_filtering(
         # Update the system
         current_time = system.process(current_time)
 
-        # Compute the estimation
+        # Update the filter with the observation
         filter.update(observation)
 
         # Record the system and the estimator
@@ -95,22 +95,22 @@ def hmm_filtering(
     # Plot the data
     state_trajectory = (
         system_callback["state"]
-        if number_of_systems == 1
+        if batch_size == 1
         else system_callback["state"][0]
     )
     observation_trajectory = (
         system_callback["observation"]
-        if number_of_systems == 1
+        if batch_size == 1
         else system_callback["observation"][0]
     )
     estimated_state_trajectory = (
         filter_callback["estimated_state"]
-        if number_of_systems == 1
+        if batch_size == 1
         else filter_callback["estimated_state"][0]
     )
     estimation_trajectory = (
         filter_callback["estimation"]
-        if number_of_systems == 1
+        if batch_size == 1
         else filter_callback["estimation"][0]
     )
     Figure.HmmFilterFigure(

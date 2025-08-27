@@ -34,7 +34,7 @@ class IterationFigure(SequenceTrajectoryFigure):
         )
         super().__init__(
             sequence_trajectory=_training_loss_history["iteration"],
-            number_of_systems=training_loss.shape[0],
+            batch_size=training_loss.shape[0],
             fig_size=fig_size,
             fig_title=fig_title,
             fig_layout=fig_layout,
@@ -82,7 +82,7 @@ class IterationFigure(SequenceTrajectoryFigure):
         return self._loss_plot
 
     def plot(self) -> Self:
-        if self._number_of_systems == 1:
+        if self._batch_size == 1:
             self._plot_training_trajectory()
         else:
             self._plot_statistic_training_trajectory()

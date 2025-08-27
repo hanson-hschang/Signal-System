@@ -15,7 +15,7 @@ class SequenceTrajectoryFigure(Figure):
     def __init__(
         self,
         sequence_trajectory: ArrayLike,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
@@ -32,8 +32,8 @@ class SequenceTrajectoryFigure(Figure):
             f"sequency_trajectory given is {sequence_trajectory}."
         )
         assert is_positive_integer(
-            number_of_systems
-        ), f"{number_of_systems = } must be a positive integer."
+            batch_size
+        ), f"{batch_size = } must be a positive integer."
         assert (
             len(fig_size) == 2
         ), f"{fig_size = } must be a tuple (width, height)."
@@ -61,7 +61,7 @@ class SequenceTrajectoryFigure(Figure):
 
         self._sequence_trajectory = np.array(sequence_trajectory)
         self._sequence_length = int(sequence_trajectory.shape[0])
-        self._number_of_systems = number_of_systems
+        self._batch_size = batch_size
         self._default_color = "C0"
         self._default_alpha = 0.2
         self._default_std_alpha = 0.5
@@ -159,7 +159,7 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
     def __init__(
         self,
         time_trajectory: ArrayLike,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
@@ -168,7 +168,7 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
     ) -> None:
         super().__init__(
             sequence_trajectory=time_trajectory,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             fig_size=fig_size,
             fig_title=fig_title,
             fig_layout=fig_layout,

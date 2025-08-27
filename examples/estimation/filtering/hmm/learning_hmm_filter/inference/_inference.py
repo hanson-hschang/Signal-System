@@ -33,11 +33,11 @@ def inference(
 
     # Prepare data
     data = Data.load(data_filepath)
-    number_of_systems = int(data.meta_info["number_of_systems"])
+    batch_size = int(data.meta_info["batch_size"])
     observation_trajectory: NDArray = np.array(
         (
             data["observation"][0]
-            if number_of_systems == 1
+            if batch_size == 1
             else data["observation"][0, 0]
         ),
         dtype=np.int64,
@@ -86,7 +86,7 @@ def inference(
         ).repeat(number_of_samples, 1)
     )
 
-    learning_filter.number_of_systems = number_of_samples
+    learning_filter.batch_size = number_of_samples
     with BaseLearningProcess.inference_mode(learning_filter):
         learning_filter.update(_observation_trajectory)
 

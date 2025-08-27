@@ -82,7 +82,7 @@ class QuadraticCost(Cost):
         intrinsic_state: Optional[NDArray] = None,
         intrinsic_control: Optional[NDArray] = None,
         time_step: float = 1.0,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         self._running_cost_state_weight = self._CostWeightValidator(
             running_cost_state_weight
@@ -113,7 +113,7 @@ class QuadraticCost(Cost):
             time_step=time_step,
             state_dim=state_dim,
             control_dim=control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     running_cost_state_weight = NDArrayDescriptor("_state_dim", "_state_dim")
@@ -127,13 +127,13 @@ class QuadraticCost(Cost):
     intrinsic_state = NDArrayDescriptor("_state_dim")
     intrinsic_control = NDArrayDescriptor("_control_dim")
 
-    def duplicate(self, number_of_systems: int) -> "QuadraticCost":
+    def duplicate(self, batch_size: int) -> "QuadraticCost":
         """
         Create multiple costs.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of costs to be created.
 
         Returns
@@ -149,7 +149,7 @@ class QuadraticCost(Cost):
             intrinsic_state=self._intrinsic_state,
             intrinsic_control=self._intrinsic_control,
             time_step=self._time_step,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     def _evaluate_running(self) -> None:

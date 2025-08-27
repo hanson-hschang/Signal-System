@@ -16,37 +16,33 @@ class HmmFilter(Filter):
         system: HiddenMarkovModel,
         initial_distribution: Optional[ArrayLike] = None,
         estimation_model: Optional[Callable] = None,
-        number_of_systems: Optional[int] = None,
+        batch_size: Optional[int] = None,
     ) -> None:
         assert issubclass(type(system), HiddenMarkovModel), (
             f"system must be an instance of HiddenMarkovModel or its subclasses. "
             f"system given is an instance of {type(system)}."
         )
         self._system = system
-        number_of_systems = (
-            system.number_of_systems
-            if number_of_systems is None
-            else number_of_systems
-        )
+        batch_size = system.batch_size if batch_size is None else batch_size
         super().__init__(
             state_dim=self._system.discrete_state_dim,
             observation_dim=self._system.observation_dim,
             initial_distribution=initial_distribution,
             estimation_model=estimation_model,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
         self._discrete_observation_dim = self._system.discrete_observation_dim
         self.reset()
 
     discrete_observation_dim = ReadOnlyDescriptor[int]()
 
-    def duplicate(self, number_of_systems: int) -> "HmmFilter":
+    def duplicate(self, batch_size: int) -> "HmmFilter":
         """
         Create multiple filters based on the current filter.
 
         Parameters
         ----------
-        number_of_systems: int
+        batch_size: int
             The number of systems to be created.
 
         Returns
@@ -58,7 +54,7 @@ class HmmFilter(Filter):
             system=self._system,
             initial_distribution=self._initial_distribution,
             estimation_model=self._estimation_model,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     def _compute_estimated_state_process(self) -> NDArray[np.float64]:
@@ -78,7 +74,7 @@ class HmmFilter(Filter):
         transition_matrix: NDArray[np.float64],
         emission_matrix: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        number_of_systems: int = estimated_state.shape[0]
+        batch_size: int = estimated_state.shape[0]
 
         # update step based on observation (unnormalized conditional probability)
         # the transpose operation is for the purpose of the multi-system case
@@ -87,7 +83,7 @@ class HmmFilter(Filter):
         )
 
         # normalization step (conditional probability)
-        for i in prange(number_of_systems):
+        for i in prange(batch_size):
             estimated_state[i, :] /= np.sum(estimated_state[i, :])
 
         # prediction step based on model process (predicted probability)

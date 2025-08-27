@@ -43,7 +43,7 @@ def observation_generator(
     Parameters
     ----------
     observation_trajectory : NDArray[np.int64]
-        shape = (number_of_systems, 1, time_horizon)
+        shape = (batch_size, 1, time_horizon)
     discrete_observation_dim : int, optional
         The dimension of discrete observations.
         If not provided, it will be inferred from the observation_trajectory.
@@ -51,9 +51,9 @@ def observation_generator(
     Yields
     ------
     observation : NDArray
-        shape = (number_of_systems, 1)
+        shape = (batch_size, 1)
     next_observation : NDArray
-        shape = (number_of_systems, discrete_observation_dim)
+        shape = (batch_size, discrete_observation_dim)
         one-hot encoding of the next observation.
     """
     time_horizon = observation_trajectory.shape[-1]

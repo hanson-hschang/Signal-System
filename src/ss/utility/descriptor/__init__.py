@@ -5,8 +5,8 @@ from ._descriptor import (
     ReadOnlyDescriptor,
 )
 from ._descriptor_ndarray import (
-    MultiSystemNDArrayDescriptor,
-    MultiSystemNdArrayReadOnlyDescriptor,
+    BatchNDArrayDescriptor,
+    BatchNDArrayReadOnlyDescriptor,
     NDArrayDescriptor,
     NDArrayReadOnlyDescriptor,
 )

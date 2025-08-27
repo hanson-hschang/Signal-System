@@ -15,7 +15,7 @@ from ss.utility.assertion.validator import (
     Validator,
 )
 from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
+    BatchNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -201,7 +201,7 @@ class ModelPredictivePathIntegralController(Controller):
         self._DimensionValidator(system, cost)
         super().__init__(
             control_dim=system.control_dim,
-            number_of_systems=system.number_of_systems,
+            batch_size=system.batch_size,
         )
 
         self._time_horizon = self._TimeHorizonValidator(
@@ -228,14 +228,14 @@ class ModelPredictivePathIntegralController(Controller):
 
         self._state_dim = system.state_dim
         self._control_dim = system.control_dim
-        self._number_of_systems = system.number_of_systems
+        self._batch_size = system.batch_size
 
         self._system_state = np.zeros(
-            (self._number_of_systems, self._state_dim),
+            (self._batch_size, self._state_dim),
             dtype=np.float64,
         )
         self._control_trajectory = np.zeros(
-            (self._number_of_systems, self._control_dim, self._time_horizon),
+            (self._batch_size, self._control_dim, self._time_horizon),
             dtype=np.float64,
         )
 
@@ -251,12 +251,12 @@ class ModelPredictivePathIntegralController(Controller):
     time_horizon = ReadOnlyDescriptor[int]()
     number_of_samples = ReadOnlyDescriptor[int]()
     smoothing_window_size = ReadOnlyDescriptor[int]()
-    system_state = MultiSystemNDArrayDescriptor(
-        "_number_of_systems",
+    system_state = BatchNDArrayDescriptor(
+        "_batch_size",
         "_state_dim",
     )
-    control_trajectory = MultiSystemNDArrayDescriptor(
-        "_number_of_systems",
+    control_trajectory = BatchNDArrayDescriptor(
+        "_batch_size",
         "_control_dim",
         "_time_horizon",
     )
@@ -307,7 +307,7 @@ class ModelPredictivePathIntegralController(Controller):
             self._compute_noisy_exploration_control_trajectory()
         )
 
-        for i in range(self._number_of_systems):
+        for i in range(self._batch_size):
             # reset each sampled system to the initial state
             self._reset_systems(self._system_state[i, :])
 
@@ -378,7 +378,7 @@ class ModelPredictivePathIntegralController(Controller):
             np.zeros(self._control_dim),
             np.linalg.inv(self._costs.running_cost_control_weight),
             size=(
-                self._number_of_systems,
+                self._batch_size,
                 self._number_of_samples,
                 self._time_horizon,
             ),

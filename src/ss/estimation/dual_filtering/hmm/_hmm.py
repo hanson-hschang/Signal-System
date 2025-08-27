@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.callback import Callback
-from ss.utility.descriptor import MultiSystemNdArrayReadOnlyDescriptor
+from ss.utility.descriptor import BatchNDArrayReadOnlyDescriptor
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -19,18 +19,21 @@ class DualHmmFilter:
         max_horizon: int,
         initial_distribution: Optional[ArrayLike] = None,
         terminal_estimation: Optional[ArrayLike] = None,
+        batch_size: Optional[int] = None,
     ) -> None:
         self._system = system
         self._horizon = 0
         self._max_horizon = max_horizon + 1
         self._discrete_state_dim = self._system.discrete_state_dim
         self._observation_dim = self._system.observation_dim
-        assert self._observation_dim == 1, (
-            f"observation_dim must be 1. "
-            f"observation_dim given is {self._observation_dim}."
-        )
+        # assert self._observation_dim == 1, (
+        #     f"observation_dim must be 1. "
+        #     f"observation_dim given is {self._observation_dim}."
+        # )
         self._discrete_observation_dim = self._system.discrete_observation_dim
-        self._number_of_systems = self._system.number_of_systems
+
+        batch_size = system.batch_size if batch_size is None else batch_size
+        self._batch_size = batch_size
 
         self._initial_distribution = np.repeat(
             (
@@ -38,7 +41,7 @@ class DualHmmFilter:
                 if initial_distribution is None
                 else np.array(initial_distribution)
             )[np.newaxis, :],
-            self._number_of_systems,
+            self._batch_size,
             axis=0,
         )
 
@@ -51,7 +54,7 @@ class DualHmmFilter:
 
         self._observation_history = np.full(
             (
-                self._number_of_systems,
+                self._batch_size,
                 self._observation_dim,
                 self._max_horizon,
             ),
@@ -60,7 +63,7 @@ class DualHmmFilter:
         )
         self._emission_history = np.full(
             (
-                self._number_of_systems,
+                self._batch_size,
                 self._discrete_state_dim,
                 self._max_horizon,
             ),
@@ -69,7 +72,7 @@ class DualHmmFilter:
         )
         self._likelihood_history = np.full(
             (
-                self._number_of_systems,
+                self._batch_size,
                 self._discrete_state_dim,
                 self._max_horizon,
             ),
@@ -80,7 +83,7 @@ class DualHmmFilter:
 
         self._estimated_distribution_history = np.full(
             (
-                self._number_of_systems,
+                self._batch_size,
                 self._discrete_state_dim,
                 self._max_horizon,
             ),
@@ -93,7 +96,7 @@ class DualHmmFilter:
 
         self._control_history = np.full(
             (
-                self._number_of_systems,
+                self._batch_size,
                 self._number_of_dual_function,
                 self._max_horizon,
             ),
@@ -101,28 +104,28 @@ class DualHmmFilter:
             dtype=np.float64,
         )
 
-    observation_history = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
+    observation_history = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
         "_observation_dim",
         "_max_horizon",
     )
-    emission_history = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
+    emission_history = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
         "_discrete_state_dim",
         "_max_horizon",
     )
-    likelihood_history = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
+    likelihood_history = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
         "_discrete_state_dim",
         "_max_horizon",
     )
-    estimated_distribution_history = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
+    estimated_distribution_history = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
         "_discrete_state_dim",
         "_max_horizon",
     )
-    control_history = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
+    control_history = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
         "_number_of_dual_function",
         "_max_horizon",
     )
@@ -134,17 +137,17 @@ class DualHmmFilter:
         Parameters
         ----------
         observation : ArrayLike
-            shape = (number_of_systems, observation_dim)
+            shape = (batch_size, observation_dim)
             The observation to be updated.
         """
         observation = np.array(observation, dtype=np.int64)
         if observation.ndim == 1:
             observation = observation[np.newaxis, :]
         assert observation.shape == (
-            self._number_of_systems,
+            self._batch_size,
             self._observation_dim,
         ), (
-            f"observation must be in the shape of {(self._number_of_systems, self._observation_dim) = }. "
+            f"observation must be in the shape of {(self._batch_size, self._observation_dim) = }. "
             f"observation given has the shape of {observation.shape}."
         )
 
@@ -173,11 +176,11 @@ class DualHmmFilter:
         likelihood_history: NDArray[np.float64],
         estimated_distribution_history: NDArray[np.float64],
     ) -> None:
-        number_of_systems, _, _ = observation_history.shape
+        batch_size, _, _ = observation_history.shape
         discrete_state_dim, _ = emission_matrix.shape
 
         # Move the observation, emission, and estimated distribution history one step into the past
-        for i in prange(number_of_systems):
+        for i in prange(batch_size):
             # numba v0.61.0 does not support np.roll with axis argument
             observation_history[i, 0, :] = np.roll(
                 observation_history[i, 0, :], shift=-1
@@ -195,9 +198,9 @@ class DualHmmFilter:
         # Update the most recent history based on the new observation
         emission_column = emission_matrix[
             :, observation[:, 0]
-        ].T  # (number_of_systems, discrete_state_dim)
+        ].T  # (batch_size, discrete_state_dim)
         emission_history[:, :, -1] = 2 * emission_column - 1
-        for i in prange(number_of_systems):
+        for i in prange(batch_size):
             # numba v0.61.0 does not support np.sum with axis argument
             likelihood_history[i, :, -1] = emission_column[i, :] / np.sum(
                 emission_column[i, :]
@@ -233,7 +236,7 @@ class DualHmmFilter:
         control_history = np.empty(
             (
                 iterations,
-                self._number_of_systems,
+                self._batch_size,
                 number_of_dual_functions,
                 self._horizon + 1,
             ),
@@ -241,7 +244,7 @@ class DualHmmFilter:
         estimated_distribution_history = np.empty(
             (
                 iterations + 1,
-                self._number_of_systems,
+                self._batch_size,
                 self._discrete_state_dim,
                 self._horizon + 1,
             ),
@@ -315,7 +318,7 @@ class DualHmmFilter:
 
         # updated_estimated_distribution_history = np.empty(
         #     (
-        #         self._number_of_systems,
+        #         self._batch_size,
         #         self._discrete_state_dim,
         #         self._horizon_of_observation_history + 1,
         #     ),
@@ -345,7 +348,7 @@ class DualHmmFilter:
 
         # dual_function_history = np.empty(
         #     (
-        #         self._number_of_systems,
+        #         self._batch_size,
         #         self._discrete_state_dim,
         #         self._number_of_dual_function,
         #         self._horizon_of_observation_history + 1,
@@ -354,13 +357,13 @@ class DualHmmFilter:
         # )
         # dual_function_history[:, :, :, -1] = np.repeat(
         #     self._terminal_dual_function[np.newaxis, ...],
-        #     self._number_of_systems,
+        #     self._batch_size,
         #     axis=0,
         # )
 
         # control_history = np.empty(
         #     (
-        #         self._number_of_systems,
+        #         self._batch_size,
         #         self._number_of_dual_function,
         #         self._horizon_of_observation_history + 1,
         #     ),
@@ -372,14 +375,14 @@ class DualHmmFilter:
         # for k in range(self._horizon_of_observation_history, 0, -1):
         #     dual_function = dual_function_history[
         #         :, :, :, k
-        #     ]  # (number_of_systems, discrete_state_dim, number_of_dual_functions)
+        #     ]  # (batch_size, discrete_state_dim, number_of_dual_functions)
         #     emission = emission_history[
         #         :, :, k
-        #     ]  # (number_of_systems, discrete_state_dim)
+        #     ]  # (batch_size, discrete_state_dim)
 
         #     past_estimated_distribution = estimated_distribution_history[
         #         :, :, k - 1
-        #     ]  # (number_of_systems, discrete_state_dim)
+        #     ]  # (batch_size, discrete_state_dim)
 
         #     past_dual_function = _compute_past_dual_function(
         #         self._system.transition_matrix,
@@ -391,7 +394,7 @@ class DualHmmFilter:
         #         past_dual_function,
         #         emission,
         #         past_estimated_distribution,
-        #     )  # (number_of_systems, number_of_dual_functions)
+        #     )  # (batch_size, number_of_dual_functions)
 
         #     # Update the dual function
         #     dual_function_history[:, :, :, k - 1] = _backward_dual_function_step(
@@ -404,7 +407,7 @@ class DualHmmFilter:
 
         # estimator_history = np.empty(
         #     (
-        #         self._number_of_systems,
+        #         self._batch_size,
         #         self._number_of_dual_function,
         #         self._horizon_of_observation_history + 1,
         #     ),
@@ -413,7 +416,7 @@ class DualHmmFilter:
 
         # updated_estimated_distribution_history = np.empty(
         #     (
-        #         self._number_of_systems,
+        #         self._batch_size,
         #         self._discrete_state_dim,
         #         self._horizon_of_observation_history + 1,
         #     ),
@@ -428,7 +431,7 @@ class DualHmmFilter:
         # estimator_history[:, :, 0] = _compute_initial_estimator(
         #     updated_estimated_distribution_history[:, :, 0],
         #     dual_function_history[:, :, :, 0],
-        # )  # (number_of_systems, number_of_dual_functions)
+        # )  # (batch_size, number_of_dual_functions)
 
         # # Update the estimated distribution
         # # k = 1, 2, ..., K-1, K
@@ -455,7 +458,7 @@ def _backward_path(
     transition_matrix: NDArray,
     terminal_dual_function: NDArray,
 ) -> Tuple[NDArray, NDArray]:
-    number_of_systems, discrete_state_dim, horizon = (
+    batch_size, discrete_state_dim, horizon = (
         estimated_distribution_history.shape
     )
     horizon -= 1
@@ -463,19 +466,19 @@ def _backward_path(
 
     dual_function_history = np.empty(
         (
-            number_of_systems,
+            batch_size,
             discrete_state_dim,
             number_of_dual_functions,
             horizon + 1,
         ),
         dtype=np.float64,
     )
-    for i in prange(number_of_systems):
+    for i in prange(batch_size):
         dual_function_history[i, :, :, -1] = terminal_dual_function.copy()
 
     control_history = np.full(
         (
-            number_of_systems,
+            batch_size,
             number_of_dual_functions,
             horizon + 1,
         ),
@@ -486,14 +489,14 @@ def _backward_path(
     for k in range(horizon, 0, -1):
         dual_function = dual_function_history[
             :, :, :, k
-        ]  # (number_of_systems, discrete_state_dim, number_of_dual_functions)
+        ]  # (batch_size, discrete_state_dim, number_of_dual_functions)
         emission = emission_history[
             :, :, k
-        ]  # (number_of_systems, discrete_state_dim)
+        ]  # (batch_size, discrete_state_dim)
 
         past_estimated_distribution = estimated_distribution_history[
             :, :, k - 1
-        ]  # (number_of_systems, discrete_state_dim)
+        ]  # (batch_size, discrete_state_dim)
 
         past_dual_function = _compute_past_dual_function(
             transition_matrix,
@@ -505,7 +508,7 @@ def _backward_path(
             past_dual_function,
             emission,
             past_estimated_distribution,
-        )  # (number_of_systems, number_of_dual_functions)
+        )  # (batch_size, number_of_dual_functions)
 
         # Update the dual function
         dual_function_history[:, :, :, k - 1] = _backward_dual_function_step(
@@ -526,7 +529,7 @@ def _forward_path(
     initial_estimated_distribution: NDArray,
 ) -> NDArray:
     (
-        number_of_systems,
+        batch_size,
         discrete_state_dim,
         number_of_dual_functions,
         horizon,
@@ -535,7 +538,7 @@ def _forward_path(
 
     estimator_history = np.empty(
         (
-            number_of_systems,
+            batch_size,
             number_of_dual_functions,
             horizon + 1,
         ),
@@ -544,7 +547,7 @@ def _forward_path(
 
     updated_estimated_distribution_history = np.empty(
         (
-            number_of_systems,
+            batch_size,
             discrete_state_dim,
             horizon + 1,
         ),
@@ -558,7 +561,7 @@ def _forward_path(
     estimator_history[:, :, 0] = _compute_initial_estimator(
         updated_estimated_distribution_history[:, :, 0],
         dual_function_history[:, :, :, 0],
-    )  # (number_of_systems, number_of_dual_functions)
+    )  # (batch_size, number_of_dual_functions)
 
     # Update the estimated distribution
     # k = 1, 2, ..., K-1, K
@@ -585,21 +588,19 @@ def _update_terminal_estimated_distribution(
     control_history: NDArray,
 ) -> NDArray:
 
-    number_of_systems, number_of_dual_functions, horizon = (
-        control_history.shape
-    )
+    batch_size, number_of_dual_functions, horizon = control_history.shape
     horizon -= 1
     updated_terminal_estimated_distribution: NDArray = (
         _compute_initial_estimator(
             initial_estimated_distribution,
             initial_dual_function,
         )
-    )  # (number_of_systems, number_of_dual_functions)
+    )  # (batch_size, number_of_dual_functions)
 
     for k in range(1, horizon + 1):
         updated_terminal_estimated_distribution -= control_history[:, :, k]
 
-    for i in prange(number_of_systems):
+    for i in prange(batch_size):
         positive_mask = updated_terminal_estimated_distribution[i, :] > 0
         # If all values are negative, set the distribution to be uniform
         if np.all(np.logical_not(positive_mask)):
@@ -628,14 +629,14 @@ def _multi_path(
     terminal_dual_function: NDArray,
 ) -> Tuple[NDArray, NDArray]:
 
-    number_of_systems, discrete_state_dim, horizon = (
+    batch_size, discrete_state_dim, horizon = (
         estimated_distribution_history.shape
     )
     horizon -= 1
 
     updated_estimated_distribution_history = np.empty(
         (
-            number_of_systems,
+            batch_size,
             discrete_state_dim,
             horizon + 1,
         ),
@@ -708,9 +709,9 @@ def _compute_past_dual_function(
     transition_matrix: NDArray[np.float64],
     dual_function: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    number_of_systems = dual_function.shape[0]
+    batch_size = dual_function.shape[0]
     past_dual_function = np.empty_like(dual_function)
-    for i in prange(number_of_systems):
+    for i in prange(batch_size):
         # copy is used to avoid the following performance warning
         # NumbaPerformanceWarning: '@' is faster on contiguous arrays
         past_dual_function[i, :, :] = (
@@ -725,9 +726,9 @@ def _compute_control(
     emission: NDArray[np.float64],
     estimated_distribution: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    number_of_systems, _, number_of_dual_functions = past_dual_function.shape
-    control = np.empty((number_of_systems, number_of_dual_functions))
-    for i in prange(number_of_systems):
+    batch_size, _, number_of_dual_functions = past_dual_function.shape
+    control = np.empty((batch_size, number_of_dual_functions))
+    for i in prange(batch_size):
 
         expected_emission = np.sum(
             estimated_distribution[i, :] * emission[i, :]
@@ -771,9 +772,9 @@ def _backward_dual_function_step(
     emission: NDArray[np.float64],
     control: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    number_of_systems = past_dual_function.shape[0]
+    batch_size = past_dual_function.shape[0]
     updated_past_dual_function = np.empty_like(past_dual_function)
-    for i in prange(number_of_systems):
+    for i in prange(batch_size):
         updated_past_dual_function[i, :, :] = past_dual_function[
             i, :, :
         ] + np.outer(emission[i, :], control[i, :])
@@ -785,9 +786,9 @@ def _compute_initial_estimator(
     initial_distribution: NDArray[np.float64],
     dual_function: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    number_of_systems, _, number_of_dual_functions = dual_function.shape
-    initial_estimator = np.empty((number_of_systems, number_of_dual_functions))
-    for i in prange(number_of_systems):
+    batch_size, _, number_of_dual_functions = dual_function.shape
+    initial_estimator = np.empty((batch_size, number_of_dual_functions))
+    for i in prange(batch_size):
         for d in prange(number_of_dual_functions):
             initial_estimator[i, d] = np.sum(
                 initial_distribution[i, :] * dual_function[i, :, d]
@@ -808,11 +809,9 @@ def _update_estimated_distribution(
     dual_function: NDArray[np.float64],
     estimator: NDArray[np.float64],
 ) -> NDArray[np.float64]:
-    number_of_systems, discrete_state_dim, _ = dual_function.shape
-    updated_estimated_distribution = np.empty(
-        (number_of_systems, discrete_state_dim)
-    )
-    for i in prange(number_of_systems):
+    batch_size, discrete_state_dim, _ = dual_function.shape
+    updated_estimated_distribution = np.empty((batch_size, discrete_state_dim))
+    for i in prange(batch_size):
         result, _, _, _ = np.linalg.lstsq(
             dual_function[i, :, :].T,
             estimator[i, :],

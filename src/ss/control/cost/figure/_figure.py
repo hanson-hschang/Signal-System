@@ -27,17 +27,17 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
                 pass
         assert (
             len(cost_trajectory.shape) == 2
-        ), "cost_trajectory in general is a 2D array with shape (number_of_systems, time_length)."
+        ), "cost_trajectory in general is a 2D array with shape (batch_size, time_length)."
 
         super().__init__(
             time_trajectory,
-            number_of_systems=cost_trajectory.shape[0],
+            batch_size=cost_trajectory.shape[0],
             fig_size=fig_size,
             fig_title="Accumulated Cost Trajectory",
         )
         assert cost_trajectory.shape[1] == self._sequence_length, (
             "cost_trajectory must have the same length as time_trajectory."
-            "cost_trajectory in general is a 2D array with shape (number_of_systems, time_length)."
+            "cost_trajectory in general is a 2D array with shape (batch_size, time_length)."
         )
         self._cost_trajectory = cost_trajectory
         self._cost_subplot: Axes = self._subplots[0][0]
@@ -47,7 +47,7 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
         cumsum_cost_trajectory = (
             np.cumsum(self._cost_trajectory, axis=1) * time_step
         )
-        if self._number_of_systems <= 10:
+        if self._batch_size <= 10:
             self._plot_each_system_cost_trajectory(
                 cumsum_cost_trajectory=cumsum_cost_trajectory,
             )
@@ -78,7 +78,7 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
         cumsum_cost_trajectory: NDArray[np.float64],
         **kwargs: Any,
     ) -> None:
-        for i in range(self._number_of_systems):
+        for i in range(self._batch_size):
             self._cost_subplot.plot(
                 self._sequence_trajectory,
                 cumsum_cost_trajectory[i, :],

@@ -36,10 +36,10 @@ from ss.utility import basic_config
     help="Set the time step (positive value).",
 )
 @click.option(
-    "--number-of-systems",
+    "--batch-size",
     type=click.IntRange(min=1),
     default=1,
-    help="Set the number of systems (positive integers).",
+    help="Set the batch size (positive integers).",
 )
 @click.option(
     "--verbose",
@@ -57,7 +57,7 @@ def main(
     pole_length: float,
     gravity: float,
     time_step: float,
-    number_of_systems: int,
+    batch_size: int,
     verbose: bool,
     debug: bool,
 ) -> None:
@@ -69,10 +69,10 @@ def main(
         pole_length=pole_length,
         gravity=gravity,
         time_step=time_step,
-        number_of_systems=number_of_systems,
+        batch_size=batch_size,
     )
-    if number_of_systems > 1:
-        cart_pole_system.control = [[1]] * number_of_systems
+    if batch_size > 1:
+        cart_pole_system.control = [[1]] * batch_size
     else:
         cart_pole_system.control = [1]
     time = cart_pole_system.process(0)

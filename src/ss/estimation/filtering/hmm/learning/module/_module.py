@@ -56,7 +56,7 @@ class LearningHmmFilter(
         #     self._config.filter.discrete_observation_dim
         # )
         # self._layer_dim = self._config.transition.layer_dim + 1
-        # self._number_of_systems = 1
+        # self._batch_size = 1
 
         self._estimation_matrix_binding = False
         if self._config.filter.estimation_dim == 0:
@@ -152,12 +152,12 @@ class LearningHmmFilter(
         return self._filter.estimation_dim
 
     @property
-    def number_of_systems(self) -> int:
+    def batch_size(self) -> int:
         return self._filter.batch_size
 
-    @number_of_systems.setter
-    def number_of_systems(self, number_of_systems: int) -> None:
-        self._filter.batch_size = number_of_systems
+    @batch_size.setter
+    def batch_size(self, batch_size: int) -> None:
+        self._filter.batch_size = batch_size
 
     @property
     def emission(self) -> EmissionModule[T, TC]:
@@ -349,13 +349,13 @@ class LearningHmmFilter(
             shape = (batch_size, horizon) or (batch_size, horizon, discrete_observation_dim)
         """
         observation = self._emission.validate_observation_shape(
-            observation, number_of_systems=self.number_of_systems
+            observation, batch_size=self.batch_size
         )
 
         # if observation.ndim == 0:
         #     observation = observation.unsqueeze(0)  # (horizon=1,)
         # if observation.ndim == 1:
-        #     if self._number_of_systems == 1:
+        #     if self._batch_size == 1:
         #         observation = observation.unsqueeze(
         #             0
         #         )  # (batch_size=1, horizon)

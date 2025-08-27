@@ -4,7 +4,7 @@ from numpy.typing import NDArray
 
 from ss.utility.assertion import is_positive_integer
 from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
+    BatchNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -13,26 +13,26 @@ class Controller:
     def __init__(
         self,
         control_dim: int,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         assert is_positive_integer(
             control_dim
         ), f"{control_dim = } must be a positive integer"
         assert is_positive_integer(
-            number_of_systems
-        ), f"{number_of_systems = } must be a positive integer"
+            batch_size
+        ), f"{batch_size = } must be a positive integer"
 
         self._control_dim = int(control_dim)
-        self._number_of_systems = int(number_of_systems)
+        self._batch_size = int(batch_size)
         self._control = np.zeros(
-            (self._number_of_systems, self._control_dim),
+            (self._batch_size, self._control_dim),
             dtype=np.float64,
         )
 
     control_dim = ReadOnlyDescriptor[int]()
-    number_of_systems = ReadOnlyDescriptor[int]()
-    control = MultiSystemNDArrayDescriptor(
-        "_number_of_systems",
+    batch_size = ReadOnlyDescriptor[int]()
+    control = BatchNDArrayDescriptor(
+        "_batch_size",
         "_control_dim",
     )
 

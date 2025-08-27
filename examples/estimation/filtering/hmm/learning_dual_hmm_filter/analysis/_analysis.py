@@ -43,8 +43,8 @@ def analysis(
     time_trajectory: NDArray = np.array(data["time"])
     observation_trajectory: NDArray = np.array(
         data["observation"], dtype=np.int64
-    )  # (number_of_systems, 1, time_horizon)
-    number_of_systems = int(data.meta_info["number_of_systems"])
+    )  # (batch_size, 1, time_horizon)
+    batch_size = int(data.meta_info["batch_size"])
     discrete_observation_dim = int(data.meta_info["discrete_observation_dim"])
     transition_matrix: NDArray = np.array(data.meta_data["transition_matrix"])
     emission_matrix: NDArray = np.array(data.meta_data["emission_matrix"])
@@ -116,7 +116,7 @@ def analysis(
     ## Compute the empirical optimal loss
     empirical_optimal_loss = loss_conversion(
         Utility.compute_loss(
-            filter.duplicate(number_of_systems),
+            filter.duplicate(batch_size),
             observation_trajectory,
             filter.discrete_observation_dim,
         )
@@ -124,7 +124,7 @@ def analysis(
     logger.info(f"empirical optimal loss = {float(empirical_optimal_loss)}")
 
     # Compute the empirical loss of the learning_filter
-    learning_filter.number_of_systems = number_of_systems
+    learning_filter.batch_size = batch_size
     empirical_learning_filter_loss = loss_conversion(
         Utility.compute_loss(
             learning_filter,
@@ -146,7 +146,7 @@ def analysis(
     #     logger.info(f"    layer {l}: {float(loss)}")
 
     ## Compute an example loss trajectory of the filter and learning_filter
-    learning_filter.number_of_systems = 1
+    learning_filter.batch_size = 1
     filter_result_trajectory, learning_filter_result_trajectory = (
         Utility.compute_loss_trajectory(
             filter=filter,

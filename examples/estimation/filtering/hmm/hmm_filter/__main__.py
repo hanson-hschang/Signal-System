@@ -51,7 +51,7 @@ def main(
         discrete_observation_dim=user_config.discrete_observation_dim,
         simulation_time_steps=user_config.simulation_time_steps,
         step_skip=user_config.step_skip,
-        number_of_systems=user_config.number_of_systems,
+        batch_size=user_config.batch_size,
         result_directory=path_manager.result_directory,
     )
 

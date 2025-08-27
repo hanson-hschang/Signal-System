@@ -19,10 +19,10 @@ from ss.utility import basic_config
     help="Set the step skip (positive integers).",
 )
 @click.option(
-    "--number-of-systems",
+    "--batch-size",
     type=click.IntRange(min=1),
     default=1,
-    help="Set the number of systems (positive integers).",
+    help="Set the batch size (positive integers).",
 )
 @click.option(
     "--verbose",
@@ -37,7 +37,7 @@ from ss.utility import basic_config
 def main(
     simulation_time_steps: int,
     step_skip: int,
-    number_of_systems: int,
+    batch_size: int,
     verbose: bool,
     debug: bool,
 ) -> None:
@@ -58,7 +58,7 @@ def main(
     markov_chain = HiddenMarkovModel(
         transition_matrix=transition_matrix,
         emission_matrix=emission_matrix,
-        number_of_systems=number_of_systems,
+        batch_size=batch_size,
     )
     system_callback = HmmCallback(
         step_skip=step_skip,

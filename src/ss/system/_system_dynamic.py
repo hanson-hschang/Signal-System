@@ -42,7 +42,7 @@ class ContinuousTimeSystem(System):
         state_dim: int,
         observation_dim: int,
         control_dim: int = 0,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
         **kwargs: Any,
@@ -56,7 +56,7 @@ class ContinuousTimeSystem(System):
             state_dim=state_dim,
             observation_dim=observation_dim,
             control_dim=control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             **kwargs,
         )
 
@@ -74,13 +74,13 @@ class ContinuousTimeSystem(System):
         "_observation_dim", "_observation_dim"
     )
 
-    def duplicate(self, number_of_systems: int) -> "ContinuousTimeSystem":
+    def duplicate(self, batch_size: int) -> "ContinuousTimeSystem":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of systems to be created.
 
         Returns
@@ -93,7 +93,7 @@ class ContinuousTimeSystem(System):
             state_dim=self._state_dim,
             observation_dim=self._observation_dim,
             control_dim=self._control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=self._process_noise_covariance,
             observation_noise_covariance=self._observation_noise_covariance,
         )
@@ -123,7 +123,7 @@ class ContinuousTimeSystem(System):
         process_noise = np.random.multivariate_normal(
             np.zeros(self._state_dim),
             self._process_noise_covariance * np.sqrt(self._time_step),
-            size=self._number_of_systems,
+            size=self._batch_size,
         )
         return process_noise
 
@@ -131,7 +131,7 @@ class ContinuousTimeSystem(System):
         observation_noise = np.random.multivariate_normal(
             np.zeros(self._observation_dim),
             self._observation_noise_covariance * np.sqrt(self._time_step),
-            size=self._number_of_systems,
+            size=self._batch_size,
         )
         return observation_noise
 
@@ -142,7 +142,7 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
         state_dim: int,
         observation_dim: int,
         control_dim: int = 0,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
         **kwargs: Any,
@@ -152,19 +152,19 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
             state_dim=state_dim,
             observation_dim=observation_dim,
             control_dim=control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
             **kwargs,
         )
 
-    def duplicate(self, number_of_systems: int) -> "DiscreteTimeSystem":
+    def duplicate(self, batch_size: int) -> "DiscreteTimeSystem":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of systems to be created.
 
         Returns
@@ -176,7 +176,7 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
             state_dim=self._state_dim,
             observation_dim=self._observation_dim,
             control_dim=self._control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=self._process_noise_covariance,
             observation_noise_covariance=self._observation_noise_covariance,
         )

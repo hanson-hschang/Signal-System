@@ -17,7 +17,7 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         observation_function: Callable,
         state_constraint_function: Optional[Callable] = None,
         control_dim: int = 0,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
     ) -> None:
@@ -26,7 +26,7 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
             state_dim=state_dim,
             observation_dim=observation_dim,
             control_dim=control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
         )
@@ -58,15 +58,13 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         )
         self._set_compute_state_process(control_flag=(control_dim > 0))
 
-    def duplicate(
-        self, number_of_systems: int
-    ) -> "ContinuousTimeNonlinearSystem":
+    def duplicate(self, batch_size: int) -> "ContinuousTimeNonlinearSystem":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of systems to be created.
 
         Returns
@@ -82,7 +80,7 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
             observation_function=self._observation_function,
             state_constraint_function=self._state_constraint_function,
             control_dim=self._control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=self._process_noise_covariance,
             observation_noise_covariance=self._observation_noise_covariance,
         )
@@ -142,7 +140,7 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
         observation_function: Callable,
         state_constraint_function: Optional[Callable] = None,
         control_dim: int = 0,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
     ) -> None:
@@ -154,20 +152,18 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
             observation_function=observation_function,
             state_constraint_function=state_constraint_function,
             control_dim=control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
         )
 
-    def duplicate(
-        self, number_of_systems: int
-    ) -> "DiscreteTimeNonlinearSystem":
+    def duplicate(self, batch_size: int) -> "DiscreteTimeNonlinearSystem":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of systems to be created.
 
         Returns
@@ -182,7 +178,7 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
             observation_function=self._observation_function,
             state_constraint_function=self._state_constraint_function,
             control_dim=self._control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=self._process_noise_covariance,
             observation_noise_covariance=self._observation_noise_covariance,
         )

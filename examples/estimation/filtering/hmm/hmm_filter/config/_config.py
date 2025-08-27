@@ -12,5 +12,5 @@ class UserConfig(BaseClickConfig):
     step_skip: int = 1
     state_dim: int = 3
     discrete_observation_dim: int = 7
-    number_of_systems: int = 1
+    batch_size: int = 1
     random_seed: int = 2024  # The random seed (non-negative integers)

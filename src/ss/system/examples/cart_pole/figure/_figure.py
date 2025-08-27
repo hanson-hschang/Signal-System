@@ -27,21 +27,21 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
                 pass
         assert (
             len(state_trajectory.shape) == 3
-        ), "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+        ), "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
         assert state_trajectory.shape[1] == 4, (
             "state_trajectory must have 4 states, corresponding to the cart-pole system."
-            "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+            "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
         )
         super().__init__(
             time_trajectory,
-            number_of_systems=state_trajectory.shape[0],
+            batch_size=state_trajectory.shape[0],
             fig_size=fig_size,
             fig_title="Cart-Pole System State Trajectory",
             fig_layout=(2, 2),
         )
         assert state_trajectory.shape[2] == self._sequence_length, (
             "state_trajectory must have the same length of time_trajectory."
-            "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+            "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
         )
 
         self._state_trajectory = state_trajectory
@@ -59,7 +59,7 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
         ]
 
     def plot(self) -> Self:
-        if self._number_of_systems <= 10:
+        if self._batch_size <= 10:
             self._plot_each_system_trajectory()
         else:
             kwargs: Dict = dict(
@@ -86,7 +86,7 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
         self,
         **kwargs: Any,
     ) -> None:
-        for i in range(self._number_of_systems):
+        for i in range(self._batch_size):
             for state_subplot, state_trajectory, state_name in zip(
                 self._state_subplots,
                 self._state_trajectory[i, ...],

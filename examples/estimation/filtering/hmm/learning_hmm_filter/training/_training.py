@@ -41,7 +41,7 @@ def training(
     # Prepare data
     data = Data.load(data_filepath)
     observation = data["observation"]
-    number_of_systems = int(data.meta_info["number_of_systems"])
+    batch_size = int(data.meta_info["batch_size"])
     max_length = 12  # 256
 
     (
@@ -51,7 +51,7 @@ def training(
     ) = (
         HmmObservationDataset(
             observation=observation,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             max_length=max_length,
             stride=64,
         )

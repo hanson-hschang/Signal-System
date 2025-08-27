@@ -95,12 +95,12 @@ class LearningDualHmmFilter(
         return self._filter.history_length
 
     @property
-    def number_of_systems(self) -> int:
+    def batch_size(self) -> int:
         return self._filter.batch_size
 
-    @number_of_systems.setter
-    def number_of_systems(self, number_of_systems: int) -> None:
-        self._filter.batch_size = number_of_systems
+    @batch_size.setter
+    def batch_size(self, batch_size: int) -> None:
+        self._filter.batch_size = batch_size
 
     @property
     def emission(self) -> DualEmissionModule[T, TC]:
@@ -197,7 +197,7 @@ class LearningDualHmmFilter(
             shape = (batch_size, horizon) or (batch_size, horizon, discrete_observation_dim)
         """
         observation = self._emission.validate_observation_shape(
-            observation, number_of_systems=self.number_of_systems
+            observation, batch_size=self.batch_size
         )
 
         emission = self._emission(observation)
