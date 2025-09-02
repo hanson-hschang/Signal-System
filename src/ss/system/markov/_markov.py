@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union, cast
+from typing import Any, Optional, Tuple, Union
 
 from pathlib import Path
 
@@ -28,6 +28,18 @@ def one_hot_decoding(
     for i in range(batch_size):
         values[i] = np.argmax(one_hot_vectors[i, :])
     return values
+
+
+def get_estimation_model(matrix: NDArray) -> Any:
+    @njit(cache=True)  # type: ignore
+    def estimation_model(
+        estimated_state: NDArray,
+        emission_matrix: NDArray[np.float64] = matrix,
+    ) -> NDArray:
+        estimation = estimated_state @ emission_matrix
+        return estimation
+
+    return estimation_model
 
 
 class HiddenMarkovModel(DiscreteTimeSystem):

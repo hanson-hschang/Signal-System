@@ -3,7 +3,12 @@ from pathlib import Path
 import numpy as np
 from tqdm import tqdm
 
-from ss.estimation.filtering.hmm import HmmFilter, HmmFilterCallback
+from ss.estimation.filtering.hmm import (
+    DualHmmFilter,
+    DualHmmFilterCallback,
+    HmmFilter,
+    HmmFilterCallback,
+)
 from ss.system.markov import HiddenMarkovModel, HmmCallback
 from ss.utility.logging import Logging
 
@@ -50,25 +55,36 @@ def hmm_filtering(
     # Create the filter and the callback
     filter = HmmFilter(
         system=system,
-        estimation_model=Utility.get_estimation_model(
-            emission_matrix=emission_matrix,
-        ),
+        estimation_matrix=emission_matrix,
     )
     filter_callback = HmmFilterCallback(
         step_skip=step_skip,
         filter=filter,
     )
 
+    # Create the dual filter and the callback
+    dual_filter = DualHmmFilter(
+        system=system,
+        horizon_of_observation_history=10,
+        estimation_matrix=emission_matrix,
+    )
+    dual_filter_callback = DualHmmFilterCallback(
+        step_skip=step_skip,
+        filter=dual_filter,
+    )
+
     # Initialization
     current_time = 0.0
 
     # Compute the initial filter estimation and system observation for dummy values
-    observation = system.observe()
+    system.observe()
     filter.estimate()
+    dual_filter.estimate()
 
     # Record the system and the estimator at the initial time
     system_callback.record(0, current_time)
     filter_callback.record(0, current_time)
+    dual_filter_callback.record(0, current_time)
 
     for k in tqdm(range(1, simulation_time_steps)):
 
@@ -78,19 +94,27 @@ def hmm_filtering(
         # Process the system estimation
         filter.estimate()
 
+        # Process the dual filter estimation
+        dual_filter.estimate()
+
         # Update the system
         current_time = system.process(current_time)
 
         # Update the filter with the observation
         filter.update(observation)
 
+        # Update the dual filter with the observation
+        dual_filter.update(observation)
+
         # Record the system and the estimator
         system_callback.record(k, current_time)
         filter_callback.record(k, current_time)
+        dual_filter_callback.record(k, current_time)
 
     # Save the data
     system_callback.save(result_directory / "system.hdf5")
     filter_callback.save(result_directory / "filter.hdf5")
+    dual_filter_callback.save(result_directory / "dual_filter.hdf5")
 
     # Plot the data
     state_trajectory = (

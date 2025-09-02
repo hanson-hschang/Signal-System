@@ -102,8 +102,9 @@ def transition_module_info(
     transition: DualTransitionModule,
     # layer_dim: int,
 ) -> None:
-    for transition_layer in transition.layers:
-        transition_layer_info(transition_layer)
+    # for transition_layer in transition.layers:
+    #     transition_layer_info(transition_layer)
+    pass
 
 
 def estimation_module_info(estimation: DualEstimationModule) -> None:

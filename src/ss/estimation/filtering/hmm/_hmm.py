@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
 from numba import njit, prange
@@ -6,7 +6,7 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
-from ss.system.markov import HiddenMarkovModel
+from ss.system.markov import HiddenMarkovModel, get_estimation_model
 from ss.utility.descriptor import ReadOnlyDescriptor
 
 
@@ -15,7 +15,7 @@ class HmmFilter(Filter):
         self,
         system: HiddenMarkovModel,
         initial_distribution: Optional[ArrayLike] = None,
-        estimation_model: Optional[Callable] = None,
+        estimation_matrix: Optional[ArrayLike] = None,
         batch_size: Optional[int] = None,
     ) -> None:
         assert issubclass(type(system), HiddenMarkovModel), (
@@ -23,13 +23,19 @@ class HmmFilter(Filter):
             f"system given is an instance of {type(system)}."
         )
         self._system = system
-        batch_size = system.batch_size if batch_size is None else batch_size
+        self._estimation_matrix = (
+            np.identity(self._system.discrete_state_dim)
+            if estimation_matrix is None
+            else np.array(estimation_matrix)
+        )
         super().__init__(
             state_dim=self._system.discrete_state_dim,
             observation_dim=self._system.observation_dim,
             initial_distribution=initial_distribution,
-            estimation_model=estimation_model,
-            batch_size=batch_size,
+            estimation_model=get_estimation_model(
+                matrix=self._estimation_matrix
+            ),
+            batch_size=system.batch_size if batch_size is None else batch_size,
         )
         self._discrete_observation_dim = self._system.discrete_observation_dim
         self.reset()
@@ -53,7 +59,7 @@ class HmmFilter(Filter):
         return self.__class__(
             system=self._system,
             initial_distribution=self._initial_distribution,
-            estimation_model=self._estimation_model,
+            estimation_matrix=self._estimation_matrix,
             batch_size=batch_size,
         )
 
@@ -92,7 +98,7 @@ class HmmFilter(Filter):
         return estimated_state
 
 
-class HmmFilterCallback(EstimatorCallback):
+class HmmFilterCallback(EstimatorCallback[HmmFilter]):
     def __init__(
         self,
         step_skip: int,
@@ -103,4 +109,4 @@ class HmmFilterCallback(EstimatorCallback):
             f"filter given is an instance of {type(filter)}."
         )
         super().__init__(step_skip, filter)
-        self._estimator: HmmFilter = filter
+        # self._estimator: HmmFilter = filter

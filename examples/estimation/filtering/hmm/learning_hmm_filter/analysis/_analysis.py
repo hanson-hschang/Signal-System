@@ -53,7 +53,7 @@ def analysis(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
         ),
-        estimation_model=Utility.get_estimation_model(
+        estimation_matrix=Utility.get_estimation_model(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
             future_time_steps=0,

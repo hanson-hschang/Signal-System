@@ -76,8 +76,8 @@ def training(
             data.meta_info["discrete_observation_dim"]
         ),
         history_length=max_length,
-        block_dims=1,
-        transition_matrix_binding=False,
+        # block_dims=1,
+        # transition_matrix_binding=False,
     )
 
     # Prepare module

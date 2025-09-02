@@ -31,12 +31,7 @@ class DualEstimationModule(
             (self._state_dim, self._estimation_dim),
         )
 
-        self._forward: Callable[
-            [
-                torch.Tensor,
-            ],
-            torch.Tensor,
-        ]
+        self._forward: Callable[[torch.Tensor], torch.Tensor]
         self._init_forward()
 
     def _init_forward(self) -> None:
@@ -45,7 +40,7 @@ class DualEstimationModule(
                 self._forward = self._forward_estimated_state
             case DualEstimationConfig.Option.PREDICTED_OBSERVATION_PROBABILITY:
                 self._forward = self._forward_estimation
-            case DualEstimationConfig.Option.ESTIMATION:
+            case DualEstimationConfig.Option.LINEAR_TRANSFORM_ESTIMATION:
                 self._forward = self._forward_estimation
             case _ as _estimation_config:
                 assert_never(_estimation_config)
@@ -60,9 +55,7 @@ class DualEstimationModule(
         self._init_forward()
 
     @property
-    def matrix_parameter(
-        self,
-    ) -> ProbabilityParameter[T, TC]:
+    def matrix_parameter(self) -> ProbabilityParameter[T, TC]:
         return self._matrix
 
     @property

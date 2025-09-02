@@ -13,31 +13,53 @@ from ss.utility.learning.parameter.probability.config import (
 )
 from ss.utility.learning.parameter.transformer.config import TC
 
+# class LayersDescriptor(
+#     DataclassDescriptor[Tuple[DualTransitionLayerConfig[TC], ...]], Generic[TC]
+# ):
 
-class LayersDescriptor(
-    DataclassDescriptor[Tuple[DualTransitionLayerConfig[TC], ...]], Generic[TC]
-):
+#     def __set__(
+#         self,
+#         obj: object,
+#         value: Tuple[DualTransitionLayerConfig[TC], ...],
+#     ) -> None:
+#         for layer in value:
+#             assert isinstance(layer, DualTransitionLayerConfig), (
+#                 f"Each element of 'layers' must be of type: 'DualTransitionLayerConfig'. "
+#                 f"An element given is of type {type(layer)}."
+#             )
+#         super().__set__(obj, value)
 
-    def __set__(
-        self,
-        obj: object,
-        value: Tuple[DualTransitionLayerConfig[TC], ...],
-    ) -> None:
-        for layer in value:
-            assert isinstance(layer, DualTransitionLayerConfig), (
-                f"Each element of 'layers' must be of type: 'DualTransitionLayerConfig'. "
-                f"An element given is of type {type(layer)}."
-            )
-        super().__set__(obj, value)
+
+@dataclass
+class TransitionInitialStateConfig(BaseLearningConfig, Generic[TC]):
+
+    probability_parameter: ProbabilityParameterConfig[TC] = field(
+        default_factory=ProbabilityParameterConfig[TC]
+    )
+
+
+@dataclass
+class TransitionMatrixConfig(BaseLearningConfig, Generic[TC]):
+
+    probability_parameter: ProbabilityParameterConfig[TC] = field(
+        default_factory=ProbabilityParameterConfig[TC]
+    )
 
 
 @dataclass
 class DualTransitionConfig(BaseLearningConfig, Generic[TC]):
 
-    layers: LayersDescriptor[TC] = LayersDescriptor[TC](tuple())
-    skip_first_transition: bool = False
-    transition_matrix_binding: bool = True
+    initial_state: TransitionInitialStateConfig[TC] = field(
+        default_factory=TransitionInitialStateConfig[TC]
+    )
+    matrix: TransitionMatrixConfig[TC] = field(
+        default_factory=TransitionMatrixConfig[TC]
+    )
 
-    @property
-    def layer_dim(self) -> int:
-        return len(self.layers)
+    # layers: LayersDescriptor[TC] = LayersDescriptor[TC](tuple())
+    # skip_first_transition: bool = False
+    # transition_matrix_binding: bool = True
+
+    # @property
+    # def layer_dim(self) -> int:
+    #     return len(self.layers)

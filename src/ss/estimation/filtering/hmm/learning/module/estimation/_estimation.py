@@ -60,9 +60,7 @@ class EstimationModule(
         self._init_forward()
 
     @property
-    def matrix_parameter(
-        self,
-    ) -> ProbabilityParameter[T, TC]:
+    def matrix_parameter(self) -> ProbabilityParameter[T, TC]:
         return self._matrix
 
     @property
