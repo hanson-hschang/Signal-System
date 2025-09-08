@@ -3,9 +3,6 @@ from typing import Generic, Optional, Tuple, cast
 import torch
 from torch import nn
 
-from ss.estimation.dual_filtering.hmm.learning.module.transition.layer import (
-    DualTransitionLayer,
-)
 from ss.estimation.filtering.hmm.learning.module.filter.config import (
     DualFilterConfig,
 )

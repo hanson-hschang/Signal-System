@@ -1,6 +1,6 @@
 [project]
 name = "Signal-System"
-version = "0.0.2"
+version = "0.0.1"
 description = "A package for signal and system simulation, design, analysis, and learning."
 readme = "README.md"
 requires-python = ">=3.13"
