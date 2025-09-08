@@ -1,1 +1,1 @@
-from ._filtering import Filter
+from ._filtering import DualFilter, Filter

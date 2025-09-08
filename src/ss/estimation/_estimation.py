@@ -1,14 +1,14 @@
-from typing import Callable, Optional
+from typing import Callable, Generic, Optional, TypeVar
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from numpy.typing import ArrayLike, NDArray
 
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
-    MultiSystemNdArrayReadOnlyDescriptor,
+    BatchNDArrayDescriptor,
+    BatchNDArrayReadOnlyDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -22,45 +22,44 @@ class Estimator:
         def __init__(self, observation_dim: int) -> None:
             super().__init__(observation_dim)
 
-    class _HorizonOfObservationHistoryValidator(PositiveIntegerValidator):
-        def __init__(self, horizon_of_observation_history: int) -> None:
-            super().__init__(horizon_of_observation_history)
+    class _HistoryHorizonValidator(PositiveIntegerValidator):
+        def __init__(self, history_horizon: int) -> None:
+            super().__init__(history_horizon)
 
-    class _NumberOfSystemsValidator(PositiveIntegerValidator):
-        def __init__(self, number_of_systems: int) -> None:
-            super().__init__(number_of_systems)
+    class _BatchSizeValidator(PositiveIntegerValidator):
+        def __init__(self, batch_size: int) -> None:
+            super().__init__(batch_size)
 
     def __init__(
         self,
         state_dim: int,
         observation_dim: int,
-        horizon_of_observation_history: int = 1,
+        history_horizon: int,
         estimation_model: Optional[Callable] = None,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         self._state_dim = self._StateDimValidator(state_dim).get_value()
         self._observation_dim = self._ObservationDimValidator(
             observation_dim
         ).get_value()
-        self._horizon_of_observation_history = (
-            self._HorizonOfObservationHistoryValidator(
-                horizon_of_observation_history
-            ).get_value()
-        )
-        self._number_of_systems = self._NumberOfSystemsValidator(
-            number_of_systems
+        self._history_horizon = self._HistoryHorizonValidator(
+            history_horizon
         ).get_value()
+        self._current_history_horizon = 0
+        self._batch_size = self._BatchSizeValidator(batch_size).get_value()
 
-        self._estimated_state = np.zeros(
-            (self._number_of_systems, self._state_dim),
+        self._estimated_state = np.full(
+            (self._batch_size, self._state_dim),
+            np.nan,
             dtype=np.float64,
         )
-        self._observation_history = np.zeros(
+        self._observation_history = np.full(
             (
-                self._number_of_systems,
+                self._batch_size,
                 self._observation_dim,
-                self._horizon_of_observation_history,
+                self._history_horizon,
             ),
+            np.nan,
             dtype=np.float64,
         )
 
@@ -70,9 +69,9 @@ class Estimator:
             @njit(cache=True)  # type: ignore
             def _estimation_model(
                 estimated_state: NDArray[np.float64],
-                number_of_systems: int = self.number_of_systems,
+                batch_size: int = self.batch_size,
             ) -> NDArray[np.float64]:
-                return np.full((number_of_systems, 1), np.nan)
+                return np.full((batch_size, 1), np.nan)
 
             estimation_model = _estimation_model
         self._estimation_model = estimation_model
@@ -82,32 +81,38 @@ class Estimator:
         )
         self._estimation_dim = self._estimation.shape[1]
 
-    state_dim = ReadOnlyDescriptor[int]()
-    observation_dim = ReadOnlyDescriptor[int]()
-    estimation_dim = ReadOnlyDescriptor[int]()
+    batch_size = ReadOnlyDescriptor[int]()
     number_of_observation_history = ReadOnlyDescriptor[int]()
-    number_of_systems = ReadOnlyDescriptor[int]()
-    estimated_state = MultiSystemNDArrayDescriptor(
-        "_number_of_systems",
+    observation_dim = ReadOnlyDescriptor[int]()
+    state_dim = ReadOnlyDescriptor[int]()
+    estimation_dim = ReadOnlyDescriptor[int]()
+    observation_history = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
+        "_observation_dim",
+        "_history_horizon",
+    )
+    estimated_state = BatchNDArrayDescriptor(
+        "_batch_size",
         "_state_dim",
     )
-    observation_history = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
-        "_observation_dim",
-        "_horizon_of_observation_history",
-    )
-    estimation = MultiSystemNdArrayReadOnlyDescriptor(
-        "_number_of_systems",
+    estimation = BatchNDArrayReadOnlyDescriptor(
+        "_batch_size",
         "_estimation_dim",
     )
 
-    def duplicate(self, number_of_systems: int) -> "Estimator":
+    def reset(self) -> None:
+        self._current_history_horizon = 0
+        self._observation_history[:, :, :] = np.nan
+        self._estimated_state[:, :] = np.nan
+        self._estimation[:, :] = np.nan
+
+    def duplicate(self, batch_size: int) -> "Estimator":
         """
         Create multiple estimators based on the current estimator.
 
         Parameters
         ----------
-        number_of_systems: int
+        batch_size: int
             The number of systems to be created.
 
         Returns
@@ -118,9 +123,9 @@ class Estimator:
         return self.__class__(
             state_dim=self._state_dim,
             observation_dim=self._observation_dim,
-            horizon_of_observation_history=self._horizon_of_observation_history,
+            history_horizon=self._history_horizon,
             estimation_model=self._estimation_model,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     def update(self, observation: ArrayLike) -> None:
@@ -130,22 +135,26 @@ class Estimator:
         Parameters
         ----------
         observation : ArrayLike
-            shape = (number_of_systems, observation_dim)
+            shape = (batch_size, observation_dim)
             The observation to be updated.
         """
         observation = np.array(observation, dtype=np.float64)
         if observation.ndim == 1:
             observation = observation[np.newaxis, :]
         assert observation.shape == (
-            self._number_of_systems,
+            self._batch_size,
             self._observation_dim,
         ), (
-            f"observation must be in the shape of {(self._number_of_systems, self._observation_dim) = }. "
+            f"observation must be in the shape of {(self._batch_size, self._observation_dim) = }. "
             f"observation given has the shape of {observation.shape}."
         )
         self._update_observation(
             observation=observation,
             observation_history=self._observation_history,
+        )
+        self._current_history_horizon = min(
+            self._current_history_horizon + 1,
+            self._history_horizon,
         )
         self._update(
             self._estimated_state,
@@ -158,13 +167,25 @@ class Estimator:
         observation: NDArray[np.float64],
         observation_history: NDArray[np.float64],
     ) -> None:
-        number_of_systems, observation_dim, _ = observation_history.shape
+        # The updated observation_history will have the following structure:
+        # observation_history[:, :, 0] : the most recent observation
+        # observation_history[:, :, 1] : the second most recent observation
+        # ...
+        # observation_history[:, :, -1] : the oldest observation
+
+        batch_size, observation_dim, horizon = observation_history.shape
+
+        # Replace the oldest observation with the most recent one.
         observation_history[:, :, -1] = observation
-        for i in range(number_of_systems):
-            for m in range(observation_dim):
-                observation_history[i, m, :] = np.roll(
-                    observation_history[i, m, :], 1
-                )
+
+        if horizon > 1:
+            # Shift the observation history to the right by one.
+            for i in prange(batch_size):
+                for m in prange(observation_dim):
+                    observation_history[i, m, :] = np.roll(
+                        observation_history[i, m, :], 1
+                    )
+        # If horizon == 1, no need to shift the observation history.
 
     def estimate(self) -> NDArray:
         self._update(
@@ -185,11 +206,14 @@ class Estimator:
         return np.zeros_like(self._estimated_state)
 
 
-class EstimatorCallback(Callback):
+E = TypeVar("E", bound=Estimator)
+
+
+class EstimatorCallback(Callback, Generic[E]):
     def __init__(
         self,
         step_skip: int,
-        estimator: Estimator,
+        estimator: E,
     ) -> None:
         assert issubclass(type(estimator), Estimator), (
             f"estimator must be an instance of Estimator or its subclasses. "

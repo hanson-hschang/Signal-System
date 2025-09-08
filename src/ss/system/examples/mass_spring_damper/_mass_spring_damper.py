@@ -34,7 +34,7 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
         control_choice: ControlChoice = ControlChoice.NO_CONTROL,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         assert is_positive_integer(
             number_of_connections
@@ -124,16 +124,16 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
             state_space_matrix_C=matrix_C,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
-    def duplicate(self, number_of_systems: int) -> "MassSpringDamperSystem":
+    def duplicate(self, batch_size: int) -> "MassSpringDamperSystem":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of systems to be created.
 
         Returns
@@ -151,5 +151,5 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
             control_choice=self._control_choice,
             process_noise_covariance=self.process_noise_covariance,
             observation_noise_covariance=self.observation_noise_covariance,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )

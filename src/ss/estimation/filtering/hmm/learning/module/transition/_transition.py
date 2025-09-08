@@ -1,126 +1,45 @@
-from typing import List, Tuple, cast
+from typing import Generic
 
 import torch
 from torch import nn
 
-from ss.estimation.filtering.hmm.learning.module import config as Config
-from ss.utility.descriptor import BatchTensorReadOnlyDescriptor
-from ss.utility.learning.module import BaseLearningModule, reset_module
-from ss.utility.learning.module.dropout import Dropout
+from ss.estimation.filtering.hmm.learning.module.filter.config import (
+    FilterConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.config import (
+    TransitionConfig,
+)
+from ss.utility.descriptor import BatchTensorDescriptor
+from ss.utility.learning.module import BaseLearningModule
+from ss.utility.learning.parameter.probability import ProbabilityParameter
+from ss.utility.learning.parameter.transformer import T
+from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.logging import Logging
-
-from ._transition_matrix import BaseLearningHmmFilterTransitionMatrix
 
 logger = Logging.get_logger(__name__)
 
 
-class LearningHmmFilterTransitionLayer(
-    BaseLearningModule[Config.LearningHmmFilterConfig]
+class TransitionModule(
+    BaseLearningModule[TransitionConfig[TC]], Generic[T, TC]
 ):
     def __init__(
         self,
-        layer_id: int,
-        config: Config.LearningHmmFilterConfig,
+        config: TransitionConfig[TC],
+        filter_config: FilterConfig,
     ) -> None:
         super().__init__(config)
-        self._layer_id = layer_id
-        self._feature_dim = self._config.filter.get_feature_dim(
-            self._layer_id - 1
+        self._state_dim = filter_config.state_dim
+        self._initial_state: ProbabilityParameter[
+            T, TC
+        ] = ProbabilityParameter[T, TC](
+            self._config.initial_state.probability_parameter,
+            (self._state_dim,),
+        )
+        self._matrix = ProbabilityParameter[T, TC](
+            self._config.matrix.probability_parameter,
+            (self._state_dim, self._state_dim),
         )
 
-        self._weight = nn.Parameter(
-            torch.randn(
-                self._feature_dim,
-                dtype=torch.float64,
-            )
-        )
-
-        dropout_rate = (
-            self._config.dropout.rate if self._feature_dim > 1 else 0.0
-        )
-        self._dropout = Dropout(self._config.dropout)
-        self._mask = torch.ones_like(self._weight)
-
-        self.blocks = nn.ModuleList()
-        for feature_id in range(self._feature_dim):
-            self.blocks.append(
-                BaseLearningHmmFilterTransitionMatrix.create(
-                    self._config, feature_id
-                )
-            )
-
-    @property
-    def matrix(self) -> torch.Tensor:
-        weight = nn.functional.softmax(self._weight, dim=0)
-        transition_matrix = torch.zeros(
-            (self._config.filter.state_dim, self._config.filter.state_dim),
-            dtype=weight.dtype,
-        )
-        for i, block in enumerate(self.blocks):
-            transition_matrix += (
-                cast(BaseLearningHmmFilterTransitionMatrix, block).matrix
-                * weight[i]
-            )
-        return transition_matrix
-
-    def forward(
-        self, input_state_trajectory: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        # mask = ~self._dropout(self._mask).to(
-        #     dtype=torch.bool,
-        #     device=self._weight.device,
-        # )
-        # weight = nn.functional.softmax(
-        #     self._weight.masked_fill(mask, float("-inf")),
-        #     dim=0,
-        # )
-        weight = nn.functional.softmax(
-            self._dropout(self._weight),
-            dim=0,
-        )
-
-        average_estimated_state_trajectory = torch.zeros_like(
-            input_state_trajectory
-        )
-        average_predicted_next_state_trajectory = torch.zeros_like(
-            input_state_trajectory
-        )
-        for i, block in enumerate(self.blocks):
-            estimated_state_trajectory, predicted_next_state_trajectory = (
-                block(input_state_trajectory)
-            )
-            average_estimated_state_trajectory += (
-                estimated_state_trajectory * weight[i]
-            )
-            average_predicted_next_state_trajectory += (
-                predicted_next_state_trajectory * weight[i]
-            )
-        return (
-            average_estimated_state_trajectory,
-            average_predicted_next_state_trajectory,
-        )
-
-    def reset(self) -> None:
-        for block in self.blocks:
-            reset_module(block)
-
-
-class LearningHmmFilterTransitionProcess(
-    BaseLearningModule[Config.LearningHmmFilterConfig]
-):
-    def __init__(
-        self,
-        config: Config.LearningHmmFilterConfig,
-    ) -> None:
-        super().__init__(config)
-        # The initial emission layer is counted as a layer with layer_id = 0
-        self._layer_dim = self._config.filter.layer_dim + 1
-        self._state_dim = self._config.filter.state_dim
-        self.layers = nn.ModuleList()
-        for layer_id in range(1, self._layer_dim):
-            self.layers.append(
-                LearningHmmFilterTransitionLayer(layer_id, self._config)
-            )
         self._init_batch_size(batch_size=1)
 
     def _init_batch_size(
@@ -128,10 +47,9 @@ class LearningHmmFilterTransitionProcess(
     ) -> None:
         self._is_initialized = is_initialized
         self._batch_size = batch_size
-        with torch.no_grad():
-            self._predicted_next_state_over_layers: torch.Tensor = torch.zeros(
-                (self._batch_size, self._layer_dim, self._state_dim),
-                dtype=torch.float64,
+        with self.evaluation_mode():
+            self._estimated_state = self.initial_state.repeat(
+                self._batch_size, 1
             )
 
     def _check_batch_size(self, batch_size: int) -> None:
@@ -143,43 +61,122 @@ class LearningHmmFilterTransitionProcess(
             return
         self._init_batch_size(batch_size, is_initialized=True)
 
-    predicted_next_state_over_layers = BatchTensorReadOnlyDescriptor(
-        "_batch_size", "_layer_dim", "_state_dim"
+    estimated_state = BatchTensorDescriptor(
+        "_batch_size",
+        "_state_dim",
     )
 
     @property
-    def matrix(self) -> List[torch.Tensor]:
-        return [
-            cast(LearningHmmFilterTransitionLayer, layer).matrix
-            for layer in self.layers
-        ]
+    def initial_state_parameter(
+        self,
+    ) -> ProbabilityParameter[T, TC]:
+        return self._initial_state
 
-    def forward(
-        self, likelihood_state_trajectory: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        if self._inference:
-            self._check_batch_size(likelihood_state_trajectory.shape[0])
-            self._predicted_next_state_over_layers[:, 0, :] = (
-                nn.functional.normalize(
-                    likelihood_state_trajectory[:, -1, :],
-                    p=1,
-                    dim=1,
-                )
-            )  # (batch_size, state_dim)
+    @property
+    def initial_state(self) -> torch.Tensor:
+        initial_state: torch.Tensor = self._initial_state()
+        return initial_state
 
-        for i, layer in enumerate(self.layers, start=1):
-            estimated_state_trajectory, predicted_next_state_trajectory = (
-                layer(likelihood_state_trajectory)
+    @initial_state.setter
+    def initial_state(self, initial_state: torch.Tensor) -> None:
+        self._initial_state.set_value(initial_state)
+
+    @property
+    def matrix_parameter(
+        self,
+    ) -> ProbabilityParameter[T, TC]:
+        return self._matrix
+
+    @property
+    def matrix(self) -> torch.Tensor:
+        matrix: torch.Tensor = self._matrix()
+        return matrix
+
+    @matrix.setter
+    def matrix(self, matrix: torch.Tensor) -> None:
+        self._matrix.set_value(matrix)
+
+    @torch.compile
+    def _prediction(
+        self,
+        estimated_state: torch.Tensor,
+        transition_matrix: torch.Tensor,
+    ) -> torch.Tensor:
+        predicted_next_state = torch.matmul(estimated_state, transition_matrix)
+        return predicted_next_state
+
+    @torch.compile
+    def _update(
+        self,
+        prior_state: torch.Tensor,
+        likelihood_state: torch.Tensor,
+    ) -> torch.Tensor:
+        # update step based on likelihood_state (conditional probability)
+        posterior_state = nn.functional.normalize(
+            prior_state * likelihood_state,
+            p=1,
+            dim=1,
+        )  # (batch_size, state_dim)
+        return posterior_state
+
+    def _process(
+        self,
+        estimated_state: torch.Tensor,
+        likelihood_state: torch.Tensor,
+    ) -> torch.Tensor:
+
+        # update step based on input_state (conditional probability)
+        estimated_state = self._update(
+            estimated_state, likelihood_state
+        )  # (batch_size, state_dim)
+
+        # prediction step based on model process (predicted probability)
+        estimated_state = self._prediction(
+            estimated_state, self.matrix
+        )  # (batch_size, state_dim)
+
+        return estimated_state
+
+    def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
+
+        batch_size, _, horizon = emission_trajectory.shape
+        # (batch_size, state_dim, horizon)
+
+        estimated_state_trajectory = torch.empty(
+            (batch_size, self._state_dim, horizon),
+            device=emission_trajectory.device,
+        )
+
+        estimated_state = self.initial_state.repeat(batch_size, 1)
+        # (batch_size, state_dim)
+
+        for k in range(horizon):
+
+            estimated_state = self._process(
+                estimated_state,
+                emission_trajectory[:, :, k],
             )
-            if self._inference:
-                self._predicted_next_state_over_layers[:, i, :] = (
-                    predicted_next_state_trajectory[:, -1, :]
-                )
-            likelihood_state_trajectory = estimated_state_trajectory
 
-        return estimated_state_trajectory, predicted_next_state_trajectory
+            estimated_state_trajectory[:, :, k] = estimated_state
+
+        return estimated_state_trajectory
+
+    @torch.inference_mode()
+    def at_inference(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
+        batch_size, _, horizon = emission_trajectory.shape
+
+        self._check_batch_size(batch_size)
+
+        for k in range(horizon):
+
+            self._estimated_state = self._process(
+                self._estimated_state,
+                emission_trajectory[:, :, k],
+            )
+
+        return self.estimated_state
 
     def reset(self) -> None:
-        self._is_initialized = False
-        for layer in self.layers:
-            reset_module(layer)
+        self._init_batch_size(
+            batch_size=self._batch_size, is_initialized=False
+        )

@@ -26,7 +26,7 @@ class NDArrayDescriptor(NDArrayReadOnlyDescriptor):
         setattr(obj, self.private_name, value)
 
 
-class MultiSystemNdArrayReadOnlyDescriptor:
+class BatchNDArrayReadOnlyDescriptor:
     def __init__(self, *name_of_dimensions: str) -> None:
         self._name_of_dimensions = list(name_of_dimensions)
         assert len(self._name_of_dimensions) > 1, (
@@ -34,8 +34,8 @@ class MultiSystemNdArrayReadOnlyDescriptor:
             f"The number of dimensions given is {len(self._name_of_dimensions)} "
             f"with the name of dimensions as {self._name_of_dimensions}"
         )
-        assert self._name_of_dimensions[0] == "_number_of_systems", (
-            "The name of the first dimension must be '_number_of_systems'. "
+        assert self._name_of_dimensions[0] == "_batch_size", (
+            "The name of the first dimension must be '_batch_size'. "
             f"The name of the first dimension given is {self._name_of_dimensions[0]}."
         )
 
@@ -45,16 +45,16 @@ class MultiSystemNdArrayReadOnlyDescriptor:
 
     def __get__(self, obj: object, obj_type: type) -> NDArray:
         value: NDArray = getattr(obj, self.private_name)
-        if getattr(obj, "_number_of_systems") == 1:
+        if getattr(obj, "_batch_size") == 1:
             value = value[0]
         return value
 
 
-class MultiSystemNDArrayDescriptor(MultiSystemNdArrayReadOnlyDescriptor):
+class BatchNDArrayDescriptor(BatchNDArrayReadOnlyDescriptor):
     def __set__(self, obj: object, value: ArrayLike) -> None:
         value = np.array(value)
         shape = tuple(getattr(obj, name) for name in self._name_of_dimensions)
-        if (getattr(obj, "_number_of_systems") == 1) and (
+        if (getattr(obj, "_batch_size") == 1) and (
             (len(shape) - value.ndim) == 1
         ):
             value = value[np.newaxis, ...]

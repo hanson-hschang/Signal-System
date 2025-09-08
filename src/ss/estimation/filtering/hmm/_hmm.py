@@ -1,12 +1,13 @@
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 import numpy as np
-from numba import njit
+from numba import njit, prange
 from numpy.typing import ArrayLike, NDArray
 
 from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import Filter
-from ss.system.markov import HiddenMarkovModel
+from ss.system.markov import HiddenMarkovModel, get_estimation_model
+from ss.utility.descriptor import ReadOnlyDescriptor
 
 
 class HmmFilter(Filter):
@@ -14,35 +15,40 @@ class HmmFilter(Filter):
         self,
         system: HiddenMarkovModel,
         initial_distribution: Optional[ArrayLike] = None,
-        estimation_model: Optional[Callable] = None,
-        number_of_systems: Optional[int] = None,
+        estimation_matrix: Optional[ArrayLike] = None,
+        batch_size: Optional[int] = None,
     ) -> None:
         assert issubclass(type(system), HiddenMarkovModel), (
             f"system must be an instance of HiddenMarkovModel or its subclasses. "
             f"system given is an instance of {type(system)}."
         )
         self._system = system
-        number_of_systems = (
-            system.number_of_systems
-            if number_of_systems is None
-            else number_of_systems
+        self._estimation_matrix = (
+            np.identity(self._system.discrete_state_dim)
+            if estimation_matrix is None
+            else np.array(estimation_matrix)
         )
         super().__init__(
             state_dim=self._system.discrete_state_dim,
             observation_dim=self._system.observation_dim,
             initial_distribution=initial_distribution,
-            estimation_model=estimation_model,
-            number_of_systems=number_of_systems,
+            estimation_model=get_estimation_model(
+                matrix=self._estimation_matrix
+            ),
+            batch_size=system.batch_size if batch_size is None else batch_size,
         )
+        self._discrete_observation_dim = self._system.discrete_observation_dim
         self.reset()
 
-    def duplicate(self, number_of_systems: int) -> "HmmFilter":
+    discrete_observation_dim = ReadOnlyDescriptor[int]()
+
+    def duplicate(self, batch_size: int) -> "HmmFilter":
         """
         Create multiple filters based on the current filter.
 
         Parameters
         ----------
-        number_of_systems: int
+        batch_size: int
             The number of systems to be created.
 
         Returns
@@ -53,8 +59,8 @@ class HmmFilter(Filter):
         return self.__class__(
             system=self._system,
             initial_distribution=self._initial_distribution,
-            estimation_model=self._estimation_model,
-            number_of_systems=number_of_systems,
+            estimation_matrix=self._estimation_matrix,
+            batch_size=batch_size,
         )
 
     def _compute_estimated_state_process(self) -> NDArray[np.float64]:
@@ -74,10 +80,7 @@ class HmmFilter(Filter):
         transition_matrix: NDArray[np.float64],
         emission_matrix: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        number_of_systems: int = estimated_state.shape[0]
-
-        # prediction step based on model process (predicted probability)
-        estimated_state[:, :] = estimated_state @ transition_matrix
+        batch_size: int = estimated_state.shape[0]
 
         # update step based on observation (unnormalized conditional probability)
         # the transpose operation is for the purpose of the multi-system case
@@ -86,21 +89,24 @@ class HmmFilter(Filter):
         )
 
         # normalization step (conditional probability)
-        for i in range(number_of_systems):
+        for i in prange(batch_size):
             estimated_state[i, :] /= np.sum(estimated_state[i, :])
+
+        # prediction step based on model process (predicted probability)
+        estimated_state[:, :] = estimated_state @ transition_matrix
 
         return estimated_state
 
 
-class HmmFilterCallback(EstimatorCallback):
+class HmmFilterCallback(EstimatorCallback[HmmFilter]):
     def __init__(
         self,
         step_skip: int,
-        estimator: HmmFilter,
+        filter: HmmFilter,
     ) -> None:
-        assert issubclass(type(estimator), HmmFilter), (
-            f"estimator must be an instance of HmmFilter or its subclasses. "
-            f"estimator given is an instance of {type(estimator)}."
+        assert issubclass(type(filter), HmmFilter), (
+            f"filter must be an instance of HmmFilter or its subclasses. "
+            f"filter given is an instance of {type(filter)}."
         )
-        super().__init__(step_skip, estimator)
-        self._estimator: HmmFilter = estimator
+        super().__init__(step_skip, filter)
+        # self._estimator: HmmFilter = filter

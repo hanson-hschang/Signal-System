@@ -17,3 +17,6 @@ class Condition:
 
     def satisfied(self) -> bool:
         return self.quantifier(self._condition.values())
+
+    def not_satisfied(self) -> bool:
+        return not self.satisfied()

@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 from ss.utility.assertion import is_nonnegative_integer, is_positive_integer
 from ss.utility.callback import Callback
 from ss.utility.descriptor import (
-    MultiSystemNDArrayDescriptor,
+    BatchNDArrayDescriptor,
     ReadOnlyDescriptor,
 )
 
@@ -20,7 +20,7 @@ class System:
         state_dim: int,
         observation_dim: int,
         control_dim: int = 0,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         assert is_positive_integer(
             state_dim
@@ -32,35 +32,32 @@ class System:
             control_dim
         ), f"control_dim {control_dim} must be a non-negative integer"
         assert is_positive_integer(
-            number_of_systems
-        ), f"number_of_systems {number_of_systems} must be a positive integer"
+            batch_size
+        ), f"batch_size {batch_size} must be a positive integer"
 
         self._state_dim = int(state_dim)
         self._observation_dim = int(observation_dim)
         self._control_dim = int(control_dim)
-        self._number_of_systems = int(number_of_systems)
-        self._state = np.zeros((self._number_of_systems, self._state_dim))
-        self._observation = np.zeros(
-            (self._number_of_systems, self._observation_dim)
-        )
-        self._control = np.zeros((self._number_of_systems, self._control_dim))
+        self._batch_size = int(batch_size)
+        self._state = np.zeros((self._batch_size, self._state_dim))
+        self._observation = np.zeros((self._batch_size, self._observation_dim))
+        self._control = np.zeros((self._batch_size, self._control_dim))
 
     state_dim = ReadOnlyDescriptor[int]()
     observation_dim = ReadOnlyDescriptor[int]()
     control_dim = ReadOnlyDescriptor[int]()
-    number_of_systems = ReadOnlyDescriptor[int]()
-    state = MultiSystemNDArrayDescriptor("_number_of_systems", "_state_dim")
-    control = MultiSystemNDArrayDescriptor(
-        "_number_of_systems", "_control_dim"
-    )
+    batch_size = ReadOnlyDescriptor[int]()
+    state = BatchNDArrayDescriptor("_batch_size", "_state_dim")
+    observation = BatchNDArrayDescriptor("_batch_size", "_observation_dim")
+    control = BatchNDArrayDescriptor("_batch_size", "_control_dim")
 
-    def duplicate(self, number_of_systems: int) -> "System":
+    def duplicate(self, batch_size: int) -> "System":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        number_of_systems: int
+        batch_size: int
             The number of systems to be created.
 
         Returns
@@ -72,7 +69,7 @@ class System:
             state_dim=self._state_dim,
             observation_dim=self._observation_dim,
             control_dim=self._control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     def process(self, time: Union[int, float]) -> Union[int, float]:
@@ -103,19 +100,19 @@ class System:
         Returns
         -------
         `observation: ArrayLike[float]`
-            The observation vector of systems. Shape of the array is `(number_of_systems, observation_dim)`.
+            The observation vector of systems. Shape of the array is `(batch_size, observation_dim)`.
         """
         self._update(
             self._observation,
             self._compute_observation_process(),
             self._compute_observation_noise(),
         )
-        observation: NDArray = (
-            self._observation[0]
-            if self._number_of_systems == 1
-            else self._observation
-        )
-        return observation
+        # observation: NDArray = (
+        #     self._observation[0]
+        #     if self._batch_size == 1
+        #     else self._observation
+        # )
+        return self.observation
 
     @staticmethod
     @njit(cache=True)  # type: ignore
@@ -167,6 +164,6 @@ class SystemCallback(Callback, Generic[S]):
             state_dim=self._system.state_dim,
             observation_dim=self._system.observation_dim,
             control_dim=self._system.control_dim,
-            number_of_systems=self._system.number_of_systems,
+            batch_size=self._system.batch_size,
         )
         super().save(filename)

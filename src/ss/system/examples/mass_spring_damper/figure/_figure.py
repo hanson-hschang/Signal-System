@@ -3,10 +3,10 @@ from typing import Any, Dict, Self, Tuple
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
-from ss import figure as Figure
+from ss.figure.trajectory import TimeTrajectoryFigure
 
 
-class MassSpringDamperStateTrajectoryFigure(Figure.TimeTrajectoryFigure):
+class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
     """
     Figure for plotting the state trajectories of a mass-spring-damper system.
     """
@@ -28,15 +28,15 @@ class MassSpringDamperStateTrajectoryFigure(Figure.TimeTrajectoryFigure):
                 pass
         assert (
             len(state_trajectory.shape) == 3
-        ), "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+        ), "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
         assert state_trajectory.shape[1] % 2 == 0, (
             "state_trajectory must have an even number of states_dim."
-            "state_trajectory in general is a 3D array with shape (number_of_systems, state_dim, time_length)."
+            "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
         )
         self._number_of_connections = state_trajectory.shape[1] // 2
         super().__init__(
             time_trajectory,
-            number_of_systems=state_trajectory.shape[0],
+            batch_size=state_trajectory.shape[0],
             fig_size=fig_size,
             fig_title="Mass-Spring-Damper System State Trajectory",
             fig_layout=(2, self._number_of_connections),
@@ -76,7 +76,7 @@ class MassSpringDamperStateTrajectoryFigure(Figure.TimeTrajectoryFigure):
         return signal_range[0], signal_range[1]
 
     def plot(self) -> Self:
-        if self._number_of_systems <= 10:
+        if self._batch_size <= 10:
             self._plot_each_system_trajectory()
         else:
             kwargs: Dict = dict(
@@ -103,7 +103,7 @@ class MassSpringDamperStateTrajectoryFigure(Figure.TimeTrajectoryFigure):
         self,
         **kwargs: Any,
     ) -> None:
-        for i in range(self._number_of_systems):
+        for i in range(self._batch_size):
             for d in range(len(self._state_name)):
                 for j in range(self._number_of_connections):
                     self._plot_signal_trajectory(

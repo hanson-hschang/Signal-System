@@ -1,77 +1,229 @@
-from typing import Self, Tuple
+from typing import Callable, Generic, Tuple, cast
 
 from dataclasses import dataclass, field
 
+from ss.estimation.filtering.hmm.learning.module.emission.config import (
+    EmissionConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.estimation.config import (
+    EstimationConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.filter.config import (
+    DualFilterConfig,
+    FilterConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.block.config import (
+    TransitionBlockConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.config import (
+    TransitionConfig,
+)
+from ss.estimation.filtering.hmm.learning.module.transition.layer.config import (
+    TransitionLayerConfig,
+)
 from ss.utility.assertion.validator import PositiveIntegerValidator
-from ss.utility.learning.module import config as Config
-from ss.utility.learning.module.dropout.config import DropoutConfig
+from ss.utility.descriptor import DataclassDescriptor
+from ss.utility.learning.module.config import BaseLearningConfig
+from ss.utility.learning.parameter.probability.config import (
+    ProbabilityParameterConfig,
+)
+from ss.utility.learning.parameter.transformer.config import TC
 from ss.utility.logging import Logging
-
-from ._config_emission import EmissionConfig
-from ._config_estimation import EstimationConfig
-from ._config_filter import FilterConfig
-from ._config_prediction import PredictionConfig
-from ._config_transition import TransitionConfig
 
 logger = Logging.get_logger(__name__)
 
 
 @dataclass
-class LearningHmmFilterConfig(Config.BaseLearningConfig):
+class LearningHmmFilterConfig(BaseLearningConfig, Generic[TC]):
     """
     Configuration of the `LearningHmmFilter` class.
-
-    Properties
-    ----------
-    state_dim : int
-        The dimension of the state.
-    discrete_observation_dim : int
-        The dimension of the discrete observation.
-    feature_dim_over_layers : Tuple[int, ...]
-        The dimension of features for each layer.
-        The length of the tuple is the number of layers.
-        The values of the tuple (positive integers) are the dimension of features for each layer.
     """
 
-    # state_dim: int
-    # discrete_observation_dim: int
-    # feature_dim_over_layers: Tuple[int, ...]
-    filter: FilterConfig = field(default_factory=FilterConfig)
-    dropout: DropoutConfig = field(default_factory=DropoutConfig)
-    transition: TransitionConfig = field(default_factory=TransitionConfig)
-    emission: EmissionConfig = field(default_factory=EmissionConfig)
-    estimation: EstimationConfig = field(default_factory=EstimationConfig)
-    prediction: PredictionConfig = field(default_factory=PredictionConfig)
-
-    # def __post_init__(self) -> None:
-    #     self.state_dim = PositiveIntegerValidator(self.state_dim).get_value()
-    #     self.discrete_observation_dim = PositiveIntegerValidator(
-    #         self.discrete_observation_dim
-    #     ).get_value()
-    #     for feature_dim in self.feature_dim_over_layers:
-    #         assert type(feature_dim) == int, (
-    #             f"feature_dim_over_layers must be a tuple of integers. "
-    #             f"feature_dim_over_layers given is {self.feature_dim_over_layers}."
-    #         )
-
-    # @property
-    # def layer_dim(self) -> int:
-    #     return len(self.feature_dim_over_layers)
-
-    # def get_feature_dim(self, layer_id: int) -> int:
-    #     return self.feature_dim_over_layers[layer_id]
+    filter: FilterConfig = field(
+        default_factory=cast(
+            Callable[[], FilterConfig],
+            FilterConfig,
+        )
+    )
+    transition: TransitionConfig[TC] = field(
+        default_factory=TransitionConfig[TC]
+    )
+    emission: EmissionConfig[TC] = field(default_factory=EmissionConfig[TC])
+    estimation: EstimationConfig[TC] = field(
+        default_factory=EstimationConfig[TC]
+    )
 
     @classmethod
     def basic_config(
         cls,
         state_dim: int,
         discrete_observation_dim: int,
-        feature_dim_over_layers: Tuple[int, ...],
-    ) -> Self:
-        return cls(
+        estimation_dim: int = 0,
+        dropout_rate: float = 0.0,
+        probability_option: ProbabilityParameterConfig.Option = (
+            ProbabilityParameterConfig.Option.SOFTMAX
+        ),
+    ) -> "LearningHmmFilterConfig[TC]":
+        """
+        Create a basic configuration of the `LearningHmmFilter` module.
+
+        Arguments
+        ----------
+        state_dim : int
+            The dimension of the state.
+        discrete_observation_dim : int
+            The dimension of the discrete observation.
+        estimation_dim : int
+            The dimension of the estimation.
+        dropout_rate : float
+            The dropout rate.
+        probability_option : ProbabilityParameterConfig.Option
+            The option of the probability parameter.
+
+        Returns
+        -------
+        config: LearningHmmFilterConfig
+            The basic configuration of the `LearningHmmFilter` module.
+        """
+
+        # Prepare module configuration
+        config = cls(
             filter=FilterConfig(
                 state_dim=state_dim,
                 discrete_observation_dim=discrete_observation_dim,
-                feature_dim_over_layers=feature_dim_over_layers,
-            )
+                estimation_dim=estimation_dim,
+            ),
         )
+
+        # Update estimation configuration
+        if config.filter.estimation_dim > 0:
+            config.estimation.option = (
+                EstimationConfig.Option.LINEAR_TRANSFORM_ESTIMATION
+            )
+
+        # Update probability parameter configuration
+        config.emission.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.estimation.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.transition.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.transition.initial_state.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+
+        # Update dropout configuration
+        config.emission.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+        config.estimation.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+        config.transition.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+
+        return config
+
+
+@dataclass
+class LearningDualHmmFilterConfig(BaseLearningConfig, Generic[TC]):
+    """
+    Configuration of the `LearningHmmDualFilter` class.
+    """
+
+    filter: DualFilterConfig = field(
+        default_factory=cast(
+            Callable[[], DualFilterConfig],
+            DualFilterConfig,
+        )
+    )
+    transition: TransitionConfig[TC] = field(
+        default_factory=TransitionConfig[TC]
+    )
+    emission: EmissionConfig[TC] = field(default_factory=EmissionConfig[TC])
+    estimation: EstimationConfig[TC] = field(
+        default_factory=EstimationConfig[TC]
+    )
+
+    @classmethod
+    def basic_config(
+        cls,
+        state_dim: int,
+        discrete_observation_dim: int,
+        estimation_dim: int = 0,
+        history_horizon: int = 1,
+        dropout_rate: float = 0.0,
+        probability_option: ProbabilityParameterConfig.Option = (
+            ProbabilityParameterConfig.Option.SOFTMAX
+        ),
+    ) -> "LearningDualHmmFilterConfig[TC]":
+        """
+        Create a basic configuration of the `LearningDualHmmFilter` module.
+
+        Arguments
+        ----------
+        state_dim : int
+            The dimension of the state.
+        discrete_observation_dim : int
+            The dimension of the discrete observation.
+        estimation_dim : int
+            The dimension of the estimation.
+        history_horizon : int
+            The history horizon.
+        dropout_rate : float
+            The dropout rate.
+        probability_option : ProbabilityParameterConfig.Option
+            The option of the probability parameter.
+
+        Returns
+        -------
+        config: LearningDualHmmFilterConfig
+            The basic configuration of the `LearningDualHmmFilter` module.
+        """
+
+        # Prepare module configuration
+        config = cls(
+            filter=DualFilterConfig(
+                state_dim=state_dim,
+                discrete_observation_dim=discrete_observation_dim,
+                estimation_dim=estimation_dim,
+                history_horizon=history_horizon,
+            ),
+        )
+
+        # Update estimation configuration
+        if config.filter.estimation_dim > 0:
+            config.estimation.option = (
+                EstimationConfig.Option.LINEAR_TRANSFORM_ESTIMATION
+            )
+
+        # Update probability parameter configuration
+        config.emission.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.estimation.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.transition.matrix.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+        config.transition.initial_state.probability_parameter = (
+            ProbabilityParameterConfig[TC].from_option(probability_option)
+        )
+
+        # Update dropout configuration
+        config.emission.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+        config.estimation.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+        config.transition.matrix.probability_parameter.dropout.rate = (
+            dropout_rate
+        )
+
+        return config

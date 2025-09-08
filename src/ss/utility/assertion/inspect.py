@@ -117,7 +117,9 @@ def get_nondefault_type_fields(
                         nondefault_type
                     )
         # Handle regular types
-        elif field_type not in _default_python_types:
+        elif field_type not in _default_python_types and hasattr(
+            field_type, "__qualname__"
+        ):
             nondefault_type_parameters[field_name] = field_type
 
     return nondefault_type_parameters

@@ -84,7 +84,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
         state_space_matrix_B: Optional[ArrayLike] = None,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         self._state_space_matrix_A = self._StateSpaceMatrixAValidator(
             state_space_matrix_A
@@ -108,7 +108,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             state_dim=state_dim,
             observation_dim=observation_dim,
             control_dim=control_dim,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
         )
@@ -125,13 +125,13 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
     def state_space_matrix_C(self) -> NDArray:
         return self._state_space_matrix_C
 
-    def duplicate(self, number_of_systems: int) -> "DiscreteTimeLinearSystem":
+    def duplicate(self, batch_size: int) -> "DiscreteTimeLinearSystem":
         """
         Create multiple systems based on the current system.
 
         Parameters
         ----------
-        `number_of_systems: int`
+        `batch_size: int`
             The number of systems to be created.
 
         Returns
@@ -145,7 +145,7 @@ class DiscreteTimeLinearSystem(DiscreteTimeSystem):
             state_space_matrix_B=self._state_space_matrix_B,
             process_noise_covariance=self._process_noise_covariance,
             observation_noise_covariance=self._observation_noise_covariance,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
     def _set_compute_state_process(self, control_flag: bool) -> None:
@@ -239,7 +239,7 @@ class ContinuousTimeLinearSystem(DiscreteTimeLinearSystem):
         state_space_matrix_B: Optional[ArrayLike] = None,
         process_noise_covariance: Optional[ArrayLike] = None,
         observation_noise_covariance: Optional[ArrayLike] = None,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         assert is_positive_number(
             time_step
@@ -250,7 +250,7 @@ class ContinuousTimeLinearSystem(DiscreteTimeLinearSystem):
             state_space_matrix_B=state_space_matrix_B,
             process_noise_covariance=process_noise_covariance,
             observation_noise_covariance=observation_noise_covariance,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
         self._time_step = time_step
 

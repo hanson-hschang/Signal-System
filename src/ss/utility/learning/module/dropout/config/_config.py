@@ -1,6 +1,10 @@
-from dataclasses import dataclass
-from enum import StrEnum
+from typing import Any, Optional, Type
 
+from dataclasses import dataclass, field
+from enum import StrEnum, auto
+
+from ss.utility.assertion.validator import NonnegativeNumberValidator
+from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.module import config as Config
 from ss.utility.logging import Logging
 
@@ -12,53 +16,111 @@ class DropoutConfig(Config.BaseLearningConfig):
     """
     Configuration of the dropout module.
 
-    Properties
+    Arguments
     ----------
     rate : float, default = 0.5
-        The dropout rate for the model. (0.0 <= dropout_rate < 1.0)
+        The dropout rate for the model. (0.0 <= rate < 1.0)
+    value : Value, default = Value.ZERO
+        The value assigned to the dropout tensor element.
+
+    Properties
+    ----------
+    rate : float
+        The dropout rate for the model. (0.0 <= rate < 1.0)
+    value : Value
+        The value assigned to the dropout tensor element.
+    scaling : bool, default = True
+        Whether the non-dropout tensor elements are scaled when the value is Value.ZERO.
+        The scaling value is 1.0 / (1.0 - rate).
+    log_zero_scale : float, default = -1.0
+        The scaling value for the dropout tensor element when the value is Value.LOG_ZERO.
     """
 
+    class RateDescriptor(DataclassDescriptor[float]):
+        def __set__(self, instance: Any, value: float) -> None:
+            value = NonnegativeNumberValidator(value).get_value()
+            if not (value < 1.0):
+                raise ValueError(
+                    f"dropout_rate must be in the range of [0.0, 1.0). "
+                    f"dropout_rate given is {value}."
+                )
+            super().__set__(instance, value)
+
     class Value(StrEnum):
-        ZERO = "ZERO"
-        LOG_ZERO = "LOG_ZERO"
+        ZERO = auto()
+        LOG_ZERO = auto()
 
-        def __init__(self, value: str) -> None:
-            self._scaling: bool = True
-            self._log_zero_scale: float = -1.0
+    class ScalingDescriptor(DataclassDescriptor[bool, "DropoutConfig"]):
+        def _validate_instance(self, instance: "DropoutConfig") -> None:
+            if instance.value != DropoutConfig.Value.ZERO:
+                raise AttributeError(
+                    f"'scaling' is only available for the value = {instance.Value.ZERO}. "
+                    f"The value given is {instance.value}."
+                )
 
-        @property
-        def scaling(self) -> bool:
-            if not (self is self.ZERO):
-                logger.error(f"scaling is not available for {self}.")
-            return self._scaling
+        # def __get__(
+        #     self,
+        #     instance: Optional["DropoutConfig"],
+        #     owner: Type["DropoutConfig"],
+        # ) -> bool:
+        #     if instance is None:
+        #         return super().__get__(instance, owner)
+        #     self._validate_instance(instance)
+        #     return super().__get__(instance, owner)
 
-        @scaling.setter
-        def scaling(self, scaling: bool) -> None:
-            if not (self is self.ZERO):
-                logger.error(f"scaling is not available for {self}.")
-            self._scaling = scaling
+        def __set__(
+            self,
+            instance: "DropoutConfig",
+            value: bool,
+        ) -> None:
+            # self._check_dropout_value(instance)
+            setattr(instance, self.private_name, value)
 
-        @property
-        def log_zero_scale(self) -> float:
-            if not (self is self.LOG_ZERO):
-                logger.error(f"log_zero_scale is not available for {self}.")
-            return self._log_zero_scale
+    class LogZeroScaleDescriptor(DataclassDescriptor[float, "DropoutConfig"]):
+        def _validate_instance(self, instance: "DropoutConfig") -> None:
+            if instance.value != DropoutConfig.Value.LOG_ZERO:
+                raise AttributeError(
+                    f"'log_zero_scale' is only available for the value = {instance.Value.LOG_ZERO}. "
+                    f"The value given is {instance.value}."
+                )
 
-        @log_zero_scale.setter
-        def log_zero_scale(self, log_zero_scale: float) -> None:
-            if not (self is self.LOG_ZERO):
-                logger.error(f"log_zero_scale is not available for {self}.")
-            self._log_zero_scale = log_zero_scale
+        # def __get__(
+        #     self,
+        #     instance: Optional["DropoutConfig"],
+        #     owner: Type["DropoutConfig"],
+        # ) -> float:
+        #     if instance is None:
+        #         return super().__get__(instance, owner)
+        #     self._check_dropout_value(instance)
+        #     return super().__get__(instance, owner)
 
-    rate: float = 0.5
+        def __set__(
+            self,
+            instance: "DropoutConfig",
+            value: float,
+        ) -> None:
+            # self._check_dropout_value(instance)
+            if not (value < 0.0):
+                raise ValueError(
+                    f"log_zero_scale must be less than 0.0. "
+                    f"log_zero_scale given is {value}."
+                )
+            setattr(instance, self.private_name, value)
+
+    rate: RateDescriptor = RateDescriptor(0.5)
     value: Value = Value.ZERO
+    scaling: ScalingDescriptor = ScalingDescriptor(True)
+    log_zero_scale: LogZeroScaleDescriptor = LogZeroScaleDescriptor(-1.0)
 
-    def __post_init__(self) -> None:
-        assert 0.0 <= self.rate < 1.0, (
-            f"dropout_rate must be in the range of [0.0, 1.0). "
-            f"dropout_rate given is {self.rate}."
-        )
-        # assert self.log_zero_scale < 0.0, (
-        #     f"log_zero_scale must be less than 0.0. "
-        #     f"log_zero_scale given is {self.log_zero_scale}."
-        # )
+    def __str__(self) -> str:
+        result = f"DropoutConfig(rate={self.rate}, value={self.value}"
+        match self.value:
+            case self.Value.ZERO:
+                result += f", scaling={self.scaling}"
+            case self.Value.LOG_ZERO:
+                result += f", log_zero_scale={self.log_zero_scale}"
+        result += ")"
+        return result
+
+    def __repr__(self) -> str:
+        return self.__str__()

@@ -2,12 +2,20 @@ from typing import Tuple
 
 import torch
 
+from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
-
-from .. import dataset as Dataset
+from ss.utility.map import transform
 
 logger = Logging.get_logger(__name__)
+
+
+@torch.compile
+def to_log_probability(
+    estimation_trajectory: torch.Tensor,
+) -> torch.Tensor:
+    log_estimation_trajectory = torch.log(estimation_trajectory)
+    return log_estimation_trajectory
 
 
 class LearningHmmFilterProcess(BaseLearningProcess):
@@ -15,16 +23,16 @@ class LearningHmmFilterProcess(BaseLearningProcess):
         self, data_batch: Tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
         (
-            observation_trajectory,
-            next_observation_trajectory,
-        ) = Dataset.HmmObservationDataset.from_batch(
-            data_batch
-        )  # (batch_size, max_length), (batch_size, max_length)
-        predicted_next_observation_log_probability_trajectory = self._module(
+            observation_trajectory,  # (batch_size, observation_dim=1, horizon)
+            target_estimation_trajectory,  # (batch_size, observation_dim=1, horizon)
+        ) = HmmObservationDataset.from_batch(data_batch)
+        estimation_trajectory = self._module(
             observation_trajectory=observation_trajectory
-        )  # (batch_size, discrete_observation_dim, max_length)
-        _loss: torch.Tensor = self._loss_function(
-            predicted_next_observation_log_probability_trajectory,
-            next_observation_trajectory,  # (batch_size, max_length)
+        )  # (batch_size, estimation_dim,  horizon)
+        loss_tensor: torch.Tensor = self._loss_function(
+            torch.log(
+                estimation_trajectory
+            ),  # (batch_size, estimation_dim, horizon)
+            target_estimation_trajectory[:, 0, :],  # (batch_size, horizon)
         )
-        return _loss
+        return loss_tensor

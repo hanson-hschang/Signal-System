@@ -40,10 +40,10 @@ from . import figure as Figure
     help="Set the step skip (positive integers).",
 )
 @click.option(
-    "--number-of-systems",
+    "--batch-size",
     type=click.IntRange(min=1),
     default=1,
-    help="Set the number of systems (positive integers).",
+    help="Set the batch size (positive integers).",
 )
 @click.option(
     "--verbose",
@@ -60,7 +60,7 @@ def main(
     simulation_time: float,
     time_step: float,
     step_skip: int,
-    number_of_systems: int,
+    batch_size: int,
     verbose: bool,
     debug: bool,
 ) -> None:
@@ -72,12 +72,12 @@ def main(
         time_step=time_step,
         control_choice=ControlChoice.ALL_FORCES,
         process_noise_covariance=0.01 * np.identity(2 * number_of_connections),
-        number_of_systems=number_of_systems,
+        batch_size=batch_size,
     )
     system.state = np.random.multivariate_normal(
         np.ones(2 * number_of_connections),
         np.identity(2 * number_of_connections),
-        size=(number_of_systems,),
+        size=(batch_size,),
     ).squeeze()
     system_callback = SystemCallback(
         step_skip=step_skip,
@@ -87,7 +87,7 @@ def main(
         running_cost_state_weight=np.identity(2 * number_of_connections),
         running_cost_control_weight=np.identity(number_of_connections),
         time_step=time_step,
-        number_of_systems=number_of_systems,
+        batch_size=batch_size,
     )
     cost_callback = CostCallback(
         step_skip=step_skip,

@@ -16,7 +16,7 @@ from ss.utility.type import from_numpy_generic, get_type_string
 
 
 class MetaData(dict):
-    NAME = "MetaData"
+    NAME = "__meta_data__"
 
     class _MetaDataValidator(Validator):
         def __init__(

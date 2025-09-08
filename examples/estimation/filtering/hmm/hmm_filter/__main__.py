@@ -1,3 +1,5 @@
+from typing import Any, Optional, no_type_check
+
 from pathlib import Path
 
 import click
@@ -5,46 +7,12 @@ import numpy as np
 
 from ss.utility import basic_config
 
-from . import hmm_filtering
+from . import UserConfig, hmm_filtering
 
 
+@no_type_check
 @click.command()
-@click.option(
-    "--simulation-time-steps",
-    type=click.IntRange(min=1),
-    default=100,
-    help="Set the simulation time steps (positive integers).",
-)
-@click.option(
-    "--step-skip",
-    type=click.IntRange(min=1),
-    default=1,
-    help="Set the step skip (positive integers).",
-)
-@click.option(
-    "--state-dim",
-    type=click.IntRange(min=1),
-    default=12,
-    help="Set the state dimension (positive integers).",
-)
-@click.option(
-    "--discrete-observation-dim",
-    type=click.IntRange(min=1),
-    default=6,
-    help="Set the discrete observation dimension (positive integers).",
-)
-@click.option(
-    "--number-of-systems",
-    type=click.IntRange(min=1),
-    default=1,
-    help="Set the number of systems (positive integers).",
-)
-@click.option(
-    "--random-seed",
-    type=click.IntRange(min=0),
-    default=2024,
-    help="Set the random seed (non-negative integers).",
-)
+@UserConfig.options(allow_file_overwrite=True)
 @click.option(
     "--verbose",
     is_flag=True,
@@ -61,30 +29,29 @@ from . import hmm_filtering
     default=None,
 )
 def main(
-    simulation_time_steps: int,
-    step_skip: int,
-    state_dim: int,
-    discrete_observation_dim: int,
-    number_of_systems: int,
-    random_seed: int,
+    config_filepath: Optional[Path],
     verbose: bool,
     debug: bool,
     result_directory: Path,
+    **kwargs: Any,
 ) -> None:
+
+    user_config = UserConfig.load(config_filepath, **kwargs)
+
     path_manager = basic_config(
         __file__,
         verbose=verbose,
         debug=debug,
         result_directory=result_directory,
     )
-    np.random.seed(random_seed)
+    np.random.seed(user_config.random_seed)
 
     hmm_filtering(
-        state_dim=state_dim,
-        discrete_observation_dim=discrete_observation_dim,
-        simulation_time_steps=simulation_time_steps,
-        step_skip=step_skip,
-        number_of_systems=number_of_systems,
+        state_dim=user_config.state_dim,
+        discrete_observation_dim=user_config.discrete_observation_dim,
+        simulation_time_steps=user_config.simulation_time_steps,
+        step_skip=user_config.step_skip,
+        batch_size=user_config.batch_size,
         result_directory=path_manager.result_directory,
     )
 

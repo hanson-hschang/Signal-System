@@ -11,7 +11,7 @@ class TestMarkovChain:
             transition_matrix=np.array([[0.0, 1.0], [1.0, 0.0]]),
             emission_matrix=np.array([[0.5, 0.5], [0.5, 0.5]]),
             initial_distribution=np.array([1.0, 0.0]),
-            number_of_systems=2,
+            batch_size=2,
         )
 
     def test_initialization(
@@ -19,7 +19,7 @@ class TestMarkovChain:
     ) -> None:
         assert hidden_markov_model.discrete_state_dim == 2
         assert hidden_markov_model.discrete_observation_dim == 2
-        assert hidden_markov_model.number_of_systems == 2
+        assert hidden_markov_model.batch_size == 2
 
     def test_process(self, hidden_markov_model: HiddenMarkovModel) -> None:
         time = hidden_markov_model.process(0)

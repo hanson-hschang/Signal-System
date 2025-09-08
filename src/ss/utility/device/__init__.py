@@ -1,1 +1,1 @@
-from ._device import DeviceManager
+from ._device import Device

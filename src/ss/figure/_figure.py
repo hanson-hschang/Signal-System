@@ -1,66 +1,46 @@
-from typing import Any, List, Optional, Self, Tuple
+from typing import List, Literal, Optional, Self, Tuple
+
+from dataclasses import dataclass
+from pathlib import Path
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.collections import QuadMesh
-from numpy.typing import ArrayLike, NDArray
-
-from ss.utility.assertion import is_positive_integer, is_positive_number
 
 
-class SequenceTrajectoryFigure:
+@dataclass
+class FormatConfig:
+    draft: float
+    publication: float
+
+    def __call__(
+        self,
+        draft: bool = True,
+    ) -> float:
+        return self.draft if draft else self.publication
+
+
+class Figure:
     def __init__(
         self,
-        sequence_trajectory: ArrayLike,
-        number_of_systems: int = 1,
+        sup_xlabel: str = "",
         fig_size: Tuple = (12, 8),
         fig_title: Optional[str] = None,
         fig_layout: Tuple[int, int] = (1, 1),
+        column_ratio: Optional[Tuple[float, ...]] = None,
+        row_ratio: Optional[Tuple[float, ...]] = None,
     ) -> None:
-        sequence_trajectory = np.array(sequence_trajectory)
-        assert sequence_trajectory.ndim == 1, (
-            f"sequency_trajectory must be in the shape of (sequence_length,). "
-            f"sequency_trajectory given has the shape of {sequence_trajectory.shape}."
-        )
-        assert np.all(np.diff(sequence_trajectory) > 0), (
-            f"sequency_trajectory must be monotonically increasing. "
-            f"sequency_trajectory given is {sequence_trajectory}."
-        )
-        assert is_positive_integer(
-            number_of_systems
-        ), f"{number_of_systems = } must be a positive integer."
-        assert (
-            len(fig_size) == 2
-        ), f"{fig_size = } must be a tuple (width, height)."
-        assert np.all(
-            [is_positive_number(fig_size[0]), is_positive_number(fig_size[1])]
-        ), f"values of {fig_size = } must be positive numbers."
-        assert (
-            len(fig_layout) == 2
-        ), f"{fig_layout = } must be a tuple (nrows, ncols)."
-        assert np.all(
-            [
-                is_positive_integer(fig_layout[0]),
-                is_positive_integer(fig_layout[1]),
-            ]
-        ), f"values of {fig_layout = } must be positive integers."
-
-        self._sequence_trajectory = sequence_trajectory
-        self._sequence_length = sequence_trajectory.shape[0]
-        self._number_of_systems = number_of_systems
-        self._default_color = "C0"
-        self._default_alpha = 0.2
-        self._default_std_alpha = 0.5
-
+        self._sup_xlabel = sup_xlabel
         self._fig_size = fig_size
         self._fig_title = fig_title
         self._fig_layout = fig_layout
 
         self._fig = plt.figure(figsize=self._fig_size)
         self._grid_spec = gridspec.GridSpec(
-            *self._fig_layout, figure=self._fig
+            *self._fig_layout,
+            figure=self._fig,
+            width_ratios=column_ratio,
+            height_ratios=row_ratio,
         )
         self._subplots: List[List[Axes]] = []
         for row in range(self._fig_layout[0]):
@@ -70,121 +50,194 @@ class SequenceTrajectoryFigure:
                     self._fig.add_subplot(self._grid_spec[row, col])
                 )
 
-        self._sup_xlabel = "sequence"
-        self._color_map = plt.get_cmap("Greys")
+        self._default_color = "black"
+        self._draft: bool = True
+        self._font_size = FormatConfig(draft=12, publication=36)
+        self._line_width = FormatConfig(draft=1, publication=5)
+        self._marker_size = FormatConfig(draft=12, publication=500)
+
+    @property
+    def font_size(self) -> float:
+        return self._font_size(self._draft)
+
+    @property
+    def line_width(self) -> float:
+        return self._line_width(self._draft)
+
+    @property
+    def marker_size(self) -> float:
+        return self._marker_size(self._draft)
+
+    def format_config(self, draft: bool = True) -> Self:
+        self._draft = draft
+        return self
+
+    @classmethod
+    def remove_box(
+        cls,
+        ax: Axes,
+    ) -> Axes:
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.spines["left"].set_visible(False)
+        ax.spines["bottom"].set_visible(False)
+        return ax
+
+    @classmethod
+    def add_horizontal_axis(
+        cls,
+        ax: Axes,
+        position: (
+            Literal["top", "center", "bottom", "zero", "one"]
+            | Tuple[Literal["axes", "data"], float]
+        ),
+        line_width: float,
+    ) -> Axes:
+        _position: Tuple[Literal["axes", "data"], float]
+        match position:
+            case "top":
+                _position = ("axes", 1.0)
+            case "center":
+                _position = ("axes", 0.5)
+            case "bottom":
+                _position = ("axes", 0.0)
+            case "zero":
+                _position = ("data", 0.0)
+            case "one":
+                _position = ("data", 1.0)
+            case _:
+                _position = position
+
+        ax.xaxis.set_ticks_position("bottom")
+        ax.spines["bottom"].set_position(_position)
+
+        position_frame = "axes fraction" if _position[0] == "axes" else "data"
+        position_value = _position[1]
+        ax.annotate(
+            "",
+            xy=(1.05, position_value),
+            xycoords=("axes fraction", position_frame),
+            xytext=(-0.05, position_value),
+            arrowprops=dict(
+                arrowstyle="-|>",
+                lw=line_width,
+                color="black",
+                mutation_scale=30,
+            ),
+        )
+        return ax
+
+    @classmethod
+    def add_vertical_axis(
+        cls,
+        ax: Axes,
+        position: (
+            Literal["left", "center", "right", "zero", "one"]
+            | Tuple[Literal["axes", "data"], float]
+        ),
+        line_width: float,
+    ) -> Axes:
+        _position: Tuple[Literal["axes", "data"], float]
+        match position:
+            case "right":
+                _position = ("axes", 1.0)
+            case "center":
+                _position = ("axes", 0.5)
+            case "left":
+                _position = ("axes", 0.0)
+            case "zero":
+                _position = ("data", 0.0)
+            case "one":
+                _position = ("data", 1.0)
+            case _:
+                _position = position
+
+        ax.yaxis.set_ticks_position("left")
+        ax.spines["left"].set_position(_position)
+
+        position_frame = "axes fraction" if _position[0] == "axes" else "data"
+        position_value = _position[1]
+        ax.annotate(
+            "",
+            xy=(position_value, 1.05),
+            xycoords=(position_frame, "axes fraction"),
+            xytext=(position_value, -0.05),
+            arrowprops=dict(
+                arrowstyle="-|>",
+                lw=line_width,
+                color="black",
+                mutation_scale=30,
+            ),
+        )
+        return ax
+
+    @classmethod
+    def set_arrow_axes(
+        cls,
+        ax: Axes,
+        *,
+        horizontal_axis_position: Optional[
+            Literal["top", "center", "bottom", "zero", "one"]
+            | Tuple[Literal["axes", "data"], float]
+        ] = None,
+        vertical_axis_position: Optional[
+            Literal["left", "center", "right", "zero", "one"]
+            | Tuple[Literal["axes", "data"], float]
+        ] = None,
+        line_width: float = 1,
+        tick_label_font_size: float = 12,
+    ) -> Axes:
+        ax = cls.remove_box(ax)
+
+        if horizontal_axis_position is not None:
+            ax = cls.add_horizontal_axis(
+                ax,
+                horizontal_axis_position,
+                line_width,
+            )
+            ax.tick_params(
+                axis="x",
+                which="major",
+                width=line_width,
+                length=3 * line_width,
+                direction="out",
+                labelsize=tick_label_font_size,
+            )
+
+        if vertical_axis_position is not None:
+            ax = cls.add_vertical_axis(
+                ax,
+                vertical_axis_position,
+                line_width,
+            )
+            ax.tick_params(
+                axis="y",
+                which="major",
+                width=line_width,
+                length=3 * line_width,
+                direction="out",
+                labelsize=tick_label_font_size,
+            )
+
+        return ax
 
     def plot(self) -> Self:
-        if self._fig_title is not None:
-            self._fig.suptitle(self._fig_title)
-        self._fig.supxlabel(self._sup_xlabel)
+        if self._draft:
+            if self._fig_title is not None:
+                self._fig.suptitle(self._fig_title)
+            if self._sup_xlabel != "":
+                self._fig.supxlabel(self._sup_xlabel)
         self._fig.tight_layout()
         return self
 
-    def _plot_signal_trajectory(
-        self,
-        ax: Axes,
-        signal_trajectory: NDArray[np.float64],
-        sequence_trajectory: Optional[NDArray] = None,
-        ylabel: Optional[str] = None,
-        **kwargs: Any,
-    ) -> None:
-        sequence_trajectory = (
-            self._sequence_trajectory
-            if sequence_trajectory is None
-            else np.array(sequence_trajectory)
+    def save(self, filename: Path) -> None:
+        if filename.suffix != ".pdf":
+            filename = filename.with_suffix(".pdf")
+        self._fig.savefig(
+            filename,
+            bbox_inches="tight",
+            transparent=True,
         )
-        ax.plot(
-            sequence_trajectory,
-            signal_trajectory,
-            **kwargs,
-        )
-        if ylabel is not None:
-            ax.set_ylabel(ylabel)
-        ax.grid(True)
-
-    def _compute_system_statistics_trajectory(
-        self,
-        signal_trajectory: NDArray[np.float64],
-    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
-        mean_trajectory = np.mean(signal_trajectory, axis=0)
-        std_trajectory = np.std(signal_trajectory, axis=0)
-        return mean_trajectory, std_trajectory
-
-    def _plot_statistics_signal_trajectory(
-        self,
-        ax: Axes,
-        mean_trajectory: NDArray[np.float64],
-        std_trajectory: NDArray[np.float64],
-    ) -> None:
-        ax.plot(
-            self._sequence_trajectory,
-            mean_trajectory,
-        )
-        ax.fill_between(
-            self._sequence_trajectory,
-            mean_trajectory - std_trajectory,
-            mean_trajectory + std_trajectory,
-            alpha=self._default_std_alpha,
-        )
-
-    def _plot_probability_flow(
-        self,
-        ax: Axes,
-        probability_trajectory: NDArray[np.float64],
-        sequence_trajectory: Optional[NDArray] = None,
-        ylabel: Optional[str] = None,
-    ) -> QuadMesh:
-        sequence_trajectory = (
-            self._sequence_trajectory
-            if sequence_trajectory is None
-            else np.array(sequence_trajectory)
-        )
-        time_horizon = sequence_trajectory[-1] - sequence_trajectory[0]
-        time_lim = (
-            sequence_trajectory[0] - time_horizon * 0.05,
-            sequence_trajectory[-1] + time_horizon * 0.05,
-        )
-        dimension = probability_trajectory.shape[0]
-        for d in range(dimension - 1):
-            ax.axhline(d + 0.5, color="black", linewidth=0.5, linestyle="--")
-
-        sequence_grid, probability_grid = np.meshgrid(
-            sequence_trajectory,
-            np.arange(dimension),
-        )
-        image_mesh = ax.pcolormesh(
-            sequence_grid,
-            probability_grid,
-            probability_trajectory,
-            cmap=self._color_map,
-            vmin=0,
-            vmax=1,
-        )
-        ax.invert_yaxis()
-        ax.set_xlim(time_lim)
-        ax.set_yticks(np.arange(dimension))
-        if ylabel is not None:
-            ax.set_ylabel(ylabel)
-        return image_mesh
-
-
-class TimeTrajectoryFigure(SequenceTrajectoryFigure):
-    def __init__(
-        self,
-        time_trajectory: ArrayLike,
-        number_of_systems: int = 1,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
-        fig_layout: Tuple[int, int] = (1, 1),
-    ) -> None:
-        super().__init__(
-            sequence_trajectory=time_trajectory,
-            number_of_systems=number_of_systems,
-            fig_size=fig_size,
-            fig_title=fig_title,
-            fig_layout=fig_layout,
-        )
-        self._sup_xlabel = "time (sec)"
 
 
 def show() -> None:

@@ -26,7 +26,7 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
         pole_length: float = 2.0,
         gravity: float = 9.81,
         time_step: float = 0.01,
-        number_of_systems: int = 1,
+        batch_size: int = 1,
     ) -> None:
         self._cart_mass = cart_mass
         self._pole_mass = pole_mass
@@ -94,15 +94,15 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
             process_function=process_function,
             observation_function=observation_function,
             state_constraint_function=state_constraint_function,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )
 
-    def duplicate(self, number_of_systems: int) -> "CartPoleSystem":
+    def duplicate(self, batch_size: int) -> "CartPoleSystem":
         return self.__class__(
             cart_mass=self._cart_mass,
             pole_mass=self._pole_mass,
             pole_length=self._pole_length,
             gravity=self._gravity,
             time_step=self._time_step,
-            number_of_systems=number_of_systems,
+            batch_size=batch_size,
         )

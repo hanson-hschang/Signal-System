@@ -31,10 +31,10 @@ from ss.utility import basic_config
     help="Set the time step (positive value).",
 )
 @click.option(
-    "--number-of-systems",
+    "--batch-size",
     type=click.IntRange(min=1),
     default=1,
-    help="Set the number of systems (positive integers).",
+    help="Set the batch size (positive integers).",
 )
 @click.option(
     "--process-noise-variance",
@@ -80,7 +80,7 @@ def main(
     number_of_connections: int,
     damping_coefficient: float,
     time_step: float,
-    number_of_systems: int,
+    batch_size: int,
     process_noise_variance: float,
     observation_noise_variance: float,
     observation_choice: str,
@@ -119,7 +119,7 @@ def main(
         control_choice=control_choice,
         process_noise_covariance=process_noise_covariance,
         observation_noise_covariance=observation_noise_covariance,
-        number_of_systems=number_of_systems,
+        batch_size=batch_size,
     )
     print(linear_system.state.shape)
     linear_system.process(0)

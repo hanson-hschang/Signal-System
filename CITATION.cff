@@ -1,0 +1,22 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Signal & System
+message: >-
+  If you use this software, please cite it using the metadata from this file.
+type: software
+authors:
+  - given-names: Heng-Sheng
+    family-names: Chang
+    email: hanson.hschang@gmail.com
+    affiliation: University of Illinois Urbana-Champaign
+    orcid: 'https://orcid.org/0000-0003-1482-8258'
+repository-code: 'https://github.com/hanson-hschang/Signal-System'
+abstract: >-
+  A Python package for Signal & System simulation, design, analysis, and learning.
+keywords:
+  - Signal
+  - System
+  - Learning
+license: MIT

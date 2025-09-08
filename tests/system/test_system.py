@@ -11,8 +11,7 @@ class TestSystem:
             time_step=0.1,
             state_dim=2,
             observation_dim=1,
-            # number_of_systems=4,
-            number_of_systems=1,
+            batch_size=1,
         )
 
     @pytest.fixture

@@ -1,18 +1,67 @@
-from typing import Optional, Self
+from typing import Callable, Optional, Protocol, cast
 
 from dataclasses import dataclass, field
-from enum import Enum, Flag, auto
+from enum import Enum, Flag, StrEnum, auto
 
 from ss.utility.condition import Condition
+from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.process.checkpoint.config import CheckpointConfig
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
+
+
+class EvaluationConfigProtocol(Protocol):
+    def termination_condition(
+        self, batch_number: Optional[int] = None
+    ) -> Condition: ...
 
 
 @dataclass
-class EvaluationConfig:
+class TestingConfig:
+    max_batch: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        self._termination_condition = Condition(any)
+
+    def termination_condition(
+        self, batch_number: Optional[int] = None
+    ) -> Condition:
+        if batch_number is not None:
+            self._termination_condition(
+                max_batch=(
+                    self.max_batch is not None
+                    and batch_number >= self.max_batch
+                )
+            )
+        return self._termination_condition
+
+
+@dataclass
+class ValidationConfig:
+
+    @dataclass
+    class Initial:
+
+        class SkipDescriptor(DataclassDescriptor[bool]):
+            def __set__(
+                self,
+                obj: object,
+                value: bool,
+            ) -> None:
+                super().__set__(obj, value)
+
+        skip: SkipDescriptor = SkipDescriptor(False)
+
     per_iteration_period: int = 1
+    initial: Initial = field(
+        default_factory=cast(Callable[[], Initial], Initial)
+    )
+    max_batch: Optional[int] = None
 
     def __post_init__(self) -> None:
         self._condition = Condition(any)
+        self._termination_condition = Condition(any)
 
     def condition(self, iteration: Optional[int] = None) -> Condition:
         if iteration is not None:
@@ -20,6 +69,18 @@ class EvaluationConfig:
                 iteration=(iteration % self.per_iteration_period) == 0
             )
         return self._condition
+
+    def termination_condition(
+        self, batch_number: Optional[int] = None
+    ) -> Condition:
+        if batch_number is not None:
+            self._termination_condition(
+                max_batch=(
+                    self.max_batch is not None
+                    and batch_number >= self.max_batch
+                )
+            )
+        return self._termination_condition
 
 
 @dataclass
@@ -29,6 +90,7 @@ class TerminationConfig:
         NOT_TERMINATED = 0
         MAX_EPOCH = auto()
         MAX_ITERATION = auto()
+        USER_INTERRUPT = auto()
         # MAX_NO_IMPROVEMENT = auto()
 
     max_epoch: int = 1
@@ -40,14 +102,11 @@ class TerminationConfig:
         self._termination_reason = self.TerminationReason.NOT_TERMINATED
         self._update_condition()
 
-    @property
-    def reason(self) -> TerminationReason:
-        return self._termination_reason
-
     def _update_condition(
         self,
         max_epoch: bool = False,
         max_iteration: bool = False,
+        user_interrupt: bool = False,
     ) -> None:
         if max_epoch:
             self._termination_reason = (
@@ -65,9 +124,25 @@ class TerminationConfig:
                 else self._termination_reason
                 | self.TerminationReason.MAX_ITERATION
             )
+        if user_interrupt:
+            self._termination_reason = self.TerminationReason.USER_INTERRUPT
         self._condition(
             max_epoch=max_epoch,
             max_iteration=max_iteration,
+            user_interrupt=user_interrupt,
+        )
+
+    @property
+    def reason(self) -> TerminationReason:
+        return self._termination_reason
+
+    @reason.setter
+    def reason(self, reason: TerminationReason) -> None:
+        if reason == self.TerminationReason.USER_INTERRUPT:
+            self._update_condition(user_interrupt=True)
+            return
+        logger.error(
+            f"Cannot manually set the termination reason unless it is a user interruption."
         )
 
     def condition(
@@ -99,5 +174,18 @@ class TerminationConfig:
 @dataclass
 class TrainingConfig:
     termination: TerminationConfig = field(default_factory=TerminationConfig)
-    evaluation: EvaluationConfig = field(default_factory=EvaluationConfig)
-    checkpoint: CheckpointConfig = field(default_factory=CheckpointConfig)
+    validation: ValidationConfig = field(default_factory=ValidationConfig)
+    checkpoint: CheckpointConfig = field(
+        default_factory=cast(Callable[[], CheckpointConfig], CheckpointConfig)
+    )
+
+
+@dataclass
+class ProcessConfig:
+
+    class Mode(StrEnum):
+        TRAINING = auto()
+        ANALYSIS = auto()
+        INFERENCE = auto()
+
+    mode: Mode = Mode.TRAINING
