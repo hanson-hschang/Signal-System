@@ -1,15 +1,13 @@
-from typing import cast
-
 from pathlib import Path
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from ss.estimation.dual_filtering.hmm.learning.module import (
+from ss.estimation.filtering.hmm import HmmFilter
+from ss.estimation.filtering.hmm.learning.module import (
     LearningDualHmmFilter,
 )
-from ss.estimation.filtering.hmm import HmmFilter
 from ss.system.markov import HiddenMarkovModel
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
@@ -55,11 +53,7 @@ def analysis(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
         ),
-        estimation_matrix=Utility.get_estimation_model(
-            transition_matrix=transition_matrix,
-            emission_matrix=emission_matrix,
-            future_time_steps=0,
-        ),
+        estimation_matrix=emission_matrix,
     )
 
     # Load module
@@ -128,7 +122,7 @@ def analysis(
     empirical_learning_filter_loss = loss_conversion(
         Utility.compute_loss(
             learning_filter,
-            observation_trajectory[..., :50],
+            observation_trajectory,
             learning_filter.discrete_observation_dim,
         )
     )

@@ -11,7 +11,7 @@ class DualFilter(Estimator):
         self,
         state_dim: int,
         observation_dim: int,
-        horizon_of_observation_history: int,
+        history_horizon: int,
         initial_distribution: Optional[ArrayLike] = None,
         estimation_model: Optional[Callable] = None,
         batch_size: int = 1,
@@ -19,7 +19,7 @@ class DualFilter(Estimator):
         super().__init__(
             state_dim=state_dim,
             observation_dim=observation_dim,
-            horizon_of_observation_history=horizon_of_observation_history,
+            history_horizon=history_horizon,
             estimation_model=estimation_model,
             batch_size=batch_size,
         )
@@ -63,7 +63,7 @@ class DualFilter(Estimator):
         return self.__class__(
             state_dim=self._state_dim,
             observation_dim=self._observation_dim,
-            horizon_of_observation_history=self._horizon_of_observation_history,
+            history_horizon=self._history_horizon,
             initial_distribution=self._initial_distribution,
             estimation_model=self._estimation_model,
             batch_size=batch_size,
@@ -82,7 +82,7 @@ class Filter(DualFilter):
         super().__init__(
             state_dim=state_dim,
             observation_dim=observation_dim,
-            horizon_of_observation_history=1,
+            history_horizon=1,
             initial_distribution=initial_distribution,
             estimation_model=estimation_model,
             batch_size=batch_size,

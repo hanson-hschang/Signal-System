@@ -4,7 +4,6 @@ import numpy as np
 from numba import njit, prange
 from numpy.typing import ArrayLike, NDArray
 
-# from ss.utility.callback import Callback
 from ss.estimation import EstimatorCallback
 from ss.estimation.filtering import DualFilter
 from ss.system.markov import HiddenMarkovModel, get_estimation_model
@@ -18,7 +17,7 @@ class DualHmmFilter(DualFilter):
     def __init__(
         self,
         system: HiddenMarkovModel,
-        horizon_of_observation_history: int,
+        history_horizon: int,
         initial_distribution: Optional[ArrayLike] = None,
         estimation_matrix: Optional[ArrayLike] = None,
         batch_size: Optional[int] = None,
@@ -29,98 +28,49 @@ class DualHmmFilter(DualFilter):
             if estimation_matrix is None
             else np.array(estimation_matrix)
         )
-        # self._current_horizon_of_observation_history = 0
-        # self._horizon_of_observation_history = horizon_of_observation_history
+
         super().__init__(
             state_dim=self._system.discrete_state_dim,
             observation_dim=self._system.observation_dim,
-            horizon_of_observation_history=horizon_of_observation_history,
+            history_horizon=history_horizon,
             initial_distribution=initial_distribution,
             estimation_model=get_estimation_model(
                 matrix=self._estimation_matrix
             ),
             batch_size=system.batch_size if batch_size is None else batch_size,
         )
-        # self._state_dim = self._system.discrete_state_dim
-        # self._observation_dim = self._system.observation_dim
-        # assert self._observation_dim == 1, (
-        #     f"observation_dim must be 1. "
-        #     f"observation_dim given is {self._observation_dim}."
-        # )
         self._discrete_observation_dim = self._system.discrete_observation_dim
-
-        # self._batch_size = system.batch_size if batch_size is None else batch_size
-
-        # self._initial_distribution = np.repeat(
-        #     (
-        #         np.full(self._state_dim, 1 / self._state_dim)
-        #         if initial_distribution is None
-        #         else np.array(initial_distribution)
-        #     )[np.newaxis, :],
-        #     self._batch_size,
-        #     axis=0,
-        # )
 
         self._terminal_dual_function = np.identity(
             self._system.discrete_state_dim
         )
-        # (
-
-        #     if estimation_model is None
-        #     else np.array(estimation_model)
-        # )
         self._number_of_dual_function = self._terminal_dual_function.shape[1]
 
-        # self._observation_history = np.full(
-        #     (
-        #         self._batch_size,
-        #         self._observation_dim,
-        #         self._horizon_of_observation_history,
-        #     ),
-        #     np.nan,
-        #     dtype=np.float64,
-        # )
         self._emission_history = np.full(
             (
                 self._batch_size,
                 self._state_dim,
-                self._horizon_of_observation_history,
+                self._history_horizon,
             ),
             np.nan,
             dtype=np.float64,
         )
-        # self._likelihood_history = np.full(
-        #     (
-        #         self._batch_size,
-        #         self._state_dim,
-        #         self._horizon_of_observation_history,
-        #     ),
-        #     np.nan,
-        #     dtype=np.float64,
-        # )
-        # self._likelihood_history[:, :, -1] = self._initial_distribution.copy()
-
-        self._horizon_of_state_history = (
-            self._horizon_of_observation_history + 1
-        )
-        self._estimated_state_distribution_history = np.full(
+        self._state_history_horizon = self._history_horizon + 1
+        self._estimated_state_history = np.full(
             (
                 self._batch_size,
                 self._state_dim,
-                self._horizon_of_state_history,
+                self._state_history_horizon,
             ),
             np.nan,
             dtype=np.float64,
         )
-        # self._estimated_state_distribution_history[:, :, 0] = (
-        #     self._initial_distribution[np.newaxis, :]
-        # )
 
         self._control_history = np.full(
             (
                 self._batch_size,
                 self._number_of_dual_function,
-                self._horizon_of_observation_history,
+                self._history_horizon,
             ),
             np.nan,
             dtype=np.float64,
@@ -128,39 +78,29 @@ class DualHmmFilter(DualFilter):
 
         self.reset()
 
-    # observation_history = BatchNDArrayReadOnlyDescriptor(
-    #     "_batch_size",
-    #     "_observation_dim",
-    #     "_horizon_of_observation_history",
-    # )
     emission_history = BatchNDArrayReadOnlyDescriptor(
         "_batch_size",
         "_state_dim",
-        "_horizon_of_observation_history",
+        "_history_horizon",
     )
-    # likelihood_history = BatchNDArrayReadOnlyDescriptor(
-    #     "_batch_size",
-    #     "_state_dim",
-    #     "_horizon_of_observation_history",
-    # )
-    estimated_state_distribution_history = BatchNDArrayReadOnlyDescriptor(
+    estimated_state_history = BatchNDArrayReadOnlyDescriptor(
         "_batch_size",
         "_state_dim",
-        "_horizon_of_state_history",
+        "_state_history_horizon",
     )
     control_history = BatchNDArrayReadOnlyDescriptor(
         "_batch_size",
         "_number_of_dual_function",
-        "_horizon_of_observation_history",
+        "_history_horizon",
     )
 
     def reset(self) -> None:
         super().reset()
         self._emission_history[:, :, :] = np.nan
-        self._estimated_state_distribution_history[:, :, :] = np.nan
-        self._estimated_state_distribution_history[:, :, 0] = (
-            self._initial_distribution[np.newaxis, :]
-        )
+        self._estimated_state_history[:, :, :] = np.nan
+        self._estimated_state_history[:, :, 0] = self._initial_distribution[
+            np.newaxis, :
+        ]
         self._control_history[:, :, :] = np.nan
         self._estimated_state[:, :] = self._initial_distribution[np.newaxis, :]
         self.estimate()
@@ -177,11 +117,9 @@ class DualHmmFilter(DualFilter):
         dual_function_history = self._compute_backward_path(
             self._system.transition_matrix,
             self._terminal_dual_function,
-            self._emission_history[
-                :, :, : self._current_horizon_of_observation_history
-            ],
-            self._estimated_state_distribution_history[
-                :, :, : self._current_horizon_of_observation_history
+            self._emission_history[:, :, : self._current_history_horizon],
+            self._estimated_state_history[
+                :, :, : self._current_history_horizon
             ],
             self._control_history,
         )
@@ -189,20 +127,18 @@ class DualHmmFilter(DualFilter):
         # Compute the estimated state distribution
         estimated_state_distribution: NDArray[np.float64] = (
             self._compute_estimated_state_distribution(
-                self._estimated_state_distribution_history[
-                    :, :, self._current_horizon_of_observation_history - 1
+                self._estimated_state_history[
+                    :, :, self._current_history_horizon - 1
                 ],
                 dual_function_history[:, :, :, -1],
-                self._control_history[
-                    :, :, : self._current_horizon_of_observation_history
-                ],
+                self._control_history[:, :, : self._current_history_horizon],
             )
         )
 
         # Update the estimated state distribution history
         self._update_estimated_state_distribution(
             estimated_state_distribution,
-            self._estimated_state_distribution_history,
+            self._estimated_state_history,
         )
 
         return estimated_state_distribution
@@ -328,18 +264,6 @@ class DualHmmFilter(DualFilter):
             )
             control_history[:, :, k] = control
 
-        # for i in prange(batch_size):
-        #     _terminal_dual_function = np.ascontiguousarray(terminal_dual_function[i, :, :])
-        #     _emission_history = np.ascontiguousarray(emission_history[i, :, :current_horizon_of_observation_history+1])
-        #     _estimated_state_distribution_history = np.ascontiguousarray(estimated_state_distribution_history[i, :, :current_horizon_of_observation_history+1])
-        #     _control_history = np.ascontiguousarray(control_history[i, :, :current_horizon_of_observation_history+1])
-        #     initial_dual_function[i, :, :] = _terminal_path(
-        #         _terminal_dual_function,
-        #         _emission_history,
-        #         _estimated_state_distribution_history,
-        #         _control_history,
-        #         current_horizon_of_observation_history,
-        #     )
         return dual_function_history
 
     # def update(self, observation: ArrayLike) -> None:
@@ -372,9 +296,9 @@ class DualHmmFilter(DualFilter):
     #         likelihood_history=self._likelihood_history,
     #         estimated_distribution_history=self._estimated_distribution_history,
     #     )
-    #     self._current_horizon_of_observation_history = min(
-    #         self._current_horizon_of_observation_history + 1,
-    #         self._horizon_of_observation_history - 1,
+    #     self._current_history_horizon = min(
+    #         self._current_history_horizon + 1,
+    #         self._history_horizon - 1,
     #     )
 
     # @staticmethod
@@ -450,7 +374,7 @@ class DualHmmFilter(DualFilter):
     #             iterations,
     #             self._batch_size,
     #             number_of_dual_functions,
-    #             self._current_horizon_of_observation_history,
+    #             self._current_history_horizon,
     #         ),
     #     )
     #     estimated_distribution_history = np.empty(
@@ -458,11 +382,11 @@ class DualHmmFilter(DualFilter):
     #             iterations + 1,
     #             self._batch_size,
     #             self._state_dim,
-    #             self._current_horizon_of_observation_history + 1,
+    #             self._current_history_horizon + 1,
     #         ),
     #     )
     #     # estimated_distribution_history[0, ...] = self._likelihood_history[
-    #     #     ..., -1 - self._current_horizon_of_observation_history :
+    #     #     ..., -1 - self._current_history_horizon :
     #     # ].copy()
 
     #     for i in logger.progress_bar(
@@ -473,20 +397,20 @@ class DualHmmFilter(DualFilter):
     #             estimated_distribution_history[i + 1, ...],
     #         ) = self._estimate(
     #             estimated_distribution_history[i, ...],
-    #             self._emission_history[..., -1 - self._current_horizon_of_observation_history :],
+    #             self._emission_history[..., -1 - self._current_history_horizon :],
     #         )
 
-    #     self._control_history[..., -1 - self._current_horizon_of_observation_history :] = control_history[
+    #     self._control_history[..., -1 - self._current_history_horizon :] = control_history[
     #         -1, ...
     #     ].copy()
 
-    #     self._estimated_state_distribution_history[..., -1 - self._current_horizon_of_observation_history :] = (
+    #     self._estimated_state_distribution_history[..., -1 - self._current_history_horizon :] = (
     #         estimated_distribution_history[-1, ...].copy()
     #     )
 
-    #     if self._current_horizon_of_observation_history == self._horizon_of_observation_history - 1:
+    #     if self._current_history_horizon == self._history_horizon - 1:
     #         self._initial_distribution = self._estimated_state_distribution_history[
-    #             ..., -self._current_horizon_of_observation_history
+    #             ..., -self._current_history_horizon
     #         ].copy()
 
     #     return control_history, estimated_distribution_history
@@ -532,7 +456,7 @@ class DualHmmFilter(DualFilter):
     #     (
     #         self._batch_size,
     #         self._state_dim,
-    #         self._horizon_of_observation_history + 1,
+    #         self._history_horizon + 1,
     #     ),
     #     dtype=np.float64,
     # )
@@ -541,7 +465,7 @@ class DualHmmFilter(DualFilter):
     #     estimated_distribution_history[:, :, 0].copy()
     # )
 
-    # for k in range(1, self._horizon_of_observation_history+1):
+    # for k in range(1, self._history_horizon+1):
 
     #     dual_function_history, control_history = _backward_path(
     #         estimated_distribution_history[..., :k+1],
@@ -563,7 +487,7 @@ class DualHmmFilter(DualFilter):
     #         self._batch_size,
     #         self._state_dim,
     #         self._number_of_dual_function,
-    #         self._horizon_of_observation_history + 1,
+    #         self._history_horizon + 1,
     #     ),
     #     dtype=np.float64,
     # )
@@ -577,14 +501,14 @@ class DualHmmFilter(DualFilter):
     #     (
     #         self._batch_size,
     #         self._number_of_dual_function,
-    #         self._horizon_of_observation_history + 1,
+    #         self._history_horizon + 1,
     #     ),
     #     dtype=np.float64,
     # )
 
     # # Backward in time
     # # k = K, K-1, ..., 2, 1
-    # for k in range(self._horizon_of_observation_history, 0, -1):
+    # for k in range(self._history_horizon, 0, -1):
     #     dual_function = dual_function_history[
     #         :, :, :, k
     #     ]  # (batch_size, discrete_state_dim, number_of_dual_functions)
@@ -621,7 +545,7 @@ class DualHmmFilter(DualFilter):
     #     (
     #         self._batch_size,
     #         self._number_of_dual_function,
-    #         self._horizon_of_observation_history + 1,
+    #         self._history_horizon + 1,
     #     ),
     #     dtype=np.float64,
     # )
@@ -630,7 +554,7 @@ class DualHmmFilter(DualFilter):
     #     (
     #         self._batch_size,
     #         self._state_dim,
-    #         self._horizon_of_observation_history + 1,
+    #         self._history_horizon + 1,
     #     ),
     #     dtype=np.float64,
     # )
@@ -647,7 +571,7 @@ class DualHmmFilter(DualFilter):
 
     # # Update the estimated distribution
     # # k = 1, 2, ..., K-1, K
-    # for k in range(1, self._horizon_of_observation_history + 1):
+    # for k in range(1, self._history_horizon + 1):
     #     estimator_history[:, :, k] = _compute_estimator(
     #         estimator_history[:, :, k - 1],
     #         control_history[:, :, k],
@@ -950,28 +874,31 @@ def _compute_control(
 
         for d in prange(number_of_dual_functions):
             # The following implementation is equivalent to the one below (but faster?)
-            # control[i, d] = -(
-            #     np.sum(
-            #         estimated_distribution[i, :] * (
-            #             past_dual_function[i, :, d] * (
-            #                 emission[i, :] - expected_emission
-            #             )
-            #         )
-            #     )
-            # ) / denominator
             control[i, d] = (
-                (
+                -(
                     np.sum(
                         estimated_distribution[i, :]
-                        * past_dual_function[i, :, d]
+                        * (
+                            past_dual_function[i, :, d]
+                            * (emission[i, :] - expected_emission)
+                        )
                     )
-                    * expected_emission
                 )
-                - np.sum(
-                    estimated_distribution[i, :]
-                    * (past_dual_function[i, :, d] * emission[i, :])
-                )
-            ) / denominator
+                / denominator
+            )
+            # control[i, d] = (
+            #     (
+            #         np.sum(
+            #             estimated_distribution[i, :]
+            #             * past_dual_function[i, :, d]
+            #         )
+            #         * expected_emission
+            #     )
+            #     - np.sum(
+            #         estimated_distribution[i, :]
+            #         * (past_dual_function[i, :, d] * emission[i, :])
+            #     )
+            # ) / denominator
     return control
 
 
@@ -1040,7 +967,6 @@ class DualHmmFilterCallback(EstimatorCallback[DualHmmFilter]):
             f"filter must be an instance of DualHmmFilter or its subclasses. "
             f"filter given is an instance of {type(filter)}."
         )
-        # self._filter = filter
         super().__init__(step_skip, filter)
 
     def _record(self, time: float) -> None:

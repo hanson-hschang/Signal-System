@@ -4,13 +4,13 @@ from pathlib import Path
 
 import torch
 
-from ss.estimation.dual_filtering.hmm.learning.module import (
+from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
+from ss.estimation.filtering.hmm.learning.module import (
     LearningDualHmmFilter,
 )
-from ss.estimation.dual_filtering.hmm.learning.module.config import (
+from ss.estimation.filtering.hmm.learning.module.config import (
     LearningDualHmmFilterConfig,
 )
-from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
 from ss.estimation.filtering.hmm.learning.process import (
     LearningHmmFilterProcess,
 )
@@ -75,7 +75,7 @@ def training(
         discrete_observation_dim=int(
             data.meta_info["discrete_observation_dim"]
         ),
-        history_length=max_length,
+        history_horizon=max_length,
         # block_dims=1,
         # transition_matrix_binding=False,
     )

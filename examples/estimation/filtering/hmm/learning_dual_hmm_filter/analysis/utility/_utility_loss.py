@@ -4,10 +4,10 @@ import numpy as np
 import torch
 from numpy.typing import ArrayLike, NDArray
 
-from ss.estimation.dual_filtering.hmm.learning.module import (
+from ss.estimation.filtering.hmm import HmmFilter
+from ss.estimation.filtering.hmm.learning.module import (
     LearningDualHmmFilter,
 )
-from ss.estimation.filtering.hmm import HmmFilter
 from ss.utility.descriptor import ReadOnlyDescriptor
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
@@ -78,6 +78,8 @@ def compute_loss(
 
     batch_size, _, time_horizon = observation_trajectory.shape
     loss_trajectory = np.empty((batch_size, time_horizon - 1))
+    if isinstance(filter, LearningDualHmmFilter):
+        filter.reset(batch_size)
     for k, (observation, next_observation_one_hot) in logger.progress_bar(
         enumerate(
             observation_generator(
@@ -210,6 +212,7 @@ def compute_loss_trajectory(
     logger.info(
         "Computing an example loss trajectory of the filter and learning_filter"
     )
+    batch_size = observation_trajectory.shape[0]
     time_horizon = observation_trajectory.shape[-1]
     discrete_observation_dim = filter.estimation_dim
     filter_loss_trajectory = np.empty(time_horizon - 1)
@@ -226,7 +229,7 @@ def compute_loss_trajectory(
         #     max_length=128,
         # )
 
-        learning_filter.reset()
+        learning_filter.reset(batch_size)
         for k, (observation, next_observation) in logger.progress_bar(
             enumerate(
                 observation_generator(
@@ -249,7 +252,6 @@ def compute_loss_trajectory(
                 input_probability=estimation[np.newaxis, :],
                 target_probability=next_observation[np.newaxis, :],
             )[0]
-
             learning_filter.update(torch.tensor(observation))
             estimation = learning_filter.estimate().numpy()
             learning_filter_estimated_next_observation_probability[:, k] = (

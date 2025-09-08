@@ -14,9 +14,7 @@ logger = Logging.get_logger(__name__)
 def to_log_probability(
     estimation_trajectory: torch.Tensor,
 ) -> torch.Tensor:
-    log_estimation_trajectory = torch.moveaxis(
-        torch.log(estimation_trajectory), 1, 2
-    )  # (batch_size, estimation_dim, horizon)
+    log_estimation_trajectory = torch.log(estimation_trajectory)
     return log_estimation_trajectory
 
 
@@ -25,16 +23,16 @@ class LearningHmmFilterProcess(BaseLearningProcess):
         self, data_batch: Tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
         (
-            observation_trajectory,  # (batch_size, max_length)
-            target_estimation_trajectory,  # (batch_size, max_length)
+            observation_trajectory,  # (batch_size, observation_dim=1, horizon)
+            target_estimation_trajectory,  # (batch_size, observation_dim=1, horizon)
         ) = HmmObservationDataset.from_batch(data_batch)
         estimation_trajectory = self._module(
             observation_trajectory=observation_trajectory
-        )  # (batch_size, horizon, estimation_dim)
+        )  # (batch_size, estimation_dim,  horizon)
         loss_tensor: torch.Tensor = self._loss_function(
-            transform(
-                estimation_trajectory, to_log_probability
-            ),  # (batch_size, estimation_dim, max_length)
-            target_estimation_trajectory,  # (batch_size, max_length)
+            torch.log(
+                estimation_trajectory
+            ),  # (batch_size, estimation_dim, horizon)
+            target_estimation_trajectory[:, 0, :],  # (batch_size, horizon)
         )
         return loss_tensor

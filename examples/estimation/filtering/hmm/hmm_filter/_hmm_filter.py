@@ -65,7 +65,7 @@ def hmm_filtering(
     # Create the dual filter and the callback
     dual_filter = DualHmmFilter(
         system=system,
-        horizon_of_observation_history=10,
+        history_horizon=10,
         estimation_matrix=emission_matrix,
     )
     dual_filter_callback = DualHmmFilterCallback(

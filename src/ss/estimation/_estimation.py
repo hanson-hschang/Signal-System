@@ -22,9 +22,9 @@ class Estimator:
         def __init__(self, observation_dim: int) -> None:
             super().__init__(observation_dim)
 
-    class _HorizonOfObservationHistoryValidator(PositiveIntegerValidator):
-        def __init__(self, horizon_of_observation_history: int) -> None:
-            super().__init__(horizon_of_observation_history)
+    class _HistoryHorizonValidator(PositiveIntegerValidator):
+        def __init__(self, history_horizon: int) -> None:
+            super().__init__(history_horizon)
 
     class _BatchSizeValidator(PositiveIntegerValidator):
         def __init__(self, batch_size: int) -> None:
@@ -34,7 +34,7 @@ class Estimator:
         self,
         state_dim: int,
         observation_dim: int,
-        horizon_of_observation_history: int,
+        history_horizon: int,
         estimation_model: Optional[Callable] = None,
         batch_size: int = 1,
     ) -> None:
@@ -42,12 +42,10 @@ class Estimator:
         self._observation_dim = self._ObservationDimValidator(
             observation_dim
         ).get_value()
-        self._horizon_of_observation_history = (
-            self._HorizonOfObservationHistoryValidator(
-                horizon_of_observation_history
-            ).get_value()
-        )
-        self._current_horizon_of_observation_history = 0
+        self._history_horizon = self._HistoryHorizonValidator(
+            history_horizon
+        ).get_value()
+        self._current_history_horizon = 0
         self._batch_size = self._BatchSizeValidator(batch_size).get_value()
 
         self._estimated_state = np.full(
@@ -59,7 +57,7 @@ class Estimator:
             (
                 self._batch_size,
                 self._observation_dim,
-                self._horizon_of_observation_history,
+                self._history_horizon,
             ),
             np.nan,
             dtype=np.float64,
@@ -91,7 +89,7 @@ class Estimator:
     observation_history = BatchNDArrayReadOnlyDescriptor(
         "_batch_size",
         "_observation_dim",
-        "_horizon_of_observation_history",
+        "_history_horizon",
     )
     estimated_state = BatchNDArrayDescriptor(
         "_batch_size",
@@ -103,7 +101,7 @@ class Estimator:
     )
 
     def reset(self) -> None:
-        self._current_horizon_of_observation_history = 0
+        self._current_history_horizon = 0
         self._observation_history[:, :, :] = np.nan
         self._estimated_state[:, :] = np.nan
         self._estimation[:, :] = np.nan
@@ -125,7 +123,7 @@ class Estimator:
         return self.__class__(
             state_dim=self._state_dim,
             observation_dim=self._observation_dim,
-            horizon_of_observation_history=self._horizon_of_observation_history,
+            history_horizon=self._history_horizon,
             estimation_model=self._estimation_model,
             batch_size=batch_size,
         )
@@ -154,9 +152,9 @@ class Estimator:
             observation=observation,
             observation_history=self._observation_history,
         )
-        self._current_horizon_of_observation_history = min(
-            self._current_horizon_of_observation_history + 1,
-            self._horizon_of_observation_history,
+        self._current_history_horizon = min(
+            self._current_history_horizon + 1,
+            self._history_horizon,
         )
         self._update(
             self._estimated_state,

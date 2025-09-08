@@ -1,1 +1,1 @@
-from ._config import LearningHmmFilterConfig
+from ._config import LearningDualHmmFilterConfig, LearningHmmFilterConfig

@@ -35,7 +35,7 @@ class ObservationConfig(BaseLearningConfig):
 
     class Option(StrEnum):
         CATEGORY = auto()
-        PROBABILITY = auto()
+        # PROBABILITY = auto()
 
     option: Option = Option.CATEGORY
 

@@ -31,7 +31,6 @@ class EstimationModule(
             (self._state_dim, self._estimation_dim),
         )
 
-        # self._forward: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
         self._forward: Callable[[torch.Tensor], torch.Tensor]
         self._init_forward()
 
@@ -76,19 +75,9 @@ class EstimationModule(
     def _forward_estimated_state(
         self,
         estimated_state_trajectory: torch.Tensor,
-        # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
-        # (batch_size, horizon, estimation_dim=state_dim) or (batch_size, estimation_dim=state_dim)
+        # (batch_size, estimation_dim=state_dim, horizon) or (batch_size, estimation_dim=state_dim)
         return estimated_state_trajectory
-
-    # @torch.compile
-    # def _forward_predicted_state(
-    #     self,
-    #     estimated_state_trajectory: torch.Tensor,
-    #     predicted_state_trajectory: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     # (batch_size, horizon, estimation_dim=state_dim) or (batch_size, estimation_dim=state_dim)
-    #     return predicted_state_trajectory
 
     @torch.compile
     def _forward_estimation(
@@ -98,31 +87,56 @@ class EstimationModule(
     ) -> torch.Tensor:
         estimation_matrix = self.matrix  # (state_dim, estimation_dim)
         estimation = torch.matmul(
-            estimated_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
+            torch.moveaxis(
+                estimated_state_trajectory, 1, 2
+            ),  # (batch_size, horizon, state_dim)
             estimation_matrix,
-        )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
+        )  # (batch_size, horizon, estimation_dim)
+        estimation = torch.moveaxis(estimation, 1, 2)
+        # (batch_size, estimation_dim, horizon)
         return estimation
-
-    # @torch.compile
-    # def _forward_prediction(
-    #     self,
-    #     estimated_state_trajectory: torch.Tensor,
-    #     predicted_state_trajectory: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     estimation_matrix = self.matrix  # (state_dim, estimation_dim)
-    #     estimation = torch.matmul(
-    #         predicted_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
-    #         estimation_matrix,
-    #     )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
-    #     return estimation
 
     def forward(
         self,
         estimated_state_trajectory: torch.Tensor,
         # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
+
         estimation_trajectory = self._forward(
-            estimated_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
-            # predicted_state_trajectory,  # (batch_size, horizon, state_dim) or (batch_size, state_dim)
-        )  # (batch_size, horizon, estimation_dim) or (batch_size, estimation_dim)
+            estimated_state_trajectory,  # (batch_size, state_dim, horizon) or (batch_size, state_dim)
+            # predicted_state_trajectory,  # (batch_size, state_dim, horizon) or (batch_size, state_dim)
+        )  # (batch_size, estimation_dim, horizon) or (batch_size, estimation_dim)
+
+        return estimation_trajectory
+
+    def at_inference(
+        self,
+        estimated_state_trajectory: torch.Tensor,
+    ) -> torch.Tensor:
+        # (batch_size, state_dim) -> (batch_size, estimation_dim)
+        remove_batch_axis = False
+        if estimated_state_trajectory.ndim == 1:
+            remove_batch_axis = True
+            estimated_state_trajectory = estimated_state_trajectory.unsqueeze(
+                0
+            )
+            # (batch_size=1, state_dim)
+
+        if estimated_state_trajectory.ndim == 2:
+            remove_horizon_axis = True
+            estimated_state_trajectory = estimated_state_trajectory.unsqueeze(
+                -1
+            )
+
+        estimation_trajectory = self.forward(
+            estimated_state_trajectory,  # (batch_size, state_dim)
+        )  # (batch_size, estimation_dim)
+
+        if remove_horizon_axis:
+            estimation_trajectory = estimation_trajectory.squeeze(-1)
+            # (batch_size, estimation_dim)
+        if remove_batch_axis:
+            estimation_trajectory = estimation_trajectory.squeeze(0)
+            # (estimation_dim,) or (estimation_dim, horizon)
+
         return estimation_trajectory

@@ -32,7 +32,7 @@ class TestHmmFilter:
     ) -> DualHmmFilter:
         return DualHmmFilter(
             system=hmm,
-            horizon_of_observation_history=10,
+            history_horizon=10,
             initial_distribution=initial_distribution,
         )
 

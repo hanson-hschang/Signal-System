@@ -18,14 +18,14 @@ class HmmObservationDataset(Dataset.BaseDataset):
         stride: int = 64,
     ) -> None:
         observation = np.array(observation)
-        if batch_size == 1:
+        if batch_size == 1 and observation.ndim == 2:
             observation = observation[np.newaxis, ...]
         assert observation.ndim == 3, (
             "observation must be a ArrayLike of 3 dimensions "
-            "with the shape of (batch_size, 1, time_horizon). "
+            "with the shape of (batch_size, observation_dim=1, horizon). "
             f"observation given has the shape of {observation.shape}."
         )
-        observation = observation[:, 0, :].astype(np.int64)
+        observation = observation[:, :, :].astype(np.int64)
 
         time_horizon = observation.shape[-1]
         self._input_trajectory = []
@@ -35,13 +35,13 @@ class HmmObservationDataset(Dataset.BaseDataset):
             for i in range(batch_size):
                 _observation: torch.Tensor = torch.tensor(
                     observation[i], dtype=torch.int64
-                )  # (time_horizon,)
+                )  # (observation_dim=1, horizon,)
                 for t in range(0, time_horizon - max_length, stride):
                     input_trajectory: torch.Tensor = _observation[
-                        t : t + max_length
+                        :, t : t + max_length
                     ]  # (max_length,)
                     output_trajectory: torch.Tensor = _observation[
-                        t + 1 : t + max_length + 1
+                        :, t + 1 : t + max_length + 1
                     ]  # (max_length,)
                     self._input_trajectory.append(
                         input_trajectory.detach().clone()

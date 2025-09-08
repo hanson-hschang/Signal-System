@@ -1,1 +1,1 @@
-from ._filter import FilterModule
+from ._filter import DualFilterModule, FilterModule

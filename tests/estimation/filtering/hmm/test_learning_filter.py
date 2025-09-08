@@ -142,13 +142,13 @@ class TestLearningHmmFilter:
                     np.array([1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]),
                 )
 
-                learning_filter.update(observation_trajectory[0])
+                learning_filter.update(observation_trajectory[0:1])
                 assert_allclose(
                     learning_filter.transition.estimated_state,
                     np.array([0.425, 0.175, 0.4]),
                 )
 
-                learning_filter.update(observation_trajectory[1])
+                learning_filter.update(observation_trajectory[1:2])
                 assert_allclose(
                     learning_filter.transition.estimated_state,
                     np.array([22.75 / 85.0, 25.25 / 85.0, 37.0 / 85.0]),

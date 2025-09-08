@@ -1,5 +1,3 @@
-from typing import cast
-
 from pathlib import Path
 
 import numpy as np
@@ -53,11 +51,7 @@ def analysis(
             transition_matrix=transition_matrix,
             emission_matrix=emission_matrix,
         ),
-        estimation_matrix=Utility.get_estimation_model(
-            transition_matrix=transition_matrix,
-            emission_matrix=emission_matrix,
-            future_time_steps=0,
-        ),
+        estimation_matrix=emission_matrix,
     )
 
     # Load module

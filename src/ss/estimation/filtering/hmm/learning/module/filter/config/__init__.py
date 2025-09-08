@@ -1,1 +1,1 @@
-from ._config import FilterConfig
+from ._config import DualFilterConfig, FilterConfig

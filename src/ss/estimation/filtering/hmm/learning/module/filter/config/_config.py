@@ -41,3 +41,17 @@ class FilterConfig(Config.BaseLearningConfig):
         DiscreteObservationDimDescriptor(1)
     )
     estimation_dim: EstimationDimDescriptor = EstimationDimDescriptor(0)
+
+
+@dataclass
+class DualFilterConfig(FilterConfig):
+    """
+    Configuration of the `DualFilter` class.
+    """
+
+    class HistoryHorizonDescriptor(DataclassDescriptor[int]):
+        def __set__(self, instance: Any, value: int) -> None:
+            value = PositiveIntegerValidator(value).get_value()
+            super().__set__(instance, value)
+
+    history_horizon: HistoryHorizonDescriptor = HistoryHorizonDescriptor(1)

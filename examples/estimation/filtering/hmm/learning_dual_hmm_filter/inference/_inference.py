@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from ss.estimation.dual_filtering.hmm.learning.module import (
+from ss.estimation.filtering.hmm.learning.module import (
     LearningDualHmmFilter,
 )
 from ss.utility.data import Data
@@ -37,11 +37,7 @@ def inference(
     data = Data.load(data_filepath)
     batch_size = int(data.meta_info["batch_size"])
     observation_trajectory: NDArray = np.array(
-        (
-            data["observation"][0]
-            if batch_size == 1
-            else data["observation"][0, 0]
-        ),
+        (data["observation"] if batch_size == 1 else data["observation"][0]),
         dtype=np.int64,
     )  # (time_horizon,)
 
@@ -75,22 +71,24 @@ def inference(
 
     logger.info(
         f"The sequence of the first {given_time_horizon} observations from the data is: "
-        f"{observation_trajectory[:given_time_horizon]} (given observation)"
+        f"{observation_trajectory[0, :given_time_horizon]} (given observation)"
     )
     logger.info(
         f"The sequence of the next {future_time_steps} observations from the data is: "
-        f"{observation_trajectory[given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
+        f"{observation_trajectory[0, given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
     )
     torch_int_dtype = torch.int32
-    _observation_trajectory = device_manager.load_data(
-        torch.tensor(
-            observation_trajectory[:given_time_horizon], dtype=torch_int_dtype
-        ).repeat(number_of_samples, 1)
-    )
 
-    learning_filter.batch_size = number_of_samples
+    learning_filter.reset(batch_size=number_of_samples)
     with BaseLearningProcess.inference_mode(learning_filter):
-        learning_filter.update(_observation_trajectory)
+        learning_filter.update(
+            device_manager.load_data(
+                torch.tensor(
+                    observation_trajectory[:, :given_time_horizon],
+                    dtype=torch_int_dtype,
+                ).repeat(number_of_samples, 1, 1)
+            )  # (number_of_samples, observation_dim=1, given_time_horizon)
+        )
 
         predicted_next_observation_trajectory = torch.empty(
             (number_of_samples, 1, future_time_steps), dtype=torch_int_dtype
@@ -106,7 +104,9 @@ def inference(
             predicted_next_observation_trajectory[:, 0, k] = (
                 predicted_next_observation
             )
-            learning_filter.update(predicted_next_observation)
+            learning_filter.update(
+                predicted_next_observation_trajectory[:, :, k]
+            )
 
         for i in range(number_of_samples):
             logger.info(
