@@ -7,7 +7,7 @@ from ss.estimation.filtering.hmm.learning.module.emission.config import (
     EmissionConfig,
 )
 from ss.estimation.filtering.hmm.learning.module.filter.config import (
-    FilterConfig,
+    DualFilterConfig,
 )
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
@@ -31,7 +31,7 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
     def __init__(
         self,
         config: EmissionConfig[TC],
-        filter_config: FilterConfig,
+        filter_config: DualFilterConfig,
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim

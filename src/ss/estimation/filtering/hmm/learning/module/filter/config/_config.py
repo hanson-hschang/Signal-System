@@ -11,7 +11,7 @@ from ss.utility.learning.module import config as Config
 
 
 @dataclass
-class FilterConfig(Config.BaseLearningConfig):
+class DualFilterConfig(Config.BaseLearningConfig):
     """
     Properties
     ----------
@@ -36,22 +36,18 @@ class FilterConfig(Config.BaseLearningConfig):
             value = NonnegativeIntegerValidator(value).get_value()
             super().__set__(instance, value)
 
-    state_dim: StateDimDescriptor = StateDimDescriptor(1)
-    discrete_observation_dim: DiscreteObservationDimDescriptor = (
-        DiscreteObservationDimDescriptor(1)
-    )
-    estimation_dim: EstimationDimDescriptor = EstimationDimDescriptor(0)
-
-
-@dataclass
-class DualFilterConfig(FilterConfig):
-    """
-    Configuration of the `DualFilter` class.
-    """
-
     class HistoryHorizonDescriptor(DataclassDescriptor[int]):
         def __set__(self, instance: Any, value: int) -> None:
             value = PositiveIntegerValidator(value).get_value()
             super().__set__(instance, value)
 
+    state_dim: StateDimDescriptor = StateDimDescriptor(1)
+    discrete_observation_dim: DiscreteObservationDimDescriptor = (
+        DiscreteObservationDimDescriptor(1)
+    )
+    estimation_dim: EstimationDimDescriptor = EstimationDimDescriptor(0)
     history_horizon: HistoryHorizonDescriptor = HistoryHorizonDescriptor(1)
+
+
+@dataclass
+class FilterConfig(DualFilterConfig): ...

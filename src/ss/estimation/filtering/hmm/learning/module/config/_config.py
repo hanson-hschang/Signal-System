@@ -12,14 +12,8 @@ from ss.estimation.filtering.hmm.learning.module.filter.config import (
     DualFilterConfig,
     FilterConfig,
 )
-from ss.estimation.filtering.hmm.learning.module.transition.block.config import (
-    TransitionBlockConfig,
-)
 from ss.estimation.filtering.hmm.learning.module.transition.config import (
     TransitionConfig,
-)
-from ss.estimation.filtering.hmm.learning.module.transition.layer.config import (
-    TransitionLayerConfig,
 )
 from ss.utility.assertion.validator import PositiveIntegerValidator
 from ss.utility.descriptor import DataclassDescriptor

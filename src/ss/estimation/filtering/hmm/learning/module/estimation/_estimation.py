@@ -6,7 +6,7 @@ from ss.estimation.filtering.hmm.learning.module.estimation.config import (
     EstimationConfig,
 )
 from ss.estimation.filtering.hmm.learning.module.filter.config import (
-    FilterConfig,
+    DualFilterConfig,
 )
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
@@ -20,7 +20,7 @@ class EstimationModule(
     def __init__(
         self,
         config: EstimationConfig[TC],
-        filter_config: FilterConfig,
+        filter_config: DualFilterConfig,
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim

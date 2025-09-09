@@ -78,6 +78,8 @@ class LearningDualHmmFilter(
                 self._emission.matrix_parameter
             )
 
+        self.reset()
+
     @property
     def state_dim(self) -> int:
         return self._filter.state_dim
@@ -113,6 +115,10 @@ class LearningDualHmmFilter(
     @property
     def estimation(self) -> EstimationModule[T, TC]:
         return self._estimation
+
+    @property
+    def filter(self) -> DualFilterModule:
+        return self._filter
 
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """

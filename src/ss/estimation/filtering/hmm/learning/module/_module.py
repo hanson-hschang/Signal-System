@@ -108,6 +108,10 @@ class LearningHmmFilter(
     def estimation(self) -> EstimationModule[T, TC]:
         return self._estimation
 
+    @property
+    def filter(self) -> FilterModule:
+        return self._filter
+
     def reset(self) -> None:
         self._emission.reset()
         self._transition.reset()

@@ -3,9 +3,6 @@ from typing import Generic, List, Optional, Tuple, TypeVar
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
 
-from ss.estimation.filtering.hmm.learning.module.transition.layer.config import (
-    TransitionLayerConfig,
-)
 from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (

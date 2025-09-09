@@ -54,6 +54,12 @@ class FilterModule(
 class DualFilterModule(
     BaseLearningModule[DualFilterConfig],
 ):
+    class HistoryHorizonDescriptor(Descriptor[int, "DualFilterModule"]):
+        def __set__(self, instance: "DualFilterModule", value: int) -> None:
+            value = PositiveIntegerValidator(value).get_value()
+            super().__set__(instance, value)
+            instance._init_state()
+
     class BatchSizeDescriptor(Descriptor[int, "DualFilterModule"]):
         def __set__(self, instance: "DualFilterModule", value: int) -> None:
             value = PositiveIntegerValidator(value).get_value()
@@ -71,7 +77,6 @@ class DualFilterModule(
         self._discrete_observation_dim = self._config.discrete_observation_dim
         self._estimation_dim = self._config.estimation_dim
         self._history_horizon = self._config.history_horizon
-        self._state_history_horizon = self._history_horizon + 1
 
         self._batch_size = 1
         self._init_state()
@@ -82,11 +87,13 @@ class DualFilterModule(
     discrete_observation_dim = ReadOnlyDescriptor[int]()
     estimation_dim = ReadOnlyDescriptor[int]()
     # current_history_horizon = ReadOnlyDescriptor[int]()
-    history_horizon = ReadOnlyDescriptor[int]()
+    history_horizon = HistoryHorizonDescriptor()
     batch_size = BatchSizeDescriptor()
 
     def _init_state(self) -> None:
         self._current_history_horizon = 0
+        self._state_history_horizon = self._history_horizon + 1
+
         self._estimated_state = torch.full(
             (self._batch_size, self._state_dim), float("nan")
         )
