@@ -100,6 +100,7 @@ class DualTransitionModule(
     def matrix(self, matrix: torch.Tensor) -> None:
         self._matrix.set_value(matrix)
 
+    @torch.compile
     def _compute_past_dual_function(
         self,
         transition_matrix: torch.Tensor,
@@ -113,6 +114,7 @@ class DualTransitionModule(
         )
         return past_dual_function
 
+    # @torch.compile
     def _compute_control(
         self,
         dual_function: torch.Tensor,
@@ -154,6 +156,7 @@ class DualTransitionModule(
 
         return control
 
+    @torch.compile
     def _backward_dual_function_step(
         self,
         past_dual_function: torch.Tensor,
@@ -168,6 +171,7 @@ class DualTransitionModule(
         )
         return updated_past_dual_function
 
+    # @torch.compile
     def _compute_backward_path(
         self,
         transition_matrix: torch.Tensor,
@@ -220,6 +224,7 @@ class DualTransitionModule(
 
         return dual_function_history, control_history
 
+    @torch.compile
     def _compute_estimated_state_distribution(
         self,
         initial_estimated_state_distribution: torch.Tensor,
@@ -236,6 +241,7 @@ class DualTransitionModule(
         ) - torch.sum(control_history, dim=2)
         return estimated_state_distribution
 
+    # @torch.compile
     def _normalize_distribution(
         self, distribution: torch.Tensor
     ) -> torch.Tensor:
@@ -254,6 +260,7 @@ class DualTransitionModule(
         )
         return normalized_distribution
 
+    # @torch.compile
     def _process(
         self,
         estimated_state_distribution_trajectory: torch.Tensor,
@@ -279,6 +286,7 @@ class DualTransitionModule(
 
         return self._normalize_distribution(estimated_state_distribution)
 
+    # @torch.compile
     def forward(
         self,
         emission_trajectory: torch.Tensor,

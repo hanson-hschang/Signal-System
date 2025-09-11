@@ -20,24 +20,23 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.13.2"]
-        # os: [ubuntu-latest, windows-latest, macos-latest]
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             path: ~/.cache/pip
           - os: macos-latest
             path: ~/Library/Caches/pip
-          # - os: windows-latest
-          #   path: ~\AppData\Local\pip\Cache
+          - os: windows-latest
+            path: ~\AppData\Local\pip\Cache
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       # Ref: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4.2.0
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -45,8 +44,13 @@ jobs:
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
 
+      # Install Visual Studio Build Tools on Windows
+      - name: Install Visual Studio Build Tools
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+
       - name: Set up cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.path }}
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
@@ -71,7 +75,7 @@ jobs:
 
       # upload coverage to codecov when this is enabled
       # - name: Upload coverage to Codecov
-      #   uses: codecov/codecov-action@v3
+      #   uses: codecov/codecov-action@v4
       #   with:
       #     file: ./coverage.xml
       #     flags: unittests
