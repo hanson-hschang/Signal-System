@@ -1,0 +1,24 @@
+# A workflow that runs on windows-latest and test with Python 3.13
+name: Windows
+
+# The "on" controls when the action will run.
+# The workflow is triggered on push and pull request events for the main branch.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains one job for Windows
+  build:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/test
+        with:
+          cache-path: ~\AppData\Local\pip\Cache
+          cache-key-prefix: windows
+          install-msbuild: 'true'

@@ -1,0 +1,23 @@
+# A workflow that runs on ubuntu-latest and test with Python 3.13
+name: Ubuntu
+
+# The "on" controls when the action will run.
+# The workflow is triggered on push and pull request events for the main branch.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains one job for Ubuntu
+  build:
+    name: Build on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/test
+        with:
+          cache-path: ~/.cache/pip
+          cache-key-prefix: ubuntu
