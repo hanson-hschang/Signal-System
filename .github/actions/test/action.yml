@@ -1,0 +1,72 @@
+name: 'Build and Test'
+description: 'Common build and test steps for all platforms'
+inputs:
+  python-version:
+    description: 'Python version to use'
+    required: true
+    default: '3.13.2'
+  cache-path:
+    description: 'Cache path for pip'
+    required: true
+  cache-key-prefix:
+    description: 'Cache key prefix for the OS'
+    required: true
+  install-msbuild:
+    description: 'Whether to install MSBuild (Windows only)'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+     # Ref: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # Display the current Python version
+    - name: Display Python version
+      run: python -c "import sys; print(sys.version)"
+      shell: bash
+
+    # Install Visual Studio Build Tools if needed (on Windows)
+    - name: Install Visual Studio Build Tools
+      if: inputs.install-msbuild == 'true'
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Set up cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ inputs.cache-path }}
+        key: ${{ inputs.cache-key-prefix }}-pip-${{ inputs.python-version }}-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          ${{ inputs.cache-key-prefix }}-pip-
+
+    - name: Install dependencies and package
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements-dev.txt
+        python -m pip install -e .
+      shell: bash
+
+    - name: Run format checks
+      run: |
+        isort --diff --check-only --settings-path pyproject.toml ./
+        black --diff --check --config pyproject.toml ./
+        mypy --config-file pyproject.toml src
+      shell: bash
+
+    - name: Run tests
+      run: |
+        pytest -c pyproject.toml --cov=src --cov-branch --cov-report=xml --cov-report=term
+      shell: bash
+
+    # upload coverage to codecov when this is enabled
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v4
+    #   with:
+    #     file: ./coverage.xml
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     fail_ci_if_error: false

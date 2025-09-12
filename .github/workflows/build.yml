@@ -12,72 +12,34 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.13.2"]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            path: ~/.cache/pip
-          - os: macos-latest
-            path: ~/Library/Caches/pip
-          - os: windows-latest
-            path: ~\AppData\Local\pip\Cache
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+  # This workflow contains multiple jobs, one for each OS
+  build-ubuntu:
+    name: Build on Ubuntu
+    runs-on: ubuntu-latest
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-
-      # Ref: https://docs.github.com/en/free-pro-team@latest/actions/guides/building-and-testing-python
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - uses: ./.github/actions/test
         with:
-          python-version: ${{ matrix.python-version }}
+          cache-path: ~/.cache/pip
+          cache-key-prefix: ubuntu
 
-      # Test the matrix by printing the current Python version
-      - name: Display Python version
-        run: python -c "import sys; print(sys.version)"
-
-      # Install Visual Studio Build Tools on Windows
-      - name: Install Visual Studio Build Tools
-        if: runner.os == 'Windows'
-        uses: microsoft/setup-msbuild@v2
-
-      - name: Set up cache
-        uses: actions/cache@v4
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/test
         with:
-          path: ${{ matrix.path }}
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache-path: ~\AppData\Local\pip\Cache
+          cache-key-prefix: windows
+          install-msbuild: 'true'
 
-      - name: Install dependencies and package
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements-dev.txt
-          python -m pip install -e .
-
-      - name: Run format checks
-        run: |
-          isort --diff --check-only --settings-path pyproject.toml ./
-          black --diff --check --config pyproject.toml ./
-          mypy --config-file pyproject.toml src
-
-      - name: Run tests
-        run: |
-          pytest -c pyproject.toml --cov=src --cov-branch --cov-report=xml --cov-report=term
-
-      # upload coverage to codecov when this is enabled
-      # - name: Upload coverage to Codecov
-      #   uses: codecov/codecov-action@v4
-      #   with:
-      #     file: ./coverage.xml
-      #     flags: unittests
-      #     name: codecov-umbrella
-      #     fail_ci_if_error: false
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/test
+        with:
+          cache-path: ~/Library/Caches/pip
+          cache-key-prefix: macos

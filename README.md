@@ -13,7 +13,10 @@
 [![imports: isort](https://img.shields.io/badge/imports-isort-blue?labelColor=orange)](https://pycqa.github.io/isort/)
 [![static type: mypy](https://img.shields.io/badge/static_type-mypy-blue)](https://mypy-lang.org/)
 
-[![build](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg)](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml)
+
+[![Ubuntu](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg?job=build-ubuntu)](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml)
+[![Windows](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg?job=build-windows)](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml)
+[![macOS](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml/badge.svg?job=build-macos)](https://github.com/hanson-hschang/Signal-System/actions/workflows/build.yml)
 [![release](https://img.shields.io/github/v/release/hanson-hschang/Signal-System)](https://github.com/hanson-hschang/Signal-System/releases)
 [![license: MIT](https://img.shields.io/badge/license-MIT-yellow)](https://opensource.org/licenses/MIT)
 
