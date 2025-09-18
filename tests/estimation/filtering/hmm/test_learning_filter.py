@@ -100,15 +100,16 @@ class TestLearningHmmFilter:
         self,
         learning_filter: LearningHmmFilter,
     ) -> None:
-        assert learning_filter.state_dim == 3
-        assert learning_filter.discrete_observation_dim == 2
-        assert learning_filter.emission.matrix.shape == (3, 2)
-        assert learning_filter.transition.matrix.shape == (3, 3)
-        assert learning_filter.transition.initial_state.shape == (3,)
 
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
+
+            assert learning_filter.state_dim == 3
+            assert learning_filter.discrete_observation_dim == 2
+            assert learning_filter.emission.matrix.shape == (3, 2)
+            assert learning_filter.transition.matrix.shape == (3, 3)
+            assert learning_filter.transition.initial_state.shape == (3,)
+
             with BaseLearningProcess.inference_mode(learning_filter):
                 assert_allclose(
                     learning_filter.transition.initial_state,
@@ -135,8 +136,7 @@ class TestLearningHmmFilter:
         observation_trajectory: torch.Tensor,
     ) -> None:
 
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
             with BaseLearningProcess.inference_mode(learning_filter):
 
