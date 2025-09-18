@@ -80,16 +80,16 @@ class TestLearningHmmFilter:
                 SoftmaxTransformer, SoftmaxTransformerConfig
             ](config=config)
 
-        with learning_filter.evaluation_mode():
-            learning_filter.transition.initial_state = torch.tensor(
-                [1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]
-            )
-            learning_filter.transition.matrix = torch.tensor(
-                [[0.75, 0.25, 0.0], [0.0, 0.75, 0.25], [0.25, 0.0, 0.75]]
-            )
-            learning_filter.emission.matrix = torch.tensor(
-                [[0.8, 0.2], [0.2, 0.8], [0.5, 0.5]]
-            )
+            with learning_filter.evaluation_mode():
+                learning_filter.transition.initial_state = torch.tensor(
+                    [1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]
+                )
+                learning_filter.transition.matrix = torch.tensor(
+                    [[0.75, 0.25, 0.0], [0.0, 0.75, 0.25], [0.25, 0.0, 0.75]]
+                )
+                learning_filter.emission.matrix = torch.tensor(
+                    [[0.8, 0.2], [0.2, 0.8], [0.5, 0.5]]
+                )
         return learning_filter
 
     @pytest.fixture
