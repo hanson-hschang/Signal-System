@@ -121,12 +121,10 @@ class TestParameter:
         assert parameter_2.max() <= 2.0
 
     def test_parameter_shape(self, simple_module: SimpleModule) -> None:
-        assert simple_module.parameter_1.shape == (3, 4)
-        assert simple_module.parameter_2.shape == (4, 4)
-
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
+            assert simple_module.parameter_1.shape == (3, 4)
+            assert simple_module.parameter_2.shape == (4, 4)
             parameter_1: torch.Tensor = simple_module.parameter_1
             parameter_2: torch.Tensor = simple_module.parameter_2
             result: torch.Tensor = simple_module()
@@ -135,12 +133,10 @@ class TestParameter:
         assert result.shape == (3, 4)
 
     def test_parameter_set_value(self, simple_module: SimpleModule) -> None:
-        simple_module.parameter_1 = torch.full((3, 4), 1.0)
-        simple_module.parameter_2 = torch.full((4, 4), 2.0)
-
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
+            simple_module.parameter_1 = torch.full((3, 4), 1.0)
+            simple_module.parameter_2 = torch.full((4, 4), 2.0)
             with simple_module.evaluation_mode():
                 parameter_1: torch.Tensor = simple_module.parameter_1
                 parameter_2: torch.Tensor = simple_module.parameter_2
@@ -151,12 +147,11 @@ class TestParameter:
         Parameter.binding(
             simple_module._parameter_1, simple_module._parameter_3
         )
-        simple_module.parameter_3 = torch.full((3, 4), 1.0)
-        simple_module.parameter_2 = torch.eye(4)
 
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
+            simple_module.parameter_3 = torch.full((3, 4), 1.0)
+            simple_module.parameter_2 = torch.eye(4)
             with simple_module.evaluation_mode():
                 parameter_1: torch.Tensor = simple_module.parameter_1
                 result: torch.Tensor = simple_module()
@@ -278,8 +273,8 @@ class TestManifoldParameter:
         self, complex_config: ComplexConfig
     ) -> None:
         complex_module = ComplexModule(complex_config)
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
             with complex_module.evaluation_mode():
                 positive_number = complex_module.positive_number
@@ -298,8 +293,7 @@ class TestManifoldParameter:
         )
 
     def test_parameter_shape(self, complex_module: ComplexModule) -> None:
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
             with complex_module.evaluation_mode():
                 number = complex_module.number
@@ -315,8 +309,7 @@ class TestManifoldParameter:
 
     def test_parameter_set_value(self, complex_module: ComplexModule) -> None:
 
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
             complex_module.positive_number = torch.full((3, 4), 5.0)
             complex_module.probability_1 = torch.full((3, 4), 0.25)
@@ -344,11 +337,10 @@ class TestManifoldParameter:
             complex_module.probability_2_parameter,
             complex_module.positive_number_parameter,
         )
-        complex_module.positive_number = torch.full((3, 4), torch.e)
 
-        compile_config = CompileConfig()
-        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
+            complex_module.positive_number = torch.full((3, 4), torch.e)
             with complex_module.evaluation_mode():
                 probability_1 = complex_module.probability_1
                 probability_2 = complex_module.probability_2
