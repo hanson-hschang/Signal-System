@@ -73,9 +73,13 @@ class TestLearningHmmFilter:
             SoftmaxTransformerConfig,
         )
 
-        learning_filter = LearningHmmFilter[
-            SoftmaxTransformer, SoftmaxTransformerConfig
-        ](config=config)
+        compile_config = CompileConfig()
+        compile_config.stance = CompileConfig.Stance.FORCE_EAGER
+        with CompileContext(compile_config):
+            learning_filter = LearningHmmFilter[
+                SoftmaxTransformer, SoftmaxTransformerConfig
+            ](config=config)
+
         with learning_filter.evaluation_mode():
             learning_filter.transition.initial_state = torch.tensor(
                 [1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]

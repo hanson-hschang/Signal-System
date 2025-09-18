@@ -137,10 +137,6 @@ Three types of examples are provided:
   - [`control`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/control) provides various control methods over dynamic systems.
   - [`estimation`](https://github.com/hanson-hschang/Signal-System/tree/main/examples/estimation) provides various filtering and smoothing examples for different type of dynamic systems.
 
-## License
-
-This project is released under the [MIT License](https://github.com/hanson-hschang/Signal-System/blob/main/LICENSE).
-
 ## Contributing
 
 1. Fork this repository
