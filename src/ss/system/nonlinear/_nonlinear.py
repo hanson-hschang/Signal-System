@@ -39,8 +39,8 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         if state_constraint_function is None:
 
             def default_state_constraint_function(
-                state: NDArray[np.float64],
-            ) -> NDArray[np.float64]:
+                state: NDArray,
+            ) -> NDArray:
                 return state
 
             state_constraint_function = default_state_constraint_function

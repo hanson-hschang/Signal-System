@@ -118,13 +118,14 @@ def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
             # https://github.com/pytorch/pytorch/issues/146814. The proper way should be
             # module, name = f.__module__, f.__qualname__ rather than the current implementation
             # module, name = f.__module__, f.__name__
-            unregistered_type = (
-                field_type,
-                f"{field_type.__module__}.{field_type.__qualname__}",
-            )
-            safe_callables.add(unregistered_type)
+            # unregistered_type = (
+            #     field_type,
+            #     f"{field_type.__module__}.{field_type.__qualname__}",
+            # )
+            # safe_callables.add(unregistered_type)
+
             # Once the _get_user_allowed_globals is fixed, the following line should be used instead
-            # safe_callables.add(field_type)
+            safe_callables.add(field_type)
 
     # Add all classes to the safe type set
     safe_callables.update(all_classes)
