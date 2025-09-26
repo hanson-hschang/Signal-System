@@ -145,7 +145,14 @@ def add_type_var(bound_class: Type, package_name: str) -> SafeCallables:
         LinearSoftmaxTC,
     )
 
-    safe_type_vars = SafeCallables({TC, SoftmaxTC, ExpTC, LinearSoftmaxTC})
+    safe_type_vars = SafeCallables(
+        {
+            (TC, TC.__name__),
+            (SoftmaxTC, SoftmaxTC.__name__),
+            (ExpTC, ExpTC.__name__),
+            (LinearSoftmaxTC, LinearSoftmaxTC.__name__),
+        }
+    )
 
     # Import all submodules to ensure all classes are loaded
     # Package.import_submodules(package_name)
