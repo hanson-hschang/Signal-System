@@ -148,7 +148,13 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         cls: Type[BLM],
         filename: Union[str, Path],
         safe_callables: Optional[Set[serialization.SafeCallable]] = None,
+        strict: bool = True,
     ) -> Tuple[BLM, Dict[str, Any]]:
+        if not strict:
+            logger.warning(
+                "Loading with strict=False is not recommended. "
+                "Do it only if you got the file from a trusted source."
+            )
         filepath = FilePathValidator(
             filename, BaseLearningModule.FILE_EXTENSIONS
         ).get_filepath()
@@ -159,6 +165,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
             model_info: Dict[str, Any] = torch.load(
                 filepath,
                 map_location=Device.CPU,
+                weights_only=strict,
             )
             config = cast(Config.BLC, model_info.pop("__config__"))
             module = cls(type(config).reload(config))
