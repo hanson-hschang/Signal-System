@@ -132,9 +132,19 @@ class LearningHmmFilter(
             shape (batch_size, estimation_dim, horizon,)
         """
 
-        emission_trajectory = self._emission(
+        emission_trajectory: torch.Tensor = self._emission(
             observation_trajectory,  # (batch_size, observation_dim=1, horizon,)
         )  # (batch_size, state_dim, horizon,)
+        # if self.training:
+        #     noise = (
+        #         torch.randn_like(
+        #             emission_trajectory, device=emission_trajectory.device
+        #         )
+        #         * 1e-6
+        #     )
+        #     emission_trajectory = torch.clip(
+        #         emission_trajectory + noise, min=0.0, max=1.0
+        #     )
         estimated_state_trajectory = self._transition(
             emission_trajectory
         )  # (batch_size, state_dim, horizon,)
