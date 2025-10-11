@@ -141,7 +141,7 @@ def add_type_var(bound_class: type, package_name: str) -> SafeCallables:
         "LinearSoftmaxTC": "ss.utility.learning.parameter.transformer.softmax.linear.config._config",  # noqa: E501
     }
 
-    safe_type_vars = set()
+    safe_type_vars: set[SafeCallable] = set()
     for class_name, module_path in type_var_config.items():
         try:
             module = __import__(module_path, fromlist=[class_name])
