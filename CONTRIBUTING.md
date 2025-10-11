@@ -56,13 +56,13 @@ We especially welcome contributions in these areas:
 1. **Fork the repository** on GitHub to your own account.
 
 2. **Clone your fork** locally:
-   ```bash
+   ```properties
    git clone https://github.com/your-username/pixelate.git
    cd pixelate
    ```
 
 3. **Create a feature branch**:
-   ```bash
+   ```properties
    git checkout -b feat/your-feature-name
    ```
 
@@ -72,13 +72,13 @@ We especially welcome contributions in these areas:
    - Update documentation if needed
 
 5. **Commit your changes**:
-   ```bash
+   ```properties
    git add .
    git commit -m "feat: add amazing new feature"
    ```
 
 6. **Push to your fork**:
-   ```bash
+   ```properties
    git push origin feature/your-feature-name
    ```
 
@@ -96,17 +96,17 @@ We especially welcome contributions in these areas:
 ## 🚀 Developer Setup
 
 ### I. Prerequisites
-This project uses uv for fast and reliable Python package management during development.
+This project uses [uv](https://docs.astral.sh/uv/) for fast and reliable Python package management during development.
 Install uv first:
 
-```bash
+```properties
 # Install uv with pip
 pip install uv
 ```
 
 ### II. Development Installation
 Clone the repository and install with dev dependencies:
-```bash
+```properties
 git clone https://github.com/hanson-hschang/pixelate.git
 cd pixelate
 uv sync --all-groups --all-extras
@@ -127,19 +127,19 @@ This installs the package in editable mode along with all development dependenci
 - bandit (security checking)
 
 **Pre-commit Hooks:** Install pre-commit hooks to ensure code quality before commits
-```bash
+```properties
 # Install pre-commit hooks
 uv run pre-commit install
 ```
 
 **Testing:** Use pytest for testing
-```bash
+```properties
 # Run tests
 uv run pytest --cov=src --cov-branch -c pyproject.toml
 ```
 
 **Linting and Formatting:** Use Ruff for linting and formatting
-```bash
+```properties
 # Check for linting issues
 uv run ruff check src tests
 # Automatically fix linting issues
@@ -148,7 +148,7 @@ uv run ruff check src tests --fix
 ```
 
 **Type Checking:** Use mypy for static type checking
-```bash
+```properties
 # Run static type checking
 uv run mypy src tests
 ```
@@ -195,7 +195,7 @@ type(scope): short description
 
 ### Examples
 
-```bash
+```properties
 feat(cli): add --verbose flag for detailed output
 fix(parser): handle edge case for empty input
 docs(readme): update installation instructions
