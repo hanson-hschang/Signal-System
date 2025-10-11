@@ -9,10 +9,10 @@ T = TypeVar("T", bound=nn.Module)
 
 class TypedModuleList(Generic[T], nn.ModuleList):
     def __iter__(self) -> Iterator[T]:
-        return super().__iter__()  # type: ignore[no-any-return]
+        return super().__iter__()  # type: ignore[return-value]
 
     def append(self, module: T) -> "TypedModuleList[T]":  # type: ignore[override]
-        return super().append(module)  # type: ignore[return-value]
+        return super().append(module)
 
     @overload
     def __getitem__(self, idx: slice) -> "TypedModuleList[T]": ...

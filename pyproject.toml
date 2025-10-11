@@ -148,16 +148,32 @@ exclude = [
 select = ["E", "F", "W"]
 
 [tool.mypy]
-python_version = "3.11"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
+# https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
+python_version = "3.13"
+pretty = true
+show_traceback = true
+color_output = true
+strict = true
+allow_redefinition = false
+check_untyped_defs = false
+disallow_subclassing_any = false
+disallow_untyped_calls = false
+disallow_any_generics = false
 disallow_incomplete_defs = true
-check_untyped_defs = true
-disallow_untyped_decorators = true
+ignore_missing_imports = true
+implicit_reexport = true
 no_implicit_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-warn_no_return = true
-warn_unreachable = true
+show_column_numbers = true
+show_error_codes = true
+show_error_context = true
 strict_equality = true
+strict_optional = true
+warn_no_return = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = false
+warn_unused_configs = true
+warn_unused_ignores = true
+exclude = [
+    'src/draft/.*\.py$',
+]

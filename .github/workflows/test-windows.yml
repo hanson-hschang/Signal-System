@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.13", "3.14"]
+        python-version: ["3.13"]
 
     defaults:
       run:
@@ -35,6 +35,15 @@ jobs:
 
     - name: Display Python version
       run: uv run python -c "import sys; print(sys.version)"
+
+    # Set up cache
+    - name: Set up cache
+      uses: actions/cache@v4
+      with:
+        path: ~\AppData\Local\pip\Cache
+        key: windows-pip-${{ matrix.python-version }}-${{ hashFiles('pyproject.toml') }}
+        restore-keys: |
+          windows-pip-
 
     # Install dependencies
     - name: Install dependencies
