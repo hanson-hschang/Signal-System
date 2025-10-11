@@ -4,3 +4,10 @@ from ._config import (
     TestingConfig,
     TrainingConfig,
 )
+
+__all__ = [
+    "EvaluationConfigProtocol",
+    "ProcessConfig",
+    "TestingConfig",
+    "TrainingConfig",
+]

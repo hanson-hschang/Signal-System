@@ -1,6 +1,6 @@
-from typing import Any, Callable, Dict
-
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -35,7 +35,6 @@ def training(
     result_directory: Path,
     new_training: bool = True,
 ) -> None:
-
     device_manager = DeviceManager()
 
     # Prepare data
@@ -89,8 +88,8 @@ def training(
         ) -> None:
             super().__init__(module, loss_function, optimizer)
 
-        def save_model_info(self) -> Dict[str, Any]:
-            custom_model_info: Dict[str, Any] = dict(
+        def save_model_info(self) -> dict[str, Any]:
+            custom_model_info: dict[str, Any] = dict(
                 # save extra arguments
             )
             return custom_model_info
@@ -109,7 +108,6 @@ def training(
 
     # Prepare learning process
     if new_training:
-
         # Prepare loss function
         loss_function = torch.nn.functional.cross_entropy
 
@@ -126,7 +124,6 @@ def training(
         )
 
     else:
-
         # Load learning process from checkpoint
         learning_process = LearningProcess.from_checkpoint(
             module=learning_filter,

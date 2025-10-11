@@ -1,5 +1,3 @@
-from typing import Optional
-
 from dataclasses import dataclass
 from enum import StrEnum, auto
 
@@ -9,7 +7,6 @@ from torch._dynamo import eval_frame
 
 @dataclass
 class CompileConfig:
-
     class Stance(StrEnum):
         DEFAULT = auto()
         FORCE_EAGER = auto()

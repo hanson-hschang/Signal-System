@@ -1,49 +1,48 @@
-from typing import Iterable, Optional, Union
-
+from collections.abc import Iterable
 from pathlib import Path
 
 
-def is_number(number: Union[int, float]) -> bool:
+def is_number(number: int | float) -> bool:
     return isinstance(number, (int, float))
 
 
-def is_positive_number(number: Union[int, float]) -> bool:
+def is_positive_number(number: int | float) -> bool:
     if isinstance(number, (int, float)):
         return number > 0
     return False
 
 
-def is_nonnegative_number(number: Union[int, float]) -> bool:
+def is_nonnegative_number(number: int | float) -> bool:
     if isinstance(number, (int, float)):
         return number >= 0
     return False
 
 
-def is_integer(number: Union[int, float]) -> bool:
+def is_integer(number: int | float) -> bool:
     if isinstance(number, (int, float)):
         return int(number) == number
     return False
 
 
-def is_positive_integer(number: Union[int, float]) -> bool:
+def is_positive_integer(number: int | float) -> bool:
     if isinstance(number, (int, float)):
         return number > 0 and int(number) == number
     return False
 
 
-def is_nonnegative_integer(number: Union[int, float]) -> bool:
+def is_nonnegative_integer(number: int | float) -> bool:
     if isinstance(number, (int, float)):
         return number >= 0 and int(number) == number
     return False
 
 
-def check_directory_existence(directory: Union[str, Path]) -> bool:
+def check_directory_existence(directory: str | Path) -> bool:
     if not isinstance(directory, (str, Path)):
         return False
     return Path(directory).is_dir()
 
 
-def check_parent_directory_existence(filename: Union[str, Path]) -> bool:
+def check_parent_directory_existence(filename: str | Path) -> bool:
     if not isinstance(filename, (str, Path)):
         return False
     directory = Path(filename).parent
@@ -52,7 +51,7 @@ def check_parent_directory_existence(filename: Union[str, Path]) -> bool:
     return directory.exists()
 
 
-def is_extension_valid(extension: Union[str, Iterable[str]]) -> bool:
+def is_extension_valid(extension: str | Iterable[str]) -> bool:
     if isinstance(extension, str):
         return extension.startswith(".")
     if isinstance(extension, Iterable):
@@ -61,8 +60,8 @@ def is_extension_valid(extension: Union[str, Iterable[str]]) -> bool:
 
 
 def is_filepath_valid(
-    filename: Union[str, Path],
-    extension: Optional[Union[str, Iterable[str]]] = None,
+    filename: str | Path,
+    extension: str | Iterable[str] | None = None,
 ) -> bool:
     if not isinstance(filename, (str, Path)):
         return False
@@ -78,8 +77,8 @@ def is_filepath_valid(
 
 
 def check_filepath_existence(
-    filename: Union[str, Path],
-    extension: Optional[Union[str, Iterable[str]]] = None,
+    filename: str | Path,
+    extension: str | Iterable[str] | None = None,
 ) -> bool:
     if not is_filepath_valid(filename, extension):
         return False

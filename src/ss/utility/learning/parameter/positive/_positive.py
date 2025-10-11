@@ -1,4 +1,4 @@
-from typing import Generic, Tuple, TypeVar, cast
+from typing import Generic, cast
 
 from ss.utility.learning.parameter.manifold import ManifoldParameter
 from ss.utility.learning.parameter.positive.config import (
@@ -18,9 +18,8 @@ from ss.utility.learning.parameter.transformer.exp.config import (
 class PositiveParameter(
     ManifoldParameter[T, PositiveParameterConfig[TC]], Generic[T, TC]
 ):
-
     def __init__(
-        self, config: PositiveParameterConfig[TC], shape: Tuple[int, ...]
+        self, config: PositiveParameterConfig[TC], shape: tuple[int, ...]
     ) -> None:
         super().__init__(config, shape)
 

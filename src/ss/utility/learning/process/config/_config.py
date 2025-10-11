@@ -1,7 +1,7 @@
-from typing import Callable, Optional, Protocol, cast
-
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum, Flag, StrEnum, auto
+from enum import Flag, StrEnum, auto
+from typing import Protocol, cast
 
 from ss.utility.condition import Condition
 from ss.utility.descriptor import DataclassDescriptor
@@ -13,19 +13,19 @@ logger = Logging.get_logger(__name__)
 
 class EvaluationConfigProtocol(Protocol):
     def termination_condition(
-        self, batch_number: Optional[int] = None
+        self, batch_number: int | None = None
     ) -> Condition: ...
 
 
 @dataclass
 class TestingConfig:
-    max_batch: Optional[int] = None
+    max_batch: int | None = None
 
     def __post_init__(self) -> None:
         self._termination_condition = Condition(any)
 
     def termination_condition(
-        self, batch_number: Optional[int] = None
+        self, batch_number: int | None = None
     ) -> Condition:
         if batch_number is not None:
             self._termination_condition(
@@ -39,10 +39,8 @@ class TestingConfig:
 
 @dataclass
 class ValidationConfig:
-
     @dataclass
     class Initial:
-
         class SkipDescriptor(DataclassDescriptor[bool]):
             def __set__(
                 self,
@@ -57,13 +55,13 @@ class ValidationConfig:
     initial: Initial = field(
         default_factory=cast(Callable[[], Initial], Initial)
     )
-    max_batch: Optional[int] = None
+    max_batch: int | None = None
 
     def __post_init__(self) -> None:
         self._condition = Condition(any)
         self._termination_condition = Condition(any)
 
-    def condition(self, iteration: Optional[int] = None) -> Condition:
+    def condition(self, iteration: int | None = None) -> Condition:
         if iteration is not None:
             self._condition(
                 iteration=(iteration % self.per_iteration_period) == 0
@@ -71,7 +69,7 @@ class ValidationConfig:
         return self._condition
 
     def termination_condition(
-        self, batch_number: Optional[int] = None
+        self, batch_number: int | None = None
     ) -> Condition:
         if batch_number is not None:
             self._termination_condition(
@@ -85,7 +83,6 @@ class ValidationConfig:
 
 @dataclass
 class TerminationConfig:
-
     class TerminationReason(Flag):
         NOT_TERMINATED = 0
         MAX_EPOCH = auto()
@@ -94,7 +91,7 @@ class TerminationConfig:
         # MAX_NO_IMPROVEMENT = auto()
 
     max_epoch: int = 1
-    max_iteration: Optional[int] = None
+    max_iteration: int | None = None
     # max_no_improvement: Optional[int] = None
 
     def __post_init__(self) -> None:
@@ -142,13 +139,14 @@ class TerminationConfig:
             self._update_condition(user_interrupt=True)
             return
         logger.error(
-            f"Cannot manually set the termination reason unless it is a user interruption."
+            "Cannot manually set the termination reason "
+            "unless it is a user interruption."
         )
 
     def condition(
         self,
-        epoch: Optional[int] = None,
-        iteration: Optional[int] = None,
+        epoch: int | None = None,
+        iteration: int | None = None,
         # loss: Optional[float] = None,
     ) -> Condition:
         # Once the termination is flagged, it will not be update
@@ -182,7 +180,6 @@ class TrainingConfig:
 
 @dataclass
 class ProcessConfig:
-
     class Mode(StrEnum):
         TRAINING = auto()
         ANALYSIS = auto()

@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -12,8 +12,8 @@ class DualFilter(Estimator):
         state_dim: int,
         observation_dim: int,
         history_horizon: int,
-        initial_distribution: Optional[ArrayLike] = None,
-        estimation_model: Optional[Callable] = None,
+        initial_distribution: ArrayLike | None = None,
+        estimation_model: Callable | None = None,
         batch_size: int = 1,
     ) -> None:
         super().__init__(
@@ -35,8 +35,10 @@ class DualFilter(Estimator):
         assert (self._initial_distribution.ndim == 1) and (
             self._initial_distribution.shape[0] == self._state_dim
         ), (
-            f"initial_distribution must be in the shape of {(self._state_dim,) = }. "
-            f"initial_distribution given has the shape of {self._initial_distribution.shape}."
+            f"initial_distribution must be in the "
+            f"shape of {(self._state_dim,) = }. "
+            f"initial_distribution given has the shape of "
+            f"{self._initial_distribution.shape}."
         )
 
     def reset(self) -> None:
@@ -75,8 +77,8 @@ class Filter(DualFilter):
         self,
         state_dim: int,
         observation_dim: int,
-        initial_distribution: Optional[ArrayLike] = None,
-        estimation_model: Optional[Callable] = None,
+        initial_distribution: ArrayLike | None = None,
+        estimation_model: Callable | None = None,
         batch_size: int = 1,
     ) -> None:
         super().__init__(
@@ -87,17 +89,6 @@ class Filter(DualFilter):
             estimation_model=estimation_model,
             batch_size=batch_size,
         )
-        # if initial_distribution is None:
-        #     initial_distribution = np.ones(self._state_dim) / self._state_dim
-        # self._initial_distribution = np.array(
-        #     initial_distribution, dtype=np.float64
-        # )
-        # assert (self._initial_distribution.ndim == 1) and (
-        #     self._initial_distribution.shape[0] == self._state_dim
-        # ), (
-        #     f"initial_distribution must be in the shape of {(self._state_dim,) = }. "
-        #     f"initial_distribution given has the shape of {self._initial_distribution.shape}."
-        # )
 
     def duplicate(self, batch_size: int) -> "Filter":
         """
@@ -120,8 +111,3 @@ class Filter(DualFilter):
             estimation_model=self._estimation_model,
             batch_size=batch_size,
         )
-
-    # def reset(self) -> None:
-    #     for i in range(self._batch_size):
-    #         self._estimated_state[i, :] = self._initial_distribution.copy()
-    #     self._observation_history[:, :, :] = 0.0

@@ -9,14 +9,18 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
     """
     Cart-pole system dynamics.
 
-    The cart-pole system is a classic control problem where a pole is attached to a cart moving along a frictionless track.
+    The cart-pole system is a classic control problem where a pole is attached
+      to a cart moving along a frictionless track.
 
-    The number of states is 4, with the state vector including position and velocity of the cart, and angle and angular velocity of the pole.
-    The pole is at its upright position when the angle is 0, and the positive direction is counter-clockwise.
-    The number of observations is 4, with the observation vector being the same as the state vector.
-    The number of controls is 1, with the control vector being the force applied to the cart.
+    The number of states is 4, with the state vector including position and
+    velocity of the cart, and angle and angular velocity of the pole.
+    The pole is at its upright position when the angle is 0, and the positive
+    direction is counter-clockwise. The number of observations is 4, with the
+    observation vector being the same as the state vector. The number of
+    controls is 1, with the control vector being the force applied to the cart.
 
-    The system is described by the equations from: https://courses.ece.ucsb.edu/ECE594/594D_W10Byl/hw/cartpole_eom.pdf
+    The system is described by the equations from:
+    https://courses.ece.ucsb.edu/ECE594/594D_W10Byl/hw/cartpole_eom.pdf
     """
 
     def __init__(
@@ -42,7 +46,7 @@ class CartPoleSystem(ContinuousTimeNonlinearSystem):
             pole_length: float = self._pole_length,
             gravity: float = self._gravity,
         ) -> NDArray[np.float64]:
-            cart_position = state[:, 0]
+            # cart_position = state[:, 0]
             cart_velocity = state[:, 1]
             pole_angle = state[:, 2]
             pole_angular_velocity = state[:, 3]

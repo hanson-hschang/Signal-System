@@ -1,5 +1,3 @@
-from typing import Callable, Generic, assert_never
-
 import torch
 
 from ss.estimation.filtering.hmm.learning.module.filter.config import (
@@ -35,7 +33,6 @@ class FilterModule(
 
         self._batch_size = 1
         self._estimated_state: torch.Tensor
-        # self._predicted_state: torch.Tensor
         self._init_state()
 
     state_dim = ReadOnlyDescriptor[int]()
@@ -45,10 +42,8 @@ class FilterModule(
 
     def _init_state(self) -> None:
         self._estimated_state = torch.zeros(self._batch_size, self._state_dim)
-        # self._predicted_state = torch.zeros(self._batch_size, self._state_dim)
 
     estimated_state = BatchTensorDescriptor("_batch_size", "_state_dim")
-    # predicted_state = BatchTensorDescriptor("_batch_size", "_state_dim")
 
 
 class DualFilterModule(

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
@@ -14,10 +12,7 @@ from ss.utility.assertion.validator import (
     PositiveNumberValidator,
     Validator,
 )
-from ss.utility.descriptor import (
-    BatchNDArrayDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
 
 
 class ModelPredictivePathIntegralController(Controller):
@@ -42,7 +37,8 @@ class ModelPredictivePathIntegralController(Controller):
     References:
     -----------
     arXiv version: https://arxiv.org/abs/1707.02342
-    IEEE Transactions on Robotics version: https://ieeexplore.ieee.org/ielaam/8860/8558659/8558663-aam.pdf
+    IEEE Transactions on Robotics version:
+    https://ieeexplore.ieee.org/ielaam/8860/8558659/8558663-aam.pdf
     """
 
     class _SystemValidator(Validator):
@@ -58,7 +54,8 @@ class ModelPredictivePathIntegralController(Controller):
             if issubclass(type(self._system), ContinuousTimeSystem):
                 return True
             self._errors.append(
-                f"system = {self._system} must be an instance of ContinuousTimeSystem"
+                f"system = {self._system} must be an "
+                f"instance of ContinuousTimeSystem"
             )
             return False
 
@@ -97,7 +94,8 @@ class ModelPredictivePathIntegralController(Controller):
             if self._system_state_dim == self._cost_state_dim:
                 return True
             self._errors.append(
-                f"system.state_dim = {self._system_state_dim} must be the same as cost.state_dim = {self._cost_state_dim}"
+                f"system.state_dim = {self._system_state_dim} must be "
+                f"the same as cost.state_dim = {self._cost_state_dim}"
             )
             return False
 
@@ -105,7 +103,8 @@ class ModelPredictivePathIntegralController(Controller):
             if self._system_control_dim == self._cost_control_dim:
                 return True
             self._errors.append(
-                f"system.control_dim = {self._system_control_dim} must be the same as cost.control_dim = {self._cost_control_dim}"
+                f"system.control_dim = {self._system_control_dim} must be "
+                f"the same as cost.control_dim = {self._cost_control_dim}"
             )
             return False
 
@@ -145,7 +144,8 @@ class ModelPredictivePathIntegralController(Controller):
             ):
                 return True
             self._errors.append(
-                f"base_control_confidence = {self._base_control_confidence} must be a positive number within the range (0, 1]"
+                f"base_control_confidence = {self._base_control_confidence} "
+                f"must be a positive number within the range (0, 1]"
             )
             return False
 
@@ -168,7 +168,8 @@ class ModelPredictivePathIntegralController(Controller):
             ):
                 return True
             self._errors.append(
-                f"exploration_percentage = {self._exploration_percentage} must be a positive number within the range (0, 1)"
+                f"exploration_percentage = {self._exploration_percentage} "
+                f"must be a positive number within the range (0, 1)"
             )
             return False
 
@@ -178,7 +179,7 @@ class ModelPredictivePathIntegralController(Controller):
     class _SmoothingWindowSizeValidator(PositiveIntegerValidator):
         def __init__(
             self,
-            smoothing_window_size: Optional[int],
+            smoothing_window_size: int | None,
             time_horizon: int,
         ) -> None:
             if smoothing_window_size is None:
@@ -194,7 +195,7 @@ class ModelPredictivePathIntegralController(Controller):
         temperature: float,
         base_control_confidence: float,
         exploration_percentage: float = 0.0,
-        smoothing_window_size: Optional[int] = None,
+        smoothing_window_size: int | None = None,
     ) -> None:
         self._SystemValidator(system)
         self._CostValidator(cost)
@@ -293,7 +294,7 @@ class ModelPredictivePathIntegralController(Controller):
     def _compute_control_cost_regularization_weight(self) -> float:
         return (1 - self._base_control_confidence) * self._temperature
 
-    def _reset_systems(self, state: Optional[NDArray] = None) -> None:
+    def _reset_systems(self, state: NDArray | None = None) -> None:
         if state is None:
             state = np.zeros_like(self._systems.state_dim)
         self._systems.state = np.tile(state, (self._number_of_samples, 1))

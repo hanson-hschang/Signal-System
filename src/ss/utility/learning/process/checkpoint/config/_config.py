@@ -1,9 +1,9 @@
-from typing import Callable, Optional, cast
-
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Flag, auto
 from pathlib import Path
+from typing import cast
 
 from ss.utility.assertion.validator import NonnegativeIntegerValidator
 from ss.utility.condition import Condition
@@ -15,10 +15,8 @@ logger = Logging.get_logger(__name__)
 
 @dataclass
 class CheckpointConfig:
-
     @dataclass
     class Initial:
-
         class SkipDescriptor(DataclassDescriptor[bool]):
             def __set__(
                 self,
@@ -41,7 +39,6 @@ class CheckpointConfig:
 
     @dataclass
     class Appendix:
-
         class Option(Flag):
             COUNTER = auto()
             DATE = auto()
@@ -144,8 +141,8 @@ class CheckpointConfig:
 
     def condition(
         self,
-        epoch: Optional[int] = None,
-        validation: Optional[int] = None,
+        epoch: int | None = None,
+        validation: int | None = None,
         initial: bool = False,
     ) -> Condition:
         if initial and self.per_epoch_period == 0:

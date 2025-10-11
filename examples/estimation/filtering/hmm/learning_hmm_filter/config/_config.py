@@ -1,5 +1,3 @@
-from typing import Optional
-
 from dataclasses import dataclass
 
 from ss.utility.click import BaseClickConfig
@@ -15,7 +13,7 @@ class UserConfig(BaseClickConfig):
         "hmm_filter_result"  # The foldername where the data is stored
     )
     data_filename: str = "system_train.hdf5"  # The filename of the data
-    model_foldername: Optional[str] = (
+    model_foldername: str | None = (
         None  # The foldername where the model is stored
     )
     model_filename: str = "learning_filter"  # The filename of the model

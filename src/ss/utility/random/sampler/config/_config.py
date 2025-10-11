@@ -1,9 +1,5 @@
-from typing import Optional, assert_never
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum, auto
-
-import torch
 
 from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,
@@ -46,14 +42,13 @@ class ProbabilityThresholdDescriptor(
         value = NonnegativeNumberValidator(value).get_value()
         if value > 1.0:
             raise ValueError(
-                "probability_threshold must be a positive number in between 0 and 1."
+                "probability_threshold must be a number between 0 and 1."
             )
         setattr(instance, self.private_name, value)
 
 
 @dataclass
 class SamplerConfig:
-
     class Option(StrEnum):
         AS_IS = auto()
         TOP_K = auto()
@@ -75,7 +70,11 @@ class SamplerConfig:
     )
 
     def __str__(self) -> str:
-        result = f"SamplerConfig(temperature={self.temperature}, option={self.option}"
+        result = (
+            "SamplerConfig("
+            f"temperature={self.temperature}, "
+            f"option={self.option}"
+        )
         match self.option:
             case SamplerConfig.Option.TOP_K:
                 result += (

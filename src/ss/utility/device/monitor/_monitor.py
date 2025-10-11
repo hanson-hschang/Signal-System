@@ -1,18 +1,14 @@
-from typing import Optional, Self, Union, assert_never
-
 import threading
 import time
 from pathlib import Path
+from typing import Self, assert_never
 
 from ss.utility.assertion.validator import (
     FilePathValidator,
     PositiveNumberValidator,
 )
 from ss.utility.device import Device
-from ss.utility.device.performance import (
-    Performance,
-    PerformanceCallback,
-)
+from ss.utility.device.performance import Performance, PerformanceCallback
 from ss.utility.device.performance.cpu import CpuPerformance
 from ss.utility.device.performance.cuda import CudaGpuPerformance
 from ss.utility.device.performance.mps import MpsPerformance
@@ -26,8 +22,8 @@ class DeviceMonitor:
         self,
         device: Device,
         sampling_interval: float = 1.0,
-        result_directory: Optional[Union[Path, str]] = None,
-        result_filename: Optional[str] = None,
+        result_directory: Path | str | None = None,
+        result_filename: str | None = None,
     ) -> None:
         self._device = device
         self._sampling_interval = PositiveNumberValidator(
@@ -46,7 +42,7 @@ class DeviceMonitor:
 
         self._start_time = 0.0
         self._end_time = 0.0
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._event = threading.Event()
 
         self._performance: Performance
@@ -94,16 +90,18 @@ class DeviceMonitor:
             self._thread.join(timeout=self._sampling_interval * 2)
             self._thread = None
         logger.debug(
-            f"Complete performance monitoring on the {self._device} device in {self._end_time:.2f} seconds."
+            f"Complete performance monitoring on the {self._device} device "
+            f"in {self._end_time:.2f} seconds."
         )
 
     def save_result(self) -> None:
         if self._device is None:
             logger.warning(
-                "No result file is saved because of no monitorable device detected."
+                "No result file saved since no monitorable device detected."
             )
             return
         logger.debug(
-            f"Save the {self._device} device performance monitoring result to {self._result_filepath}."
+            f"Save the {self._device} device performance monitoring result "
+            f"to {self._result_filepath}."
         )
         self._performance_callback.save(self._result_filepath)

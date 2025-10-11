@@ -1,27 +1,26 @@
-from typing import Optional, Self, Tuple
+from typing import Self
 
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
 
 from ss.figure.trajectory import SequenceTrajectoryFigure
 
 
 class DualHmmFigure(SequenceTrajectoryFigure):
-
     def __init__(
         self,
         time_trajectory: ArrayLike,
         estimation_trajectory: ArrayLike,
         dual_estimation_trajectory: ArrayLike,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
     ) -> None:
         self._estimation_trajectory = np.array(estimation_trajectory)
         self._dual_estimation_trajectory = np.array(dual_estimation_trajectory)
 
         self._estimation_dim = self._estimation_trajectory.shape[0]
 
-        fig_layout: Tuple = (self._estimation_dim, 1)
+        fig_layout: tuple = (self._estimation_dim, 1)
 
         super().__init__(
             sequence_trajectory=time_trajectory,

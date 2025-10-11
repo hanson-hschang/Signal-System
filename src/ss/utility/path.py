@@ -1,5 +1,3 @@
-from typing import Union
-
 import os
 from datetime import datetime
 from pathlib import Path
@@ -50,7 +48,7 @@ class PathManager:
         return self._result_directory_path / Path(self._logger_filename)
 
     def get_directory(
-        self, foldername: Union[str, Path], auto_create: bool = False
+        self, foldername: str | Path, auto_create: bool = False
     ) -> Path:
         directory = FolderPathExistenceValidator(
             self._current_directory_path / Path(foldername),

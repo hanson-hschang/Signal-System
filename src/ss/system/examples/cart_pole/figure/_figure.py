@@ -1,4 +1,4 @@
-from typing import Any, Dict, Self, Tuple, cast
+from typing import Any, Self, cast
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -15,7 +15,7 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
         self,
         time_trajectory: ArrayLike,
         state_trajectory: ArrayLike,
-        fig_size: Tuple[int, int] = (12, 8),
+        fig_size: tuple[int, int] = (12, 8),
     ) -> None:
         state_trajectory = np.array(state_trajectory)
         match len(state_trajectory.shape):
@@ -25,12 +25,14 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
                 state_trajectory = state_trajectory[np.newaxis, :, :]
             case _:
                 pass
-        assert (
-            len(state_trajectory.shape) == 3
-        ), "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
+        assert len(state_trajectory.shape) == 3, (
+            "state_trajectory in general is a 3D array with "
+            "shape (batch_size, state_dim, time_length)."
+        )
         assert state_trajectory.shape[1] == 4, (
-            "state_trajectory must have 4 states, corresponding to the cart-pole system."
-            "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
+            "state_trajectory must have 4 states, corresponding to "
+            "the cart-pole system. state_trajectory in general is "
+            "a 3D array with shape (batch_size, state_dim, time_length)."
         )
         super().__init__(
             time_trajectory,
@@ -41,7 +43,8 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
         )
         assert state_trajectory.shape[2] == self._sequence_length, (
             "state_trajectory must have the same length of time_trajectory."
-            "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
+            "state_trajectory in general is a 3D array with shape "
+            "(batch_size, state_dim, time_length)."
         )
 
         self._state_trajectory = state_trajectory
@@ -62,7 +65,7 @@ class CartPoleStateTrajectoryFigure(SequenceTrajectoryFigure):
         if self._batch_size <= 10:
             self._plot_each_system_trajectory()
         else:
-            kwargs: Dict = dict(
+            kwargs: dict = dict(
                 color=self._default_color,
                 alpha=self._default_alpha,
             )

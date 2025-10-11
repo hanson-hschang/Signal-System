@@ -1,4 +1,4 @@
-from typing import Generic, Optional, Tuple, cast
+from typing import Generic
 
 import torch
 from torch import nn
@@ -10,7 +10,7 @@ from ss.estimation.filtering.hmm.learning.module.transition.config import (
     TransitionConfig,
 )
 from ss.utility.descriptor import BatchTensorDescriptor
-from ss.utility.learning.module import BaseLearningModule, reset_module
+from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.learning.parameter.transformer import T
 from ss.utility.learning.parameter.transformer.config import TC
@@ -29,11 +29,11 @@ class DualTransitionModule(
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
-        self._initial_state: ProbabilityParameter[
-            T, TC
-        ] = ProbabilityParameter[T, TC](
-            self._config.initial_state.probability_parameter,
-            (self._state_dim,),
+        self._initial_state: ProbabilityParameter[T, TC] = (
+            ProbabilityParameter[T, TC](
+                self._config.initial_state.probability_parameter,
+                (self._state_dim,),
+            )
         )
         self._matrix = ProbabilityParameter[T, TC](
             self._config.matrix.probability_parameter,
@@ -65,7 +65,8 @@ class DualTransitionModule(
         if self._is_initialized:
             assert batch_size == self._batch_size, (
                 f"batch_size must be the same as the initialized batch_size. "
-                f"batch_size given is {batch_size} while the initialized batch_size is {self._batch_size}."
+                f"batch_size given is {batch_size} while the "
+                f"initialized batch_size is {self._batch_size}."
             )
             return
         self._init_batch_size(batch_size, is_initialized=True)
@@ -178,11 +179,11 @@ class DualTransitionModule(
         terminal_dual_function: torch.Tensor,
         emission_difference_trajectory: torch.Tensor,
         estimated_state_distribution_trajectory: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # transition_matrix: (state_dim, state_dim)
         # terminal_dual_function: (state_dim, state_dim)
         # emission_difference_trajectory: (batch_size, state_dim, horizon)
-        # estimated_state_distribution_trajectory: (batch_size, state_dim, horizon)
+        # estimated_state_distribution_trajectory: (batch_size, state_dim, horizon). # noqa: E501
 
         batch_size, state_dim, horizon = emission_difference_trajectory.shape
 
@@ -232,7 +233,7 @@ class DualTransitionModule(
         control_history: torch.Tensor,
     ) -> torch.Tensor:
         # initial_estimated_state_distribution: (batch_size, state_dim)
-        # initial_dual_function: (batch_size, state_dim, number_of_dual_functions)
+        # initial_dual_function: (batch_size, state_dim, number_of_dual_functions)  # noqa: E501
         # control_history: (batch_size, number_of_dual_functions, horizon)
         estimated_state_distribution = torch.einsum(
             "bi, bij -> bj",
@@ -269,12 +270,15 @@ class DualTransitionModule(
         # estimated_state_trajectory: (batch_size, state_dim, horizon)
         # emission_difference_trajectory: (batch_size, state_dim, horizon)
 
-        dual_function_history, control_history = self._compute_backward_path(
+        (
+            dual_function_history,  # (batch_size, state_dim, state_dim, horizon+1)  # noqa: E501
+            control_history,  # (batch_size, state_dim, horizon)
+        ) = self._compute_backward_path(
             self.matrix,  # (state_dim, state_dim)
             self._terminal_dual_function,
             emission_difference_trajectory,
             estimated_state_distribution_trajectory,
-        )  # (batch_size, state_dim, state_dim, horizon+1), (batch_size, state_dim, horizon)
+        )
 
         estimated_state_distribution = (
             self._compute_estimated_state_distribution(
@@ -306,7 +310,6 @@ class DualTransitionModule(
         emission_difference_trajectory = 2 * emission_trajectory - 1
 
         for k in range(1, horizon + 1):
-
             estimated_state = self._process(
                 estimated_state_distribution_trajectory[:, :, :k].clone(),
                 emission_difference_trajectory[:, :, :k],
@@ -330,7 +333,7 @@ class DualTransitionModule(
         )
         return self.estimated_state
 
-    def reset(self, batch_size: Optional[int] = None) -> None:
+    def reset(self, batch_size: int | None = None) -> None:
         self._init_batch_size(
             batch_size=self._batch_size if batch_size is None else batch_size,
             is_initialized=False,

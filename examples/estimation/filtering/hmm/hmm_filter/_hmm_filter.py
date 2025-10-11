@@ -26,7 +26,6 @@ def hmm_filtering(
     batch_size: int,
     result_directory: Path,
 ) -> None:
-
     # Create the system parameters
     transition_matrix = Utility.get_probability_matrix(
         state_dim, state_dim, temperature=1 / 3
@@ -76,7 +75,8 @@ def hmm_filtering(
     # Initialization
     current_time = 0.0
 
-    # Compute the initial filter estimation and system observation for dummy values
+    # Compute the initial filter estimation
+    # and system observation for dummy values
     system.observe()
     filter.estimate()
     dual_filter.estimate()
@@ -87,7 +87,6 @@ def hmm_filtering(
     dual_filter_callback.record(0, current_time)
 
     for k in tqdm(range(1, simulation_time_steps)):
-
         # Get the observation
         observation = system.observe()
 

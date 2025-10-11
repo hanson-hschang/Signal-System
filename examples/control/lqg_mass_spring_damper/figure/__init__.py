@@ -3,3 +3,9 @@ from ss.figure import show
 from ss.system.examples.mass_spring_damper.figure import (
     MassSpringDamperStateTrajectoryFigure,
 )
+
+__all__ = [
+    "MassSpringDamperStateTrajectoryFigure",
+    "CostTrajectoryFigure",
+    "show",
+]

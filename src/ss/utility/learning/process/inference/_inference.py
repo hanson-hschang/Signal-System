@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import ContextManager, Dict, Optional, Type
+from typing import ContextManager
 
 import torch
 
@@ -13,7 +13,7 @@ class InferenceContext(ContextManager):
         self._modules = tuple(
             self._device_manager.load_module(module) for module in modules
         )
-        self._inference_setting: Dict[Module.BaseLearningModule, bool] = dict()
+        self._inference_setting: dict[Module.BaseLearningModule, bool] = dict()
         self._no_grad = torch.no_grad()
 
     def __enter__(self) -> None:
@@ -25,9 +25,9 @@ class InferenceContext(ContextManager):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         for module, inference in self._inference_setting.items():
             # module.inference = inference

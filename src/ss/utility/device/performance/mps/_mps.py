@@ -1,9 +1,3 @@
-from typing import Optional, Union
-
-from pathlib import Path
-
-from torch import mps
-
 from ss.utility.device.performance import Performance
 
 
@@ -11,7 +5,6 @@ class MpsPerformance(Performance):
     def __init__(
         self,
     ) -> None:
-
         super().__init__("mps")
 
     def _process(self) -> None:

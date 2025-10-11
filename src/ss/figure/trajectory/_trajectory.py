@@ -1,6 +1,5 @@
-from typing import Any, List, Optional, Self, Tuple
+from typing import Any
 
-import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
@@ -16,33 +15,34 @@ class SequenceTrajectoryFigure(Figure):
         self,
         sequence_trajectory: ArrayLike,
         batch_size: int = 1,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
-        fig_layout: Tuple[int, int] = (1, 1),
-        column_ratio: Optional[Tuple[float, ...]] = None,
-        row_ratio: Optional[Tuple[float, ...]] = None,
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
+        fig_layout: tuple[int, int] = (1, 1),
+        column_ratio: tuple[float, ...] | None = None,
+        row_ratio: tuple[float, ...] | None = None,
     ) -> None:
         sequence_trajectory = np.array(sequence_trajectory)
         assert sequence_trajectory.ndim == 1, (
             f"sequency_trajectory must be in the shape of (sequence_length,). "
-            f"sequency_trajectory given has the shape of {sequence_trajectory.shape}."
+            f"sequency_trajectory given has the "
+            f"shape of {sequence_trajectory.shape}."
         )
         assert np.all(np.diff(sequence_trajectory) > 0), (
             f"sequency_trajectory must be monotonically increasing. "
             f"sequency_trajectory given is {sequence_trajectory}."
         )
-        assert is_positive_integer(
-            batch_size
-        ), f"{batch_size = } must be a positive integer."
-        assert (
-            len(fig_size) == 2
-        ), f"{fig_size = } must be a tuple (width, height)."
+        assert is_positive_integer(batch_size), (
+            f"{batch_size = } must be a positive integer."
+        )
+        assert len(fig_size) == 2, (
+            f"{fig_size = } must be a tuple (width, height)."
+        )
         assert np.all(
             [is_positive_number(fig_size[0]), is_positive_number(fig_size[1])]
         ), f"values of {fig_size = } must be positive numbers."
-        assert (
-            len(fig_layout) == 2
-        ), f"{fig_layout = } must be a tuple (nrows, ncols)."
+        assert len(fig_layout) == 2, (
+            f"{fig_layout = } must be a tuple (nrows, ncols)."
+        )
         assert np.all(
             [
                 is_positive_integer(fig_layout[0]),
@@ -71,8 +71,8 @@ class SequenceTrajectoryFigure(Figure):
         self,
         ax: Axes,
         signal_trajectory: NDArray[np.float64],
-        sequence_trajectory: Optional[NDArray] = None,
-        ylabel: Optional[str] = None,
+        sequence_trajectory: NDArray | None = None,
+        ylabel: str | None = None,
         **kwargs: Any,
     ) -> None:
         sequence_trajectory = (
@@ -91,8 +91,8 @@ class SequenceTrajectoryFigure(Figure):
 
     def _compute_system_statistics_trajectory(
         self,
-        signal_trajectory: NDArray[np.float64],
-    ) -> Tuple[NDArray[np.float64], NDArray[np.float64]]:
+        signal_trajectory: NDArray,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         mean_trajectory = np.mean(signal_trajectory, axis=0)
         std_trajectory = np.std(signal_trajectory, axis=0)
         return mean_trajectory, std_trajectory
@@ -118,8 +118,8 @@ class SequenceTrajectoryFigure(Figure):
         self,
         ax: Axes,
         probability_trajectory: NDArray[np.float64],
-        sequence_trajectory: Optional[NDArray] = None,
-        ylabel: Optional[str] = None,
+        sequence_trajectory: NDArray | None = None,
+        ylabel: str | None = None,
     ) -> QuadMesh:
         sequence_trajectory = (
             self._sequence_trajectory
@@ -160,11 +160,11 @@ class TimeTrajectoryFigure(SequenceTrajectoryFigure):
         self,
         time_trajectory: ArrayLike,
         batch_size: int = 1,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
-        fig_layout: Tuple[int, int] = (1, 1),
-        column_ratio: Optional[Tuple[float, ...]] = None,
-        row_ratio: Optional[Tuple[float, ...]] = None,
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
+        fig_layout: tuple[int, int] = (1, 1),
+        column_ratio: tuple[float, ...] | None = None,
+        row_ratio: tuple[float, ...] | None = None,
     ) -> None:
         super().__init__(
             sequence_trajectory=time_trajectory,

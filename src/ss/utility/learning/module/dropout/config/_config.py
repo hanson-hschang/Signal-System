@@ -1,7 +1,6 @@
-from typing import Any, Optional, Type
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import StrEnum, auto
+from typing import Any
 
 from ss.utility.assertion.validator import NonnegativeNumberValidator
 from ss.utility.descriptor import DataclassDescriptor
@@ -30,10 +29,12 @@ class DropoutConfig(Config.BaseLearningConfig):
     value : Value
         The value assigned to the dropout tensor element.
     scaling : bool, default = True
-        Whether the non-dropout tensor elements are scaled when the value is Value.ZERO.
+        Whether the non-dropout tensor elements are scaled
+        when the value is Value.ZERO.
         The scaling value is 1.0 / (1.0 - rate).
     log_zero_scale : float, default = -1.0
-        The scaling value for the dropout tensor element when the value is Value.LOG_ZERO.
+        The scaling value for the dropout tensor element
+        when the value is Value.LOG_ZERO.
     """
 
     class RateDescriptor(DataclassDescriptor[float]):
@@ -54,52 +55,32 @@ class DropoutConfig(Config.BaseLearningConfig):
         def _validate_instance(self, instance: "DropoutConfig") -> None:
             if instance.value != DropoutConfig.Value.ZERO:
                 raise AttributeError(
-                    f"'scaling' is only available for the value = {instance.Value.ZERO}. "
+                    f"'scaling' is only available for "
+                    f"the value = {instance.Value.ZERO}. "
                     f"The value given is {instance.value}."
                 )
-
-        # def __get__(
-        #     self,
-        #     instance: Optional["DropoutConfig"],
-        #     owner: Type["DropoutConfig"],
-        # ) -> bool:
-        #     if instance is None:
-        #         return super().__get__(instance, owner)
-        #     self._validate_instance(instance)
-        #     return super().__get__(instance, owner)
 
         def __set__(
             self,
             instance: "DropoutConfig",
             value: bool,
         ) -> None:
-            # self._check_dropout_value(instance)
             setattr(instance, self.private_name, value)
 
     class LogZeroScaleDescriptor(DataclassDescriptor[float, "DropoutConfig"]):
         def _validate_instance(self, instance: "DropoutConfig") -> None:
             if instance.value != DropoutConfig.Value.LOG_ZERO:
                 raise AttributeError(
-                    f"'log_zero_scale' is only available for the value = {instance.Value.LOG_ZERO}. "
+                    f"'log_zero_scale' is only available for "
+                    f"the value = {instance.Value.LOG_ZERO}. "
                     f"The value given is {instance.value}."
                 )
-
-        # def __get__(
-        #     self,
-        #     instance: Optional["DropoutConfig"],
-        #     owner: Type["DropoutConfig"],
-        # ) -> float:
-        #     if instance is None:
-        #         return super().__get__(instance, owner)
-        #     self._check_dropout_value(instance)
-        #     return super().__get__(instance, owner)
 
         def __set__(
             self,
             instance: "DropoutConfig",
             value: float,
         ) -> None:
-            # self._check_dropout_value(instance)
             if not (value < 0.0):
                 raise ValueError(
                     f"log_zero_scale must be less than 0.0. "

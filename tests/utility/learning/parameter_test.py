@@ -1,5 +1,3 @@
-from typing import cast
-
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -18,10 +16,6 @@ from ss.utility.learning.parameter.initializer.normal_distribution import (
 from ss.utility.learning.parameter.initializer.uniform_distribution import (
     UniformDistributionInitializer,
 )
-from ss.utility.learning.parameter.manifold import ManifoldParameter
-from ss.utility.learning.parameter.manifold.config import (
-    ManifoldParameterConfig,
-)
 from ss.utility.learning.parameter.positive import PositiveParameter
 from ss.utility.learning.parameter.positive.config import (
     PositiveParameterConfig,
@@ -29,13 +23,6 @@ from ss.utility.learning.parameter.positive.config import (
 from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
-)
-from ss.utility.learning.parameter.transformer.exp import ExpTransformer
-from ss.utility.learning.parameter.transformer.exp.config import (
-    ExpTransformerConfig,
-)
-from ss.utility.learning.parameter.transformer.norm.min_zero import (
-    MinZeroNormTransformer,
 )
 from ss.utility.learning.parameter.transformer.norm.min_zero.config import (
     MinZeroNormTransformerConfig,
@@ -308,7 +295,6 @@ class TestManifoldParameter:
         assert result.shape == (3, 4)
 
     def test_parameter_set_value(self, complex_module: ComplexModule) -> None:
-
         compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
             complex_module.positive_number = torch.full((3, 4), 5.0)

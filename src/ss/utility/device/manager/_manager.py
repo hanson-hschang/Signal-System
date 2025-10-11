@@ -1,7 +1,7 @@
-from typing import Generator, Optional, TypeVar, Union, assert_never
-
+from collections.abc import Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import TypeVar, assert_never
 
 import torch
 
@@ -17,8 +17,7 @@ M = TypeVar("M", bound=torch.nn.Module)
 
 
 class DeviceManager(metaclass=SingletonMeta):
-
-    def __init__(self, device: Optional[Device] = None) -> None:
+    def __init__(self, device: Device | None = None) -> None:
         if device is None:
             device = Device.CUDA if torch.cuda.is_available() else Device.CPU
         match device:
@@ -60,9 +59,9 @@ class DeviceManager(metaclass=SingletonMeta):
     def monitor_performance(
         self,
         sampling_interval: float = 1.0,
-        result_directory: Optional[Union[Path, str]] = None,
-        result_filename: Optional[str] = None,
-    ) -> Generator[DeviceMonitor, None, None]:
+        result_directory: Path | str | None = None,
+        result_filename: str | None = None,
+    ) -> Generator[DeviceMonitor]:
         try:
             device_monitor = DeviceMonitor(
                 device=self._device,

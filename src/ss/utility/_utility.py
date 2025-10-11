@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 from pathlib import Path
 
 from ss.utility.logging import Logging
@@ -10,7 +8,7 @@ def basic_config(
     file: str,
     verbose: bool,
     debug: bool,
-    result_directory: Optional[Union[str, Path]] = None,
+    result_directory: str | Path | None = None,
 ) -> PathManager:
     path_manager = PathManager(file)
     if result_directory:

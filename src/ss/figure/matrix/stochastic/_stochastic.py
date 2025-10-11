@@ -1,4 +1,4 @@
-from typing import Optional, Self, Tuple
+from typing import Self
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,13 +12,13 @@ class StochasticMatrixFigure(MatrixFigure):
     def __init__(
         self,
         stochastic_matrix: ArrayLike,
-        fig_size: Tuple[int, int] = (12, 8),
+        fig_size: tuple[int, int] = (12, 8),
         fig_title: str = "Stochastic Matrix Analysis",
     ) -> None:
         stochastic_matrix = np.array(stochastic_matrix)
-        assert (
-            len(stochastic_matrix.shape) == 2
-        ), "stochastic_matrix must be a 2D array."
+        assert len(stochastic_matrix.shape) == 2, (
+            "stochastic_matrix must be a 2D array."
+        )
         assert np.all(
             (0 <= stochastic_matrix) & (stochastic_matrix <= 1)
         ) and np.allclose(

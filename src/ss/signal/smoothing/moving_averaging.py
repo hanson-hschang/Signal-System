@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
@@ -10,25 +8,26 @@ from ss.utility.descriptor import ReadOnlyDescriptor
 
 class MovingAveragingSmoother:
     def __init__(self, window_size: int) -> None:
-        assert is_positive_integer(
-            window_size
-        ), f"window_size {window_size} must be a positive integer"
+        assert is_positive_integer(window_size), (
+            f"window_size {window_size} must be a positive integer"
+        )
         self._window_size = window_size
         self._average_filter = np.ones(self._window_size) / self._window_size
 
     window_size = ReadOnlyDescriptor[int]()
 
     def smooth(
-        self, signal: ArrayLike, axis: Optional[int] = None
+        self, signal: ArrayLike, axis: int | None = None
     ) -> NDArray[np.float64]:
         signal = np.array(signal, dtype=np.float64)
         shape = signal.shape
         if len(shape) == 1:
             signal = signal[np.newaxis, :]
             axis = 1
-        assert (
-            len(signal.shape) == 2
-        ), "signal must be a 2D array with the shape (signal_dim, signal_length)."
+        assert len(signal.shape) == 2, (
+            "signal must be a 2D array with the "
+            "shape (signal_dim, signal_length)."
+        )
         if axis is None:
             axis = 1
         assert axis in [0, 1], "axis must be 0 or 1."

@@ -1,9 +1,7 @@
-from typing import Generic, Self, Type, TypeVar, cast
-
 from dataclasses import dataclass, field
+from typing import Generic, Self, cast
 
 from ss.utility.learning.parameter.config import ParameterConfig
-from ss.utility.learning.parameter.transformer import Transformer
 from ss.utility.learning.parameter.transformer.config import (
     TC,
     TransformerConfig,
@@ -15,7 +13,6 @@ from ss.utility.learning.parameter.transformer.config import (
 
 @dataclass
 class ManifoldParameterConfig(ParameterConfig, Generic[TC]):
-
     transformer: TC = field(
         default_factory=lambda: cast(TC, TransformerConfig())
     )
@@ -26,5 +23,5 @@ class ManifoldParameterConfig(ParameterConfig, Generic[TC]):
     # )
 
     @classmethod
-    def create(cls: Type[Self], transformer: TC) -> Self:
+    def create(cls: type[Self], transformer: TC) -> Self:
         return cls(transformer=transformer)

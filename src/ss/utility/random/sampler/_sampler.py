@@ -1,9 +1,10 @@
-from typing import Callable, Tuple, TypeVar, assert_never
+from collections.abc import Callable
+from typing import TypeVar, assert_never
 
 import numpy as np
 import torch
 from numba import njit
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 from scipy.special import softmax
 
 from ss.utility.descriptor import ReadOnlyDescriptor
@@ -12,7 +13,7 @@ from ss.utility.random.sampler.config import SamplerConfig
 
 
 @njit(cache=True)  # type: ignore
-def reshape_probability(probability: NDArray) -> Tuple[NDArray, NDArray]:
+def reshape_probability(probability: NDArray) -> tuple[NDArray, NDArray]:
     sample_shape = np.array(probability.shape[:-1])
     number_of_choices = probability.shape[-1]
 
@@ -58,7 +59,6 @@ def top_k(probability: NDArray, kth: int) -> NDArray:
 
 @njit(cache=True)  # type: ignore
 def top_p(probability: NDArray, p: float) -> NDArray:
-
     # Sort the probability in descending order
     sorted_indices = np.argsort(probability)[::-1]
     sorted_probability = probability[sorted_indices]

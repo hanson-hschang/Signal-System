@@ -1,7 +1,6 @@
-from typing import Dict, Optional, Union, get_args
-
 from collections.abc import KeysView
 from pathlib import Path
+from typing import Union, get_args
 
 import h5py
 import numpy as np
@@ -20,11 +19,11 @@ class MetaData(dict):
 
     class _MetaDataValidator(Validator):
         def __init__(
-            self, meta_data: Dict[str, Union[ArrayLike, "MetaData"]]
+            self, meta_data: dict[str, Union[ArrayLike, "MetaData"]]
         ) -> None:
             super().__init__(meta_data)
             self._meta_data = meta_data
-            self._validated_meta_data: Dict[
+            self._validated_meta_data: dict[
                 str, Union[NDArray, "MetaData"]
             ] = dict()
             self.add_validation(self._validate_meta_data)
@@ -49,13 +48,14 @@ class MetaData(dict):
                     self._validated_meta_data[key] = np.array(value)
                 else:
                     self.add_error(
-                        "value in meta_data must be an array-like or a MetaData.",
+                        "value in meta_data must be "
+                        "an array-like or a MetaData.",
                         f"meta_data[{key}] = {value!r}",
                     )
                     return False
             return True
 
-        def get_meta_data(self) -> Dict[str, Union[NDArray, "MetaData"]]:
+        def get_meta_data(self) -> dict[str, Union[NDArray, "MetaData"]]:
             return self._validated_meta_data
 
     def __init__(self, **meta_data: Union[ArrayLike, "MetaData"]) -> None:
@@ -85,7 +85,7 @@ MetaInfoValueType = Union[bool, int, float, str]
 
 class MetaInfo(dict):
     class _MetaInfoValidator(Validator):
-        def __init__(self, meta_info: Dict[str, MetaInfoValueType]) -> None:
+        def __init__(self, meta_info: dict[str, MetaInfoValueType]) -> None:
             super().__init__(meta_info)
             self._meta_info = meta_info
             self.add_validation(self._validate_meta_info)
@@ -108,13 +108,15 @@ class MetaInfo(dict):
                     return False
                 if not isinstance(value, allowed_types):
                     self.add_error(
-                        f"each value in meta_info must be a {allowed_types_str}",
-                        f"meta_info[{key}] = {value} with type({value}) = {type(value)}",
+                        f"each value in meta_info must "
+                        f"be a {allowed_types_str}",
+                        f"meta_info[{key}] = {value} with "
+                        f"type({value}) = {type(value)}",
                     )
                     return False
             return True
 
-        def get_meta_info(self) -> Dict[str, MetaInfoValueType]:
+        def get_meta_info(self) -> dict[str, MetaInfoValueType]:
             return self._meta_info
 
     def __init__(self, **meta_info: MetaInfoValueType) -> None:
@@ -140,9 +142,9 @@ class Data:
 
     def __init__(
         self,
-        signal_trajectory: Dict[str, ArrayLike],
-        meta_data: Optional[MetaData] = None,
-        meta_info: Optional[MetaInfo] = None,
+        signal_trajectory: dict[str, ArrayLike],
+        meta_data: MetaData | None = None,
+        meta_info: MetaInfo | None = None,
     ) -> None:
         self._signal_trajectory = SignalTrajectoryValidator(
             signal_trajectory
@@ -151,12 +153,12 @@ class Data:
         self.meta_info = MetaInfo() if meta_info is None else meta_info
 
     @classmethod
-    def load(cls, filename: Union[str, Path]) -> "Data":
+    def load(cls, filename: str | Path) -> "Data":
         filepath = FilePathExistenceValidator(
             filename, cls._file_extension
         ).get_filepath()
 
-        signal_trajectory: Dict[str, ArrayLike] = dict()
+        signal_trajectory: dict[str, ArrayLike] = dict()
         meta_data = None
         meta_info = None
         with h5py.File(filepath, "r") as f:
@@ -179,8 +181,8 @@ class Data:
         value = np.array(value, dtype=np.float64)
         time_horizon = self._signal_trajectory["time"].shape[0]
         assert value.shape[-1] == time_horizon, (
-            f"last dimension of value must have the same time_horizon as 'time'."
-            f"{value.shape[-1] = } does not match the time_horizon {time_horizon}"
+            "last dimension of value must have the same as 'time_horizon'."
+            f"{value.shape[-1] = } does not match the {time_horizon = }"
         )
         self._signal_trajectory[key] = value
 

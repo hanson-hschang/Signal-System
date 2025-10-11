@@ -1,7 +1,7 @@
-from typing import Any, Generator, Optional, Tuple
-
 from collections import deque
+from collections.abc import Generator
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 from numba import njit
@@ -35,10 +35,11 @@ def get_estimation_model(
 
 def observation_generator(
     observation_trajectory: NDArray[np.int64],
-    discrete_observation_dim: Optional[int] = None,
-) -> Generator[Tuple[NDArray, NDArray], None, None]:
+    discrete_observation_dim: int | None = None,
+) -> Generator[tuple[NDArray, NDArray]]:
     """
-    Generate the pair (observation, next_observation) from the observation_trajectory over the time_horizon.
+    Generate the pair (observation, next_observation)
+    from the observation_trajectory over the time_horizon.
 
     Parameters
     ----------
@@ -85,8 +86,10 @@ def cross_entropy(
     """
     Compute the batch size cross-entropy loss, which is defined as
     :math: `-\\sum_{c=1}^{C} p^*_{nc} \\log(p_{nc})`
-    where :math: `C` is the number of classes, :math: `n \\in N` with `N` as the batch size,
-    :math: `p^*_{nc}` is the `target_probability`, and :math: `p_{nc}` is the `input_probability`.
+    where :math: `C` is the number of classes,
+    :math: `n \\in N` with `N` as the batch size,
+    :math: `p^*_{nc}` is the `target_probability`,
+    and :math: `p_{nc}` is the `input_probability`.
 
     Parameters
     ----------

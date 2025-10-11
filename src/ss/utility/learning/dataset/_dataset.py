@@ -1,13 +1,13 @@
-from typing import List, Optional, Sequence, Tuple, TypeVar
-
 from abc import abstractmethod
+from collections.abc import Sequence
+from typing import TypeVar
 
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from ss.utility.deprecation import deprecated
 
-D = TypeVar("D", bound=Dataset[Tuple[torch.Tensor, ...]])
+D = TypeVar("D", bound=Dataset[tuple[torch.Tensor, ...]])
 
 
 class BaseDataSubsets(list[D]):
@@ -16,10 +16,10 @@ class BaseDataSubsets(list[D]):
 
     def to_loaders(
         self,
-        batch_size: Optional[int] = None,
+        batch_size: int | None = None,
         shuffle: bool = True,
-    ) -> List[DataLoader[Tuple[torch.Tensor, ...]]]:
-        data_loaders: List[DataLoader[Tuple[torch.Tensor, ...]]] = []
+    ) -> list[DataLoader[tuple[torch.Tensor, ...]]]:
+        data_loaders: list[DataLoader[tuple[torch.Tensor, ...]]] = []
         for data_subset in self:
             data_loaders.append(
                 DataLoader(data_subset, batch_size=batch_size, shuffle=shuffle)
@@ -27,13 +27,12 @@ class BaseDataSubsets(list[D]):
         return data_loaders
 
 
-class BaseDataset(Dataset[Tuple[torch.Tensor, ...]]):
-
+class BaseDataset(Dataset[tuple[torch.Tensor, ...]]):
     @classmethod
     @abstractmethod
     def from_batch(
-        cls, batch: Tuple[torch.Tensor, ...]
-    ) -> Tuple[torch.Tensor, ...]:
+        cls, batch: tuple[torch.Tensor, ...]
+    ) -> tuple[torch.Tensor, ...]:
         """
         Extracts the data from the batch.
 
@@ -53,7 +52,7 @@ class BaseDataset(Dataset[Tuple[torch.Tensor, ...]]):
     def split(
         self,
         split_ratio: Sequence[float],
-        random_seed: Optional[int] = None,
+        random_seed: int | None = None,
     ) -> BaseDataSubsets:
         generator = (
             torch.Generator().manual_seed(random_seed) if random_seed else None
@@ -67,9 +66,9 @@ class BaseDataset(Dataset[Tuple[torch.Tensor, ...]]):
 
     def to_loader(
         self,
-        batch_size: Optional[int] = None,
+        batch_size: int | None = None,
         shuffle: bool = True,
-    ) -> DataLoader[Tuple[torch.Tensor, ...]]:
+    ) -> DataLoader[tuple[torch.Tensor, ...]]:
         data_loader = DataLoader(self, batch_size=batch_size, shuffle=shuffle)
         return data_loader
 
@@ -80,8 +79,8 @@ def dataset_split_to_loaders(
     split_ratio: Sequence[float],
     batch_size: int = 128,
     shuffle: bool = True,
-    random_seed: Optional[int] = None,
-) -> List[DataLoader]:
+    random_seed: int | None = None,
+) -> list[DataLoader]:
     generator = (
         torch.Generator().manual_seed(random_seed) if random_seed else None
     )

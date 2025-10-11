@@ -1,6 +1,5 @@
-from typing import Final, TypeVar
-
 from dataclasses import dataclass
+from typing import TypeVar
 
 from ss.utility.assertion.validator import (
     PositiveIntegerValidator,
@@ -12,7 +11,6 @@ from ss.utility.learning.parameter.transformer.config import TransformerConfig
 
 @dataclass
 class MinZeroNormTransformerConfig(TransformerConfig):
-
     class OrderDescriptor(DataclassDescriptor[int]):
         def __set__(
             self,

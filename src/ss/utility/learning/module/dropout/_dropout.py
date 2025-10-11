@@ -1,9 +1,9 @@
-from typing import Callable, assert_never
+from collections.abc import Callable
+from typing import assert_never
 
 import torch
 import torch.nn as nn
 
-from ss.utility.assertion.validator import NonnegativeNumberValidator
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.module.dropout import config as Config
 
@@ -70,12 +70,13 @@ class Dropout(BaseLearningModule[Config.DropoutConfig]):
     @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         if (not self.training) or (self._max_rate == 0) or (x.numel() == 1):
-            # If the model is not in training mode, the dropout rate is 0,
-            # or the input tensor is a scalar, return the input tensor as it is.
+            # If the model is not in training mode, the dropout rate is 0, or
+            # the input tensor is a scalar, return the input tensor as it is.
             return x
 
         if isinstance(x, nn.Parameter) and x.requires_grad is False:
-            # If the input tensor is a non-trainable parameter, return the input tensor as it is.
+            # If the input tensor is a non-trainable parameter,
+            # return the input tensor as it is.
             return x
 
         # keep _x at least a 2D or more dimensional tensor

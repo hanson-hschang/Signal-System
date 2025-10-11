@@ -1,4 +1,4 @@
-from typing import Generic, Self, Tuple, TypeVar, cast
+from typing import Generic, Self, TypeVar, cast
 
 import torch
 
@@ -18,7 +18,7 @@ class LinearSoftmaxTransformer(
     def __init__(
         self,
         config: LinearSoftmaxTransformerConfig[ExpTC],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
         self._intercept: PositiveParameter[ExpT, ExpTC] = (
@@ -69,7 +69,6 @@ class LinearSoftmaxTransformer(
         self._slope.bind_with(transformer.slope_parameter)
 
     def forward(self, parameter: torch.Tensor) -> torch.Tensor:
-
         intercept = cast(torch.Tensor, self._intercept()).expand(
             *parameter.shape
         )
@@ -106,7 +105,7 @@ class LinearSoftmaxTransformer(
         first_element = norm.reshape(-1)[0].item()
         reference = torch.full_like(norm, first_element)
         if not (torch.allclose(norm, reference) and first_element == 1):
-            raise ValueError(f"values at last axis must sum to 1.")
+            raise ValueError("values at last axis must sum to 1.")
 
         zero_mask = value == 0
         log_nonzero_min = torch.log(value[~zero_mask].min())

@@ -1,6 +1,5 @@
-from typing import Generic, TypeVar, Union
-
 from pathlib import Path
+from typing import Generic, TypeVar
 
 import numpy as np
 from numba import njit
@@ -8,10 +7,7 @@ from numpy.typing import NDArray
 
 from ss.utility.assertion import is_nonnegative_integer, is_positive_integer
 from ss.utility.callback import Callback
-from ss.utility.descriptor import (
-    BatchNDArrayDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
 
 
 class System:
@@ -22,18 +18,18 @@ class System:
         control_dim: int = 0,
         batch_size: int = 1,
     ) -> None:
-        assert is_positive_integer(
-            state_dim
-        ), f"state_dim {state_dim} must be a positive integer"
-        assert is_positive_integer(
-            observation_dim
-        ), f"observation_dim {observation_dim} must be a positive integer"
-        assert is_nonnegative_integer(
-            control_dim
-        ), f"control_dim {control_dim} must be a non-negative integer"
-        assert is_positive_integer(
-            batch_size
-        ), f"batch_size {batch_size} must be a positive integer"
+        assert is_positive_integer(state_dim), (
+            f"state_dim {state_dim} must be a positive integer"
+        )
+        assert is_positive_integer(observation_dim), (
+            f"observation_dim {observation_dim} must be a positive integer"
+        )
+        assert is_nonnegative_integer(control_dim), (
+            f"control_dim {control_dim} must be a non-negative integer"
+        )
+        assert is_positive_integer(batch_size), (
+            f"batch_size {batch_size} must be a positive integer"
+        )
 
         self._state_dim = int(state_dim)
         self._observation_dim = int(observation_dim)
@@ -72,9 +68,10 @@ class System:
             batch_size=batch_size,
         )
 
-    def process(self, time: Union[int, float]) -> Union[int, float]:
+    def process(self, time: int | float) -> int | float:
         """
-        Update the state of each system by one time step based on the current state and control (if existed).
+        Update the state of each system by one time step based on
+        the current state and control (if existed).
 
         Parameters
         ----------
@@ -100,7 +97,8 @@ class System:
         Returns
         -------
         `observation: ArrayLike[float]`
-            The observation vector of systems. Shape of the array is `(batch_size, observation_dim)`.
+            The observation vector of systems. Shape of the array is
+            `(batch_size, observation_dim)`.
         """
         self._update(
             self._observation,
@@ -145,9 +143,9 @@ class SystemCallback(Callback, Generic[S]):
         step_skip: int,
         system: S,
     ) -> None:
-        assert issubclass(
-            type(system), System
-        ), f"system must be a subclass of {System.__name__}"
+        assert issubclass(type(system), System), (
+            f"system must be a subclass of {System.__name__}"
+        )
         self._system: S = system
         super().__init__(step_skip)
 
@@ -159,7 +157,7 @@ class SystemCallback(Callback, Generic[S]):
             self._system.observe().copy()
         )
 
-    def save(self, filename: Union[str, Path]) -> None:
+    def save(self, filename: str | Path) -> None:
         self.add_meta_info(
             state_dim=self._system.state_dim,
             observation_dim=self._system.observation_dim,

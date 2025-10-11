@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Self, Tuple
+from typing import Self
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,7 +42,7 @@ def add_loss_line(
 
 
 def update_loss_ylim(
-    ax: Axes, min_max_value: Tuple[float, float], margin: float = 0.1
+    ax: Axes, min_max_value: tuple[float, float], margin: float = 0.1
 ) -> None:
     min_value = min(min_max_value)
     max_value = max(min_max_value)
@@ -58,10 +58,10 @@ class FilterResultFigure(SequenceTrajectoryFigure):
         self,
         time_trajectory: NDArray,
         observation_trajectory: NDArray,
-        filter_result_trajectory_dict: Dict[str, FilterResultTrajectory],
+        filter_result_trajectory_dict: dict[str, FilterResultTrajectory],
         loss_scaling: float = 1.0,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
     ) -> None:
         filter_names = list(filter_result_trajectory_dict.keys())
         discrete_observation_dim = filter_result_trajectory_dict[
@@ -90,7 +90,7 @@ class FilterResultFigure(SequenceTrajectoryFigure):
         self._observation_subplot.sharex(self._loss_subplot)
         self._target_subplot = self._subplots[1][0]
         self._target_subplot.sharex(self._loss_subplot)
-        self._result_subplots: Dict[str, Axes] = {}
+        self._result_subplots: dict[str, Axes] = {}
         for i, filter_name in enumerate(filter_result_trajectory_dict.keys()):
             self._result_subplots[filter_name] = self._subplots[i + 2][0]
             self._result_subplots[filter_name].sharex(self._loss_subplot)
@@ -112,13 +112,12 @@ class FilterResultFigure(SequenceTrajectoryFigure):
             filter_result,
         ) in self._filter_result_trajectory_dict.items():
             label_name = filter_name.replace("_", " ")
-
+            loss = np.mean(filter_result.loss[-last_horizon_for_loss_mean:])
             self._plot_signal_trajectory(
                 ax=self._loss_subplot,
                 signal_trajectory=filter_result.loss * self._loss_scaling,
                 ylabel="loss",
-                label=label_name
-                + f" (loss: {np.mean(filter_result.loss[-last_horizon_for_loss_mean:]):.2f})",
+                label=label_name + f" (loss: {loss:.2f})",
             )
             self._plot_probability_flow(
                 ax=self._result_subplots[filter_name],

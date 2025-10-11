@@ -1,6 +1,5 @@
-from typing import Any, Tuple
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any
 
 from ss.utility.assertion.validator import (
     NonnegativeIntegerValidator,

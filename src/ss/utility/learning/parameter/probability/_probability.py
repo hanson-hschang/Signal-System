@@ -1,4 +1,4 @@
-from typing import Generic, Tuple, TypeVar, cast
+from typing import Generic, cast
 
 from ss.utility.learning.parameter.manifold import ManifoldParameter
 from ss.utility.learning.parameter.probability.config import (
@@ -33,7 +33,7 @@ class ProbabilityParameter(
     ManifoldParameter[T, ProbabilityParameterConfig[TC]], Generic[T, TC]
 ):
     def __init__(
-        self, config: ProbabilityParameterConfig[TC], shape: Tuple[int, ...]
+        self, config: ProbabilityParameterConfig[TC], shape: tuple[int, ...]
     ) -> None:
         super().__init__(config, shape)
 

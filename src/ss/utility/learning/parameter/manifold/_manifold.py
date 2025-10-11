@@ -1,4 +1,4 @@
-from typing import Generic, Tuple, TypeVar, Union, cast
+from typing import Generic, TypeVar, Union, cast
 
 import torch
 import torch.nn as nn
@@ -8,7 +8,6 @@ from ss.utility.learning.parameter.manifold.config import (
     ManifoldParameterConfig,
 )
 from ss.utility.learning.parameter.transformer import T
-from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
@@ -22,7 +21,7 @@ class ManifoldParameter(Parameter[MPC], Generic[T, MPC]):
     def __init__(
         self,
         config: MPC,
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
         self._transformer: T = self._init_transformer()

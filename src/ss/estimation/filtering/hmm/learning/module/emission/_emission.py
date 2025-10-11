@@ -1,4 +1,4 @@
-from typing import Callable, Generic, assert_never
+from typing import Generic, assert_never
 
 import torch
 import torch.nn as nn
@@ -13,7 +13,6 @@ from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.probability import ProbabilityParameter
 from ss.utility.learning.parameter.transformer import T
 from ss.utility.learning.parameter.transformer.config import TC
-from ss.utility.map import transform
 
 
 @torch.compile
@@ -85,12 +84,12 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
     #     self,
     #     observation_trajectory: torch.Tensor,
     # ) -> torch.Tensor:
-    #     # observation_trajectory: (batch_size, horizon, discrete_observation_dim)
+    #     # observation_trajectory: (batch_size, horizon, discrete_observation_dim)  # noqa: E501
 
-    #     emission_matrix = self.matrix  # (state_dim, discrete_observation_dim)
+    #     emission_matrix = self.matrix  # (state_dim, discrete_observation_dim)  # noqa: E501
 
     #     emission_trajectory = torch.matmul(
-    #         observation_trajectory,  # (batch_size, horizon, discrete_observation_dim)
+    #         observation_trajectory,  # (batch_size, horizon, discrete_observation_dim)  # noqa: E501
     #         emission_matrix.T,  # (discrete_observation_dim, state_dim)
     #     )  # (batch_size, horizon, state_dim)
 
@@ -100,10 +99,9 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
         self,
         observation_trajectory: torch.Tensor,
     ) -> torch.Tensor:
-
         emission_trajectory = self._forward(
-            observation_trajectory,  # (batch_size, observation_dim=1, horizon,)
-        )  # (batch_size, state_dim, horizon,)
+            observation_trajectory,  # (batch_size, observation_dim=1, horizon)
+        )  # (batch_size, state_dim, horizon)
 
         return emission_trajectory
 
@@ -129,12 +127,14 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
                         -1
                     )  # (batch_size, observation_dim=1, horizon=1)
                 assert observation.ndim == 3, (
-                    f"observation must be in the shape of (batch_size, observation_dim=1, horizon). "
+                    f"observation must be in the shape of "
+                    f"(batch_size, observation_dim=1, horizon). "
                     f"observation given has the shape of {observation.shape}."
                 )
                 assert observation.shape[0:2] == (batch_size, 1), (
-                    f"observation must be in the shape of (batch_size={batch_size}, observation_dim=1, horizon). "
-                    f"observation given has the shape of {observation.shape}."
+                    f"observation must be in the shape of "
+                    f"(batch_size={batch_size}, observation_dim=1, horizon). "
+                    f"observation given has the shape = {observation.shape}."
                 )
             # case self._config.observation.Option.PROBABILITY:
             #     if observation.ndim == 1:
@@ -145,14 +145,15 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
             #         if batch_size == 1:
             #             observation = observation.unsqueeze(
             #                 0
-            #             )  # (batch_size=1, horizon, discrete_observation_dim)
+            #             )  # (batch_size=1, horizon, discrete_observation_dim)  # noqa: E501
             #         else:
             #             observation = observation.unsqueeze(
             #                 1
-            #             )  # (batch_size, horizon=1, discrete_observation_dim)
+            #             )  # (batch_size, horizon=1, discrete_observation_dim).  # noqa: E501
             #     assert observation.ndim == 3, (
-            #         f"observation must be in the shape of (batch_size, horizon, discrete_observation_dim). "
-            #         f"observation given has the shape of {observation.shape}."
+            #         f"observation must be in the shape of "
+            #         f"(batch_size, horizon, discrete_observation_dim). "
+            #         f"observation given has the shape = {observation.shape}."
             #     )
             case _ as _option:
                 assert_never(_option)

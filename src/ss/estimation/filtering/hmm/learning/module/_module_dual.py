@@ -1,26 +1,17 @@
-from typing import Generic, Tuple, assert_never
+from typing import Generic
 
 import torch
 
 from ss.estimation.filtering.hmm.learning.module.config import (
     LearningDualHmmFilterConfig,
 )
-from ss.estimation.filtering.hmm.learning.module.emission import (
-    EmissionModule,
-)
+from ss.estimation.filtering.hmm.learning.module.emission import EmissionModule
 from ss.estimation.filtering.hmm.learning.module.estimation import (
     EstimationModule,
 )
-from ss.estimation.filtering.hmm.learning.module.filter import (
-    DualFilterModule,
-)
+from ss.estimation.filtering.hmm.learning.module.filter import DualFilterModule
 from ss.estimation.filtering.hmm.learning.module.transition import (
     DualTransitionModule,
-)
-from ss.utility.descriptor import (
-    BatchTensorReadOnlyDescriptor,
-    Descriptor,
-    ReadOnlyDescriptor,
 )
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.transformer import T
@@ -35,7 +26,8 @@ class LearningDualHmmFilter(
     Generic[T, TC],
 ):
     """
-    `LearningHmmFilter` module for learning the hidden Markov model and estimating the next observation.
+    `LearningHmmFilter` module for learning the hidden Markov model
+    and estimating the next observation.
     """
 
     def __init__(
@@ -48,7 +40,8 @@ class LearningDualHmmFilter(
         Arguments:
         ----------
         config : LearningHmmFilterConfig
-            dataclass containing the configuration for the module `LearningHmmFilter` class
+            dataclass containing the configuration for the
+            module `LearningHmmFilter` class
         """
         super().__init__(config)
 
@@ -147,42 +140,6 @@ class LearningDualHmmFilter(
 
         return estimation_trajectory
 
-    # def _forward(
-    #     self,
-    #     emission_trajectory: torch.Tensor,
-    #     # emission_difference_trajectory: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     """
-    #     _forward method for the `LearningHmmFilter` class
-
-    #     Arguments
-    #     ---------
-    #     observation_trajectory : torch.Tensor
-    #         shape (batch_size, horizon)
-
-    #     Returns
-    #     -------
-    #     estimated_state_trajectory: torch.Tensor
-    #         shape (batch_size, horizon, state_dim)
-    #     predicted_state_trajectory: torch.Tensor
-    #         shape (batch_size, horizon, state_dim)
-    #     """
-
-    #     # emission_trajectory, emission_difference_trajectory = self._emission(
-    #     #     observation_trajectory
-    #     # )
-    #     # emission_difference_trajectory = self._filter.compute_emission_difference(
-    #     #     emission_trajectory,  # (batch_size, horizon, state_dim)
-    #     # )
-
-    #     estimated_state_trajectory: torch.Tensor = self._transition(
-    #         emission_trajectory
-    #     )  # (batch_size, horizon, state_dim)
-
-    #     # return estimated_state_trajectory, estimation_trajectory
-
-    #     return estimated_state_trajectory
-
     def reset(self, batch_size: int = 1) -> None:
         # self._is_initialized = False
         self.batch_size = batch_size
@@ -201,7 +158,8 @@ class LearningDualHmmFilter(
         Arguments:
         ----------
         observation : torch.Tensor
-            shape = (batch_size, observation_dim=1, horizon) or (batch_size, observation_dim=1,) or (observation_dim=1,)
+            shape = (batch_size, observation_dim=1, horizon) or
+            (batch_size, observation_dim=1,) or (observation_dim=1,)
         """
         emission_trajectory = self._emission.at_inference(
             observation,  # (batch_size, observation_dim=1, horizon,)
@@ -209,7 +167,6 @@ class LearningDualHmmFilter(
         )  # (batch_size, state_dim, horizon,)
 
         for k in range(emission_trajectory.shape[-1]):
-
             emission = emission_trajectory[
                 :, :, k
             ]  # (batch_size, observation_dim=1)
@@ -232,19 +189,19 @@ class LearningDualHmmFilter(
 
             # logger.info(self.transition._control_trajectory_over_layers)
 
-            # self._filter._estimated_state_history = estimated_state_trajectory
             self._filter.update_state(estimated_state_distribution)
-            # self._filter.predicted_state = predicted_state_trajectory[:, -1, :]
 
     @torch.inference_mode()
     def estimate(self) -> torch.Tensor:
         """
-        Compute the estimation. This method should be called after the `update` method.
+        Compute the estimation.
+        This method should be called after the `update` method.
 
         Returns
         -------
         estimation: torch.Tensor
-            Based on the estimation option in the configuration, the chosen estimation will be returned.
+            Based on the estimation option in the configuration,
+            the chosen estimation will be returned.
         """
         estimation: torch.Tensor = self._estimation.at_inference(
             self._filter._estimated_state,  # (batch_size, state_dim)

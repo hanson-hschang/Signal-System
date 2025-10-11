@@ -1,4 +1,5 @@
-from typing import Callable, Union, assert_never
+from collections.abc import Callable
+from typing import assert_never
 
 import numpy as np
 from numba import njit
@@ -12,16 +13,13 @@ from ss.system.linear import (
     DiscreteTimeLinearSystem,
 )
 from ss.utility.assertion import is_nonnegative_integer
-from ss.utility.descriptor import (
-    BatchNDArrayDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
 
 
 class LinearQuadraticRegulatorController(Controller):
     def __init__(
         self,
-        system: Union[ContinuousTimeLinearSystem, DiscreteTimeLinearSystem],
+        system: ContinuousTimeLinearSystem | DiscreteTimeLinearSystem,
         cost: QuadraticCost,
         time_horizon: int = 0,
     ) -> None:
@@ -31,20 +29,21 @@ class LinearQuadraticRegulatorController(Controller):
             f"{type(system) = } must be an instance of either "
             "ContinuousTimeLinearSystem or DiscreteTimeLinearSystem"
         )
-        assert isinstance(
-            cost, QuadraticCost
-        ), f"{type(cost) = } must be an instance of QuadraticCost"
+        assert isinstance(cost, QuadraticCost), (
+            f"{type(cost) = } must be an instance of QuadraticCost"
+        )
 
-        assert (
-            system.state_dim == cost.state_dim
-        ), f"{system.state_dim = } must be the same as {cost.state_dim = }"
-        assert (
-            system.control_dim == cost.control_dim
-        ), f"{system.control_dim = } must be the same as {cost.control_dim = }"
+        assert system.state_dim == cost.state_dim, (
+            f"{system.state_dim = } must be the same as {cost.state_dim = }"
+        )
+        assert system.control_dim == cost.control_dim, (
+            f"{system.control_dim = } must be "
+            f"the same as {cost.control_dim = }"
+        )
 
-        assert is_nonnegative_integer(
-            time_horizon
-        ), f"{time_horizon = } must be a nonnegative integer"
+        assert is_nonnegative_integer(time_horizon), (
+            f"{time_horizon = } must be a nonnegative integer"
+        )
 
         super().__init__(
             control_dim=system.control_dim,
@@ -62,8 +61,10 @@ class LinearQuadraticRegulatorController(Controller):
 
         if self._time_horizon == 0:
             # Infinite time horizon case:
-            # The optimal gain is the negative of running_cost_control_weight @ B @ solution_are
-            # where solution_are is the solution to the algebraic Riccati equation
+            # The optimal gain is the negative of
+            # running_cost_control_weight @ B @ solution_are
+            # where solution_are is the solution to the
+            # algebraic Riccati equation (ARE)
             if isinstance(system, ContinuousTimeLinearSystem):
                 solve_are = solve_continuous_are
             elif isinstance(system, DiscreteTimeLinearSystem):

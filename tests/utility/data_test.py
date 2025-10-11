@@ -5,7 +5,6 @@ from ss.utility.data import Data, MetaData, MetaInfo
 
 
 class TestMetaData:
-
     @pytest.fixture
     def meta_data(self) -> MetaData:
         return MetaData(
@@ -21,7 +20,6 @@ class TestMetaData:
 
 
 class TestMetaInfo:
-
     @pytest.fixture
     def meta_info(self) -> MetaInfo:
         return MetaInfo(
@@ -37,7 +35,6 @@ class TestMetaInfo:
 
 
 class TestData:
-
     @pytest.fixture
     def data(self) -> Data:
         return Data(

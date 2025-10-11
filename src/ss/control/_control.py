@@ -3,10 +3,7 @@ from numba import njit
 from numpy.typing import NDArray
 
 from ss.utility.assertion import is_positive_integer
-from ss.utility.descriptor import (
-    BatchNDArrayDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
 
 
 class Controller:
@@ -15,12 +12,12 @@ class Controller:
         control_dim: int,
         batch_size: int = 1,
     ) -> None:
-        assert is_positive_integer(
-            control_dim
-        ), f"{control_dim = } must be a positive integer"
-        assert is_positive_integer(
-            batch_size
-        ), f"{batch_size = } must be a positive integer"
+        assert is_positive_integer(control_dim), (
+            f"{control_dim = } must be a positive integer"
+        )
+        assert is_positive_integer(batch_size), (
+            f"{batch_size = } must be a positive integer"
+        )
 
         self._control_dim = int(control_dim)
         self._batch_size = int(batch_size)

@@ -1,18 +1,18 @@
-from typing import Any, Generic, Optional, Type, TypeVar
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
-O = TypeVar("O", bound=object, default=object)
+O = TypeVar("O", bound=object, default=object)  # noqa: E741
 
 
 class ReadOnlyDescriptor(Generic[T, O]):
-    def __set_name__(self, owner: Type[O], name: str) -> None:
+    def __set_name__(self, owner: type[O], name: str) -> None:
         self.name = name
         self.private_name = "_" + name
 
     def _validate_instance(self, instance: O) -> None:
         pass
 
-    def __get__(self, instance: Optional[O], owner: Type[O]) -> T:
+    def __get__(self, instance: O | None, owner: type[O]) -> T:
         if instance is None:
             raise AttributeError(f"'{self.name}' is not set.")
         self._validate_instance(instance)
@@ -27,17 +27,17 @@ class Descriptor(ReadOnlyDescriptor[T, O], Generic[T, O]):
 
 
 class ReadOnlyDataclassDescriptor(Generic[T, O]):
-    def __init__(self, value: Optional[T] = None) -> None:
+    def __init__(self, value: T | None = None) -> None:
         self._default_value = value
 
-    def __set_name__(self, owner: Type[O], name: str) -> None:
+    def __set_name__(self, owner: type[O], name: str) -> None:
         self.name = name
         self.private_name = "_" + name
 
     def _validate_instance(self, instance: O) -> None:
         pass
 
-    def __get__(self, instance: Optional[O], owner: Type[O]) -> T:
+    def __get__(self, instance: O | None, owner: type[O]) -> T:
         if instance is None:
             if self._default_value is None:
                 raise AttributeError(f"'{self.name}' is not set.")

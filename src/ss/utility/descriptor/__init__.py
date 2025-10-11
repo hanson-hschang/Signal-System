@@ -16,3 +16,18 @@ from ._descriptor_tensor import (
     TensorDescriptor,
     TensorReadOnlyDescriptor,
 )
+
+__all__ = [
+    "Descriptor",
+    "ReadOnlyDescriptor",
+    "DataclassDescriptor",
+    "ReadOnlyDataclassDescriptor",
+    "NDArrayDescriptor",
+    "NDArrayReadOnlyDescriptor",
+    "BatchNDArrayDescriptor",
+    "BatchNDArrayReadOnlyDescriptor",
+    "TensorDescriptor",
+    "TensorReadOnlyDescriptor",
+    "BatchTensorDescriptor",
+    "BatchTensorReadOnlyDescriptor",
+]

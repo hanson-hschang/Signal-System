@@ -1,4 +1,4 @@
-from typing import Self, Tuple, TypeVar
+from typing import Self, TypeVar
 
 import torch
 
@@ -14,7 +14,7 @@ class MinZeroNormTransformer(
     def __init__(
         self,
         config: MinZeroNormTransformerConfig,
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
         self._even_power = self._config.even_power

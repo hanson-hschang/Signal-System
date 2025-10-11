@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from numba import njit
 from numpy.typing import ArrayLike, NDArray
@@ -29,7 +27,7 @@ class QuadraticCost(Cost):
 
     class _TerminalCostWeightValidator(Validator):
         def __init__(
-            self, dimension: int, cost_weight: Optional[ArrayLike] = None
+            self, dimension: int, cost_weight: ArrayLike | None = None
         ) -> None:
             super().__init__(cost_weight)
             if cost_weight is None:
@@ -51,7 +49,7 @@ class QuadraticCost(Cost):
     class _IntrinsicVectorValidator(Validator):
         def __init__(
             self,
-            intrinsic_vector: Optional[ArrayLike],
+            intrinsic_vector: ArrayLike | None,
             dimension: int,
         ) -> None:
             super().__init__(intrinsic_vector)
@@ -66,7 +64,8 @@ class QuadraticCost(Cost):
             if (len(shape) == 1) and (shape[0] == self._dimension):
                 return True
             self._errors.append(
-                f"length of intrinsic_vector should be equal to dimension {self._dimension}"
+                f"length of intrinsic_vector should be equal to "
+                f"dimension {self._dimension}"
             )
             return False
 
@@ -77,10 +76,10 @@ class QuadraticCost(Cost):
         self,
         running_cost_state_weight: NDArray,
         running_cost_control_weight: NDArray,
-        terminal_cost_state_weight: Optional[NDArray] = None,
-        terminal_cost_control_weight: Optional[NDArray] = None,
-        intrinsic_state: Optional[NDArray] = None,
-        intrinsic_control: Optional[NDArray] = None,
+        terminal_cost_state_weight: NDArray | None = None,
+        terminal_cost_control_weight: NDArray | None = None,
+        intrinsic_state: NDArray | None = None,
+        intrinsic_control: NDArray | None = None,
         time_step: float = 1.0,
         batch_size: int = 1,
     ) -> None:

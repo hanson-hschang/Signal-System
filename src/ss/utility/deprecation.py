@@ -1,14 +1,14 @@
-from typing import Any, Callable, Optional
-
 import warnings
+from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
 
-def deprecated(alternative_usage: Optional[str] = None) -> Callable:
+def deprecated(alternative_usage: str | None = None) -> Callable:
     """Deprecation decorator with message."""
 
     def decorator(func: Callable) -> Callable:
