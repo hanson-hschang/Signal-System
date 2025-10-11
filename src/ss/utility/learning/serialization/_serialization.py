@@ -133,37 +133,25 @@ def add_subclass(base_class: type, package_name: str) -> SafeCallables:
 
 
 def add_type_var(bound_class: type, package_name: str) -> SafeCallables:
-    from ss.utility.learning.parameter.transformer.config import TC
-    from ss.utility.learning.parameter.transformer.exp.config import ExpTC
-    from ss.utility.learning.parameter.transformer.softmax.config import (
-        SoftmaxTC,
-    )
-    from ss.utility.learning.parameter.transformer.softmax.linear.config import (  # noqa: E501
-        LinearSoftmaxTC,
-    )
+    """Build SafeCallables from a configuration mapping."""
+    type_var_config = {
+        "TC": "ss.utility.learning.parameter.transformer.config._config",
+        "ExpTC": "ss.utility.learning.parameter.transformer.exp.config._config",  # noqa: E501
+        "SoftmaxTC": "ss.utility.learning.parameter.transformer.softmax.config._config",  # noqa: E501
+        "LinearSoftmaxTC": "ss.utility.learning.parameter.transformer.softmax.linear.config._config",  # noqa: E501
+    }
 
-    safe_type_vars = SafeCallables(
-        {
-            (TYPE, TYPE.__name__)
-            for TYPE in [
-                TC,
-                SoftmaxTC,
-                ExpTC,
-                LinearSoftmaxTC,
-            ]
-        }
-    )
+    safe_type_vars = set()
+    for class_name, module_path in type_var_config.items():
+        try:
+            module = __import__(module_path, fromlist=[class_name])
+            cls = getattr(module, class_name)
+            safe_type_vars.add((cls, f"{module_path}.{class_name}"))
+        except (ImportError, AttributeError):
+            # Log or handle missing classes
+            pass
 
-    # safe_type_vars = SafeCallables(
-    #     {
-    #         (TC, TC.__name__),
-    #         (SoftmaxTC, SoftmaxTC.__name__),
-    #         (ExpTC, ExpTC.__name__),
-    #         (LinearSoftmaxTC, LinearSoftmaxTC.__name__),
-    #     }
-    # )
-
-    return safe_type_vars
+    return SafeCallables(safe_type_vars)
 
 
 def add_builtin() -> SafeCallables:

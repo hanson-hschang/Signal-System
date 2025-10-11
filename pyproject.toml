@@ -52,6 +52,7 @@ dev = [
     "ruff",
     "mypy>=1.10.0",
     "mypy-extensions>=1.0.0",
+    "bandit[toml]>=1.7.0",
 ]
 
 [build-system]

@@ -82,15 +82,17 @@ def get_help_text(
     source = inspect.getsource(CustomClickConfig)
 
     # Look for the field definition and extract any comment
-    # Regex components for matching a dataclass field definition with a comment:
+    # Regex components for matching a dataclass field with a comment:
     # - field_name: the name of the field
-    # - type_annotation: matches type annotations like 'str', 'list[int]', or 'typing.Optional[str]'
+    # - type_annotation: matches type annotations like 'str', 'list[int]', ...
     # - default_value: matches an optional default value assignment
     # - comment: matches the comment after '#'
     type_annotation = r"(?:\w+|\w+\[.*?\]|[\w.]+)"
     default_value = r"(?:=\s*[^#]*)?"
     comment = r"#\s*(.*)"
-    pattern = rf"{field_name}\s*:\s*{type_annotation}\s*{default_value}\s*{comment}"  # noqa: E501
+    pattern = (
+        rf"{field_name}\s*:\s*{type_annotation}\s*{default_value}\s*{comment}"  # noqa: E501
+    )
     found = re.search(pattern, source)
 
     if found and found.group(1):
