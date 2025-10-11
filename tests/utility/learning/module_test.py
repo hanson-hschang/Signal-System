@@ -53,7 +53,6 @@ class TestBaseLearningModule:
         simple_module.save(tmp_path / "model.pt", dict(trained_epochs=10))
         loaded_module, loaded_model_info = SimpleModule.load(
             tmp_path / "model.pt",
-            # {SimpleConfig},
         )
         assert isinstance(loaded_module, SimpleModule)
         assert loaded_module._config == simple_module._config
