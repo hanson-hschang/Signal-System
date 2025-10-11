@@ -1,4 +1,4 @@
-from typing import Optional, Self, Tuple
+from typing import Self
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,7 +13,7 @@ class MatrixFigure(Figure):
     def __init__(
         self,
         matrix: ArrayLike,
-        fig_size: Tuple[int, int] = (12, 8),
+        fig_size: tuple[int, int] = (12, 8),
         fig_title: str = "Matrix Analysis",
     ) -> None:
         matrix = np.array(matrix)

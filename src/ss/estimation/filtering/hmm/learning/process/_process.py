@@ -1,11 +1,8 @@
-from typing import Tuple
-
 import torch
 
 from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
 from ss.utility.learning.process import BaseLearningProcess
 from ss.utility.logging import Logging
-from ss.utility.map import transform
 
 logger = Logging.get_logger(__name__)
 
@@ -20,11 +17,11 @@ def to_log_probability(
 
 class LearningHmmFilterProcess(BaseLearningProcess):
     def _evaluate_one_batch(
-        self, data_batch: Tuple[torch.Tensor, ...]
+        self, data_batch: tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
         (
             observation_trajectory,  # (batch_size, observation_dim=1, horizon)
-            target_estimation_trajectory,  # (batch_size, observation_dim=1, horizon)
+            target_estimation_trajectory,  # (batch_size, observation_dim=1, horizon)  # noqa: E501
         ) = HmmObservationDataset.from_batch(data_batch)
         estimation_trajectory = self._module(
             observation_trajectory=observation_trajectory

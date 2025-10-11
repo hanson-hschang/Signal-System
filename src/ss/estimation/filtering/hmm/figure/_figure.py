@@ -1,4 +1,4 @@
-from typing import Optional, Self, Tuple
+from typing import Self
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +16,7 @@ class HmmFilterFigure(SequenceTrajectoryFigure):
     class _SignalTrajectoryValidator(Validator):
         def __init__(
             self,
-            signal_trajectory: Optional[ArrayLike],
+            signal_trajectory: ArrayLike | None,
             time_length: int,
             signal_name: str = "signal_trajectory",
         ) -> None:
@@ -39,13 +39,18 @@ class HmmFilterFigure(SequenceTrajectoryFigure):
                 case _:
                     pass
             assert self._signal_trajectory.ndim == 2, (
-                f"{self._signal_name} must be in the shape of (signal_dim, time_horizon). "
-                f"{self._signal_name} given has the shape of {self._signal_trajectory.shape}."
+                f"{self._signal_name} must be in the shape "
+                "of (signal_dim, time_horizon). "
+                f"{self._signal_name} given has the shape "
+                f"of {self._signal_trajectory.shape}."
             )
             assert self._signal_trajectory.shape[1] == self._time_length, (
-                f"{self._signal_name} must have the same time horizon as time_trajectory. "
-                f"{self._signal_name} has the time horizon of {self._signal_trajectory.shape[1]} "
-                f"while time_trajectory has the time horizon of {self._time_length}."
+                f"{self._signal_name} must have the same "
+                "time horizon as time_trajectory. "
+                f"{self._signal_name} has the time horizon "
+                f"of {self._signal_trajectory.shape[1]} "
+                f"while time_trajectory has the time horizon "
+                f"of {self._time_length}."
             )
 
         def get_trajectory(self) -> NDArray[np.float64]:
@@ -61,11 +66,11 @@ class HmmFilterFigure(SequenceTrajectoryFigure):
         state_trajectory: ArrayLike,
         observation_trajectory: ArrayLike,
         estimated_state_trajectory: ArrayLike,
-        discrete_state_dim: Optional[int] = None,
-        discrete_observation_dim: Optional[int] = None,
-        estimation_trajectory: Optional[ArrayLike] = None,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
+        discrete_state_dim: int | None = None,
+        discrete_observation_dim: int | None = None,
+        estimation_trajectory: ArrayLike | None = None,
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
     ) -> None:
         time_length = np.array(time_trajectory).shape[0]
         self._state_trajectory = (
@@ -97,7 +102,7 @@ class HmmFilterFigure(SequenceTrajectoryFigure):
             signal_name="estimation_trajectory",
         ).get_trajectory()
 
-        fig_layout: Tuple = (3, 1)
+        fig_layout: tuple = (3, 1)
         if self._SignalTrajectoryValidator.has_value(
             self._estimation_trajectory,
         ):

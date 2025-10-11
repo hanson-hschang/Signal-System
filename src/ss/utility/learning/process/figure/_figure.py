@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Self, Tuple
+from typing import Self
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -10,13 +10,13 @@ from ss.figure.trajectory import SequenceTrajectoryFigure
 class IterationFigure(SequenceTrajectoryFigure):
     def __init__(
         self,
-        training_loss_history: Dict[str, List],
-        validation_loss_history: Optional[Dict[str, List]] = None,
+        training_loss_history: dict[str, list],
+        validation_loss_history: dict[str, list] | None = None,
         iteration_log_scale: bool = True,
         scaling: float = 1.0,
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
-        fig_layout: Tuple[int, int] = (1, 1),
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
+        fig_layout: tuple[int, int] = (1, 1),
     ) -> None:
         training_loss = np.array(training_loss_history["loss"])
         match training_loss.ndim:
@@ -28,7 +28,7 @@ class IterationFigure(SequenceTrajectoryFigure):
             "training_loss_history['loss'] must be a 2D array "
             "with shape (number_of_trainings, iteration_length)."
         )
-        _training_loss_history: Dict[str, NDArray] = dict(
+        _training_loss_history: dict[str, NDArray] = dict(
             iteration=np.array(training_loss_history["iteration"]),
             loss=training_loss,
         )
@@ -67,7 +67,7 @@ class IterationFigure(SequenceTrajectoryFigure):
                 "validation_loss_history['loss_std'] must be a 2D array"
                 "with shape (number_of_trainings, iteration_length)"
             )
-            _validation_loss_history: Optional[Dict[str, NDArray]] = dict(
+            _validation_loss_history: dict[str, NDArray] | None = dict(
                 iteration=np.array(validation_loss_history["iteration"]),
                 loss_mean=validation_loss_mean,
                 loss_std=validation_loss_std,

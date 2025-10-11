@@ -1,0 +1,49 @@
+name: Windows
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: test (Python ${{ matrix.python-version }})
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    # Check out the repository
+    - uses: actions/checkout@v4
+
+    # Install uv to manage Python versions
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    # Set up the Python version
+    - name: Set up Python ${{ matrix.python-version }}
+      run: uv python install ${{ matrix.python-version }}
+
+    - name: Display Python version
+      run: uv run python -c "import sys; print(sys.version)"
+
+    # Install dependencies
+    - name: Install dependencies
+      shell: bash
+      run: |
+        make install-dev
+
+    # Run tests
+    - name: Test with pytest
+      shell: bash
+      run: |
+        make test-report

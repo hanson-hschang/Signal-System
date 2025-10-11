@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -15,11 +15,11 @@ class ContinuousTimeNonlinearSystem(ContinuousTimeSystem):
         observation_dim: int,
         process_function: Callable,
         observation_function: Callable,
-        state_constraint_function: Optional[Callable] = None,
+        state_constraint_function: Callable | None = None,
         control_dim: int = 0,
         batch_size: int = 1,
-        process_noise_covariance: Optional[ArrayLike] = None,
-        observation_noise_covariance: Optional[ArrayLike] = None,
+        process_noise_covariance: ArrayLike | None = None,
+        observation_noise_covariance: ArrayLike | None = None,
     ) -> None:
         super().__init__(
             time_step=time_step,
@@ -138,11 +138,11 @@ class DiscreteTimeNonlinearSystem(ContinuousTimeNonlinearSystem):
         observation_dim: int,
         process_function: Callable,
         observation_function: Callable,
-        state_constraint_function: Optional[Callable] = None,
+        state_constraint_function: Callable | None = None,
         control_dim: int = 0,
         batch_size: int = 1,
-        process_noise_covariance: Optional[ArrayLike] = None,
-        observation_noise_covariance: Optional[ArrayLike] = None,
+        process_noise_covariance: ArrayLike | None = None,
+        observation_noise_covariance: ArrayLike | None = None,
     ) -> None:
         super().__init__(
             time_step=1,

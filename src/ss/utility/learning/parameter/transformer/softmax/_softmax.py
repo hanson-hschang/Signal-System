@@ -1,4 +1,4 @@
-from typing import Generic, Self, Tuple, TypeVar
+from typing import Generic, Self, TypeVar
 
 import torch
 
@@ -18,7 +18,7 @@ class SoftmaxTransformer(
     def __init__(
         self,
         config: SoftmaxTransformerConfig[ExpTC],
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
     ) -> None:
         super().__init__(config, shape)
         self._temperature: PositiveParameter[ExpT, ExpTC] = (

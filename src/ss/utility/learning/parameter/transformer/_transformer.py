@@ -1,4 +1,4 @@
-from typing import Self, Tuple, TypeVar
+from typing import Self, TypeVar
 
 import torch
 
@@ -9,7 +9,7 @@ from ss.utility.learning.parameter.transformer.config import TC
 
 
 class Transformer(BaseLearningModule[TC]):
-    def __init__(self, config: TC, shape: Tuple[int, ...]) -> None:
+    def __init__(self, config: TC, shape: tuple[int, ...]) -> None:
         super().__init__(config)
         self._shape = shape
 

@@ -1,40 +1,23 @@
+default_language_version:
+  python: python3
 
 default_stages: [pre-commit, pre-push]
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+    rev: v2.5.0
     hooks:
+      - id: check-added-large-files
+        args: ['--maxkb=500']
       - id: trailing-whitespace
+      - id: pretty-format-json
       - id: check-json
+      - id: check-xml
       - id: check-yaml
       - id: end-of-file-fixer
         exclude: LICENSE
-  - repo: local
-    hooks:
-      - id: pyupgrade
-        name: pyupgrade
-        entry: pyupgrade --py38-plus
-        types: [python]
-        language: system
-  - repo: local
-    hooks:
-      - id: isort
-        name: isort
-        entry: isort --settings-path pyproject.toml
-        types: [python]
-        language: system
-  - repo: local
-    hooks:
-      - id: black
-        name: black
-        entry: black --config pyproject.toml
-        types: [python]
-        language: system
-  - repo: local
-    hooks:
-      - id: mypy
-        name: mypy
-        entry: mypy --config-file pyproject.toml
-        types: [python]
-        language: system
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: debug-statements
+      - id: detect-private-key
+      - id: name-tests-test

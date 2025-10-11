@@ -1,6 +1,5 @@
-from typing import Generic, TypeVar
-
 from dataclasses import dataclass, field
+from typing import Generic, TypeVar
 
 from ss.utility.assertion.validator import IntegerValidator
 from ss.utility.descriptor import DataclassDescriptor
@@ -13,8 +12,6 @@ from ss.utility.learning.parameter.positive.config import (
 )
 from ss.utility.learning.parameter.transformer.config import TransformerConfig
 from ss.utility.learning.parameter.transformer.exp.config import ExpTC
-
-# TC = TypeVar("TC", bound=TransformerConfig, default=ExpTransformerConfig)
 
 
 @dataclass
@@ -32,7 +29,6 @@ class TemperatureConfig(PositiveParameterConfig[ExpTC], Generic[ExpTC]):
 
 @dataclass
 class SoftmaxTransformerConfig(TransformerConfig, Generic[ExpTC]):
-
     class LogZeroOffsetDescriptor(DataclassDescriptor[int]):
         def __set__(self, instance: object, value: int) -> None:
             value = IntegerValidator(value).get_value()
@@ -44,14 +40,6 @@ class SoftmaxTransformerConfig(TransformerConfig, Generic[ExpTC]):
     temperature: TemperatureConfig[ExpTC] = field(
         default_factory=lambda: TemperatureConfig[ExpTC]()
     )
-    # How to remove the cast above? Does not seem right with it...
-    # There is one try shown in the following commented out code. It has no error running but has some trouble loading the module.
-
-
-# Do not do the following. It will need to add operator.getitem and TC(???) as safe globals when loading.
-# @dataclass
-# class SoftmaxTransformerConfig(TransformerConfig, Generic[TC]):
-#     temperature: TemperatureConfig[TC] = field(default_factory=TemperatureConfig[TC])
 
 
 SoftmaxTC = TypeVar(

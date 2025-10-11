@@ -1,6 +1,5 @@
-from typing import Generic, TypeVar, cast
-
 from dataclasses import dataclass, field
+from typing import Generic, TypeVar
 
 from ss.utility.assertion.validator import IntegerValidator
 from ss.utility.descriptor import DataclassDescriptor
@@ -43,7 +42,6 @@ class SlopeConfig(PositiveParameterConfig[ExpTC], Generic[ExpTC]):
 
 @dataclass
 class LinearSoftmaxTransformerConfig(TransformerConfig, Generic[ExpTC]):
-
     class LogZeroOffsetDescriptor(DataclassDescriptor[int]):
         def __set__(self, instance: object, value: int) -> None:
             value = IntegerValidator(value).get_value()

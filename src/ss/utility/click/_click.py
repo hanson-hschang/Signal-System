@@ -1,21 +1,12 @@
-from typing import (
-    Any,
-    Callable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    get_type_hints,
-)
-
 import inspect
 import json
 import re
+import types
+from collections.abc import Callable
 from dataclasses import dataclass, fields
 from enum import StrEnum
 from pathlib import Path
+from typing import Any, TypeVar, Union, get_args, get_origin, get_type_hints
 
 import click
 
@@ -23,21 +14,17 @@ from ss.utility.logging import Logging
 
 logger = Logging.get_logger(__name__)
 
-_AnyCallable = Callable[..., Any]
-FC = TypeVar("FC", bound=Union[_AnyCallable, click.core.Command])
+FC = TypeVar("FC", bound=Union[Callable[..., Any], click.core.Command])
 CC = TypeVar("CC", bound="BaseClickConfig")
 
 
 @dataclass
 class BaseClickConfig:
-
     def __str__(self) -> str:
         return json.dumps(self.__dict__, indent=len(logger.indent()))
 
     @classmethod
-    def load(
-        cls: Type[CC], filepath: Optional[Path] = None, **kwargs: Any
-    ) -> CC:
+    def load(cls: type[CC], filepath: Path | None = None, **kwargs: Any) -> CC:
         config = cls()
         if filepath is not None:
             try:
@@ -57,11 +44,9 @@ class BaseClickConfig:
 
     @classmethod
     def options(
-        cls: Type[CC], allow_file_overwrite: bool = False
+        cls: type[CC], allow_file_overwrite: bool = False
     ) -> Callable[[FC], FC]:
-
         def decorator(func: FC) -> FC:
-
             # Add the config-filepath option
             if allow_file_overwrite:
                 func = click.option(
@@ -91,13 +76,13 @@ class BaseClickConfig:
 
 
 def get_help_text(
-    CustomClickConfig: Type[BaseClickConfig], field_name: str
+    CustomClickConfig: type[BaseClickConfig], field_name: str
 ) -> str:
     # Get the source code of the class
     source = inspect.getsource(CustomClickConfig)
 
     # Look for the field definition and extract any comment
-    pattern = rf"{field_name}\s*:\s*(?:\w+|\w+\[.*?\]|[\w.]+)\s*(?:=\s*[^#]*)?\s*#\s*(.*)"
+    pattern = rf"{field_name}\s*:\s*(?:\w+|\w+\[.*?\]|[\w.]+)\s*(?:=\s*[^#]*)?\s*#\s*(.*)"  # noqa: E501
     found = re.search(pattern, source)
 
     if found and found.group(1):
@@ -106,8 +91,8 @@ def get_help_text(
         return ""
 
 
-def extract_choices_from_comment(help_text: str) -> Tuple[Optional[List], str]:
-    """Extract choices from help text if it's in format [choice1|choice2|choice3]."""
+def extract_choices_from_comment(help_text: str) -> tuple[list | None, str]:
+    """Extract choices from help text if it's in format [choice1|choice2]."""
 
     found = re.search(r"\[\s*([\w\|\s]+)\s*\]", help_text)
     if found and found.group(1):
@@ -122,12 +107,22 @@ def extract_choices_from_comment(help_text: str) -> Tuple[Optional[List], str]:
 
 
 def create_option(
-    field_name: str, field_type: Type, help_text: str
+    field_name: str, field_type: Any, help_text: str
 ) -> Callable[[FC], FC]:
     """Create a Click option from a dataclass field."""
     choices, help_text = extract_choices_from_comment(help_text)
 
-    if field_type == bool:
+    # Handle Optional types
+    origin_type = get_origin(field_type)
+    if origin_type is Union or origin_type is types.UnionType:
+        args = get_args(field_type)
+        not_none_args = [arg for arg in args if arg is not type(None)]
+        if not_none_args:
+            field_type = not_none_args[0]
+        else:
+            field_type = args[0]
+
+    if field_type is bool:
         option = click.option(f"--{field_name}", is_flag=True, help=help_text)
     elif choices:
         option = click.option(

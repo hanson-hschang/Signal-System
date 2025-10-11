@@ -29,11 +29,11 @@ class TransitionModule(
     ) -> None:
         super().__init__(config)
         self._state_dim = filter_config.state_dim
-        self._initial_state: ProbabilityParameter[
-            T, TC
-        ] = ProbabilityParameter[T, TC](
-            self._config.initial_state.probability_parameter,
-            (self._state_dim,),
+        self._initial_state: ProbabilityParameter[T, TC] = (
+            ProbabilityParameter[T, TC](
+                self._config.initial_state.probability_parameter,
+                (self._state_dim,),
+            )
         )
         self._matrix = ProbabilityParameter[T, TC](
             self._config.matrix.probability_parameter,
@@ -56,7 +56,8 @@ class TransitionModule(
         if self._is_initialized:
             assert batch_size == self._batch_size, (
                 f"batch_size must be the same as the initialized batch_size. "
-                f"batch_size given is {batch_size} while the initialized batch_size is {self._batch_size}."
+                f"batch_size given is {batch_size} while the "
+                f"initialized batch_size is {self._batch_size}."
             )
             return
         self._init_batch_size(batch_size, is_initialized=True)
@@ -124,7 +125,6 @@ class TransitionModule(
         estimated_state: torch.Tensor,
         likelihood_state: torch.Tensor,
     ) -> torch.Tensor:
-
         # update step based on input_state (conditional probability)
         estimated_state = self._update(
             estimated_state, likelihood_state
@@ -138,7 +138,6 @@ class TransitionModule(
         return estimated_state
 
     def forward(self, emission_trajectory: torch.Tensor) -> torch.Tensor:
-
         batch_size, _, horizon = emission_trajectory.shape
         # (batch_size, state_dim, horizon)
 
@@ -151,7 +150,6 @@ class TransitionModule(
         # (batch_size, state_dim)
 
         for k in range(horizon):
-
             estimated_state = self._process(
                 estimated_state,
                 emission_trajectory[:, :, k],
@@ -168,7 +166,6 @@ class TransitionModule(
         self._check_batch_size(batch_size)
 
         for k in range(horizon):
-
             self._estimated_state = self._process(
                 self._estimated_state,
                 emission_trajectory[:, :, k],

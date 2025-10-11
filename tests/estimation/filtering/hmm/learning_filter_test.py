@@ -1,5 +1,3 @@
-from typing import cast
-
 import numpy as np
 import pytest
 import torch
@@ -25,7 +23,6 @@ def assert_allclose(tensor: torch.Tensor, ndarray: NDArray) -> None:
 
 
 class TestLearningHmmFilter:
-
     @pytest.fixture
     def config(self) -> LearningHmmFilterConfig:
         from ss.utility.learning.parameter.transformer.softmax.config import (
@@ -53,12 +50,6 @@ class TestLearningHmmFilter:
             emission_matrix_parameter,
         ):
             parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
-
-        # initial_state_parameter.transformer.log_zero_offset = (
-        #     LOG_ZERO_OFFSET
-        # )
-        # matrix_parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
-        # emission_matrix_parameter.transformer.log_zero_offset = LOG_ZERO_OFFSET
 
         return config
 
@@ -100,10 +91,8 @@ class TestLearningHmmFilter:
         self,
         learning_filter: LearningHmmFilter,
     ) -> None:
-
         compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
-
             assert learning_filter.state_dim == 3
             assert learning_filter.discrete_observation_dim == 2
             assert learning_filter.emission.matrix.shape == (3, 2)
@@ -135,11 +124,9 @@ class TestLearningHmmFilter:
         learning_filter: LearningHmmFilter,
         observation_trajectory: torch.Tensor,
     ) -> None:
-
         compile_config = CompileConfig(stance=CompileConfig.Stance.FORCE_EAGER)
         with CompileContext(compile_config):
             with BaseLearningProcess.inference_mode(learning_filter):
-
                 learning_filter.reset()
                 assert_allclose(
                     learning_filter.transition.estimated_state,

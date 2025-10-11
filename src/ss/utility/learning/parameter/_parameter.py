@@ -1,4 +1,4 @@
-from typing import Callable, Generic, Protocol, Tuple, TypeVar, Union
+from typing import Generic, TypeVar, Union
 
 import torch
 from torch import nn
@@ -15,11 +15,10 @@ PC = TypeVar("PC", bound=Config.ParameterConfig)
 
 
 class Parameter(BaseLearningModule[PC], Generic[PC]):
-
     def __init__(
         self,
         config: PC,
-        shape: Tuple[int, ...],
+        shape: tuple[int, ...],
     ) -> None:
         super().__init__(config)
         self._shape = shape
@@ -32,7 +31,7 @@ class Parameter(BaseLearningModule[PC], Generic[PC]):
         self._pytorch_parameter: nn.Parameter = self._init_parameter()
 
     @property
-    def shape(self) -> Tuple[int, ...]:
+    def shape(self) -> tuple[int, ...]:
         return self._shape
 
     @property

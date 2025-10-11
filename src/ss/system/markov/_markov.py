@@ -1,6 +1,5 @@
-from typing import Any, Optional, Tuple, Union
-
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 from numba import njit
@@ -47,7 +46,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         def __init__(
             self,
             transition_matrix: ArrayLike,
-            discrete_state_dim: Optional[int] = None,
+            discrete_state_dim: int | None = None,
         ) -> None:
             super().__init__(transition_matrix)
             self._transition_matrix = np.array(
@@ -70,7 +69,8 @@ class HiddenMarkovModel(DiscreteTimeSystem):
                 and shape[0] != self._discrete_state_dim
             ):
                 self._errors.append(
-                    f"transition_matrix should have the shape as (discrete_state_dim, discrete_state_dim) "
+                    f"transition_matrix should have the shape as "
+                    "(discrete_state_dim, discrete_state_dim) "
                     f"with discrete_state_dim={self._discrete_state_dim}. "
                     f"The transition_matrix given has the shape {shape}."
                 )
@@ -86,7 +86,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrices(self) -> Tuple[NDArray, NDArray]:
+        def get_matrices(self) -> tuple[NDArray, NDArray]:
             transition_cumsum_matrix = np.cumsum(
                 self._transition_matrix, axis=1
             )
@@ -112,7 +112,10 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             if len(shape) == 2 and (shape[0] == self._discrete_state_dim):
                 return True
             self._errors.append(
-                "transition_matrix and emission_matrix should have the same number of rows (discrete_state_dim)"
+                "transition_matrix and emission_matrix should have "
+                "the same number of rows (discrete_state_dim)"
+                f" with discrete_state_dim={self._discrete_state_dim}. "
+                f"The emission_matrix given has the shape {shape}."
             )
             return False
 
@@ -125,7 +128,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
             )
             return False
 
-        def get_matrices(self) -> Tuple[NDArray, NDArray]:
+        def get_matrices(self) -> tuple[NDArray, NDArray]:
             emission_cumsum_matrix = np.cumsum(self._emission_matrix, axis=1)
             return (
                 self._emission_matrix,
@@ -136,7 +139,7 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         self,
         transition_matrix: ArrayLike,
         emission_matrix: ArrayLike,
-        initial_distribution: Optional[ArrayLike] = None,
+        initial_distribution: ArrayLike | None = None,
         batch_size: int = 1,
     ) -> None:
         (
@@ -170,17 +173,17 @@ class HiddenMarkovModel(DiscreteTimeSystem):
         assert (
             self._initial_distribution.shape[0] == self._discrete_state_dim
         ), (
-            f"initial_distribution should have the same length as discrete_state_dim {self._discrete_state_dim}. "
-            f"The initial_distribution given has shape {self._initial_distribution.shape}."
+            "initial_distribution should have the same length as "
+            f"discrete_state_dim {self._discrete_state_dim}. "
+            "The initial_distribution given has "
+            f"shape {self._initial_distribution.shape}."
         )
 
         self._state[:, :] = np.random.choice(
             self._discrete_state_dim,
             size=(self._batch_size, self._state_dim),
             p=self._initial_distribution,
-        ).astype(
-            np.float64
-        )  # (batch_size, 1)
+        ).astype(np.float64)  # (batch_size, 1)
         self._state_encoder_basis = np.identity(
             self._discrete_state_dim, dtype=np.float64
         )
@@ -285,12 +288,12 @@ class HmmCallback(SystemCallback[HiddenMarkovModel]):
         step_skip: int,
         system: HiddenMarkovModel,
     ) -> None:
-        assert issubclass(
-            type(system), HiddenMarkovModel
-        ), f"system must be a subclass of {HiddenMarkovModel.__name__}"
+        assert issubclass(type(system), HiddenMarkovModel), (
+            f"system must be a subclass of {HiddenMarkovModel.__name__}"
+        )
         super().__init__(step_skip, system)
 
-    def save(self, filename: Union[str, Path]) -> None:
+    def save(self, filename: str | Path) -> None:
         self.add_meta_data(
             transition_matrix=self._system.transition_matrix,
             emission_matrix=self._system.emission_matrix,

@@ -1,91 +1,108 @@
-#* Variables
-PYTHON := python3
-PYTHONPATH := `pwd`
+# ==============================================================================
+# VARIABLES
+# ==============================================================================
 
-#* Installation
+# Use this to define paths for formatters and linters once.
+PY_SOURCES = src/ss tests examples
+
+# ==============================================================================
+# SELF-DOCUMENTING HELP TARGET
+# Default target when you just run `make`.
+# ==============================================================================
+.PHONY: help
+help:
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "Targets:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
+		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+# ==============================================================================
+# PROJECT SETUP & DEPENDENCY MANAGEMENT
+# ==============================================================================
 .PHONY: install
-install:
-	python -m pip install --upgrade pip
-	python -m pip install -e .
+install: ## 📦 Install production dependencies.
+	@echo "📦 Installing production dependencies..."
+	uv sync
 
-#* Installation with developer tools
 .PHONY: install-dev
-install-dev:
-	python -m pip install --upgrade pip
-	python -m pip install -e ".[dev]"
+install-dev: ## ⚙️  Install all development dependencies and extras.
+	@echo "⚙️ Installing all development dependencies..."
+	uv sync --group dev
 
-#* Installation of pre-commit: tool of Git hook scripts
+.PHONY: install-build
+install-build: ## 🏗️  Install build dependencies.
+	@echo "🏗️ Installing build dependencies..."
+	uv sync --group build
+
 .PHONY: install-pre-commit
-install-pre-commit:
-	pre-commit install
+install-pre-commit: ## 🕵️  Install pre-commit hooks.
+	@echo "🕵️ Installing pre-commit hooks..."
+	uv run pre-commit install
 
-#* Unittests
-.PHONY: test
-test:
-	pytest -c pyproject.toml --cov=src --cov-branch --cov-report=xml --cov-report=term
+# ==============================================================================
+# CODE QUALITY
+# ==============================================================================
+.PHONY: syntax
+syntax: ## 🔎 Check for syntax upgrades without changing files.
+	@echo "🔎 Checking for syntax upgrades..."
+	find $(PY_SOURCES) -name "*.py" -type f -print0 | xargs -0 -r uv run pyupgrade --py313-plus --exit-zero-even-if-changed
 
-#* Formatters
+.PHONY: linting
+linting: ## 🔎 Check for linting issues without changing files.
+	make syntax
+	@echo "🔎 Checking for linting issues..."
+	uv run ruff check $(PY_SOURCES)
+
 .PHONY: formatting
-formatting:
-	pyupgrade --exit-zero-even-if-changed --py313-plus src/**/*.py
-	isort --settings-path pyproject.toml ./
-	black --config pyproject.toml ./
-	mypy --config-file pyproject.toml ./
+formatting: ## ✨ Format and fix code automatically.
+	make syntax
+	@echo "✨ Formatting and fixing code..."
+	uv run ruff format $(PY_SOURCES)
+	uv run ruff check $(PY_SOURCES) --fix
 
-#* Linting
-.PHONY: check-test
-check-test:
-	pytest -c pyproject.toml --cov=src
+.PHONY: typing
+typing: ## 🔬 Run static type checking with mypy.
+	@echo "🔬 Running static type checking..."
+	uv run mypy ${PY_SOURCES}
 
-.PHONY: check-formatting
-check-formatting:
-	isort --diff --check-only --settings-path pyproject.toml ./
-	black --diff --check --config pyproject.toml ./
-	mypy --config-file pyproject.toml ./
+.PHONY: security
+security: ## 🛡️  Run security checks with bandit.
+	@echo "🛡️  Running security checks..."
+	uv run bandit -r src/ -f json -o bandit-report.json || true
+	uv run bandit -r src/
 
-.PHONY: lint
-lint: check-formatting check-test
+# ==============================================================================
+# TESTING
+# ==============================================================================
+# The base pytest command.
+PYTEST_CMD = uv run pytest --cov=src --cov-branch -c pyproject.toml
 
-#* Update developer tools
-.PHONY: update-dev
-update-dev:
-	pip install --upgrade \
-    "isort[colors]" \
-    mypy \
-    pre-commit \
-    pytest \
-    pyupgrade \
-    coverage \
-    pytest-html \
-    pytest-cov \
-    black \
-    pydocstyle \
-    pylint
+.PHONY: test
+test: ## ✅ Run tests and show coverage in the terminal.
+	@echo "✅ Running tests..."
+	$(PYTEST_CMD)
 
-#* Cleaning
-.PHONY: pycache-remove
-pycache-remove:
-	find . | grep -E "(__pycache__|\.pyc|\.pyo$$)" | xargs rm -rf
+.PHONY: test-report
+test-report: ## 📊 Run tests and generate XML/terminal coverage reports.
+	@echo "📊 Generating test reports..."
+	$(PYTEST_CMD) --cov-report=xml --cov-report=term
 
-.PHONY: dsstore-remove
-dsstore-remove:
-	find . | grep -E ".DS_Store" | xargs rm -rf
+# ==============================================================================
+# BUILD & CLEANUP
+# ==============================================================================
+.PHONY: build
+build: ## 🏗️  Build the project package.
+	@echo "🏗️ Building package..."
+	uv build
 
-.PHONY: mypycache-remove
-mypycache-remove:
-	find . | grep -E ".mypy_cache" | xargs rm -rf
-
-.PHONY: ipynbcheckpoints-remove
-ipynbcheckpoints-remove:
-	find . | grep -E ".ipynb_checkpoints" | xargs rm -rf
-
-.PHONY: pytestcache-remove
-pytestcache-remove:
-	find . | grep -E ".pytest_cache" | xargs rm -rf
-
-.PHONY: build-remove
-build-remove:
-	rm -rf build/
-
-.PHONY: cleanup
-cleanup: pycache-remove dsstore-remove mypycache-remove ipynbcheckpoints-remove pytestcache-remove
+.PHONY: clean
+clean: ## 🧹 Remove all temporary files and build artifacts.
+	@echo "🧹 Cleaning up project..."
+	# Remove file-based artifacts
+	find . -type f -name "*.py[co]" -delete
+	find . -type f -name ".DS_Store" -delete
+	# Remove directory-based artifacts
+	find . -type d \( -name "__pycache__" -or -name ".mypy_cache" -or -name ".pytest_cache" -or -name ".ipynb_checkpoints" \) -exec rm -rf {} +
+	# Remove root-level build and test artifacts
+	rm -rf build/ dist/ *.egg-info .coverage coverage.xml

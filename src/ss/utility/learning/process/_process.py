@@ -1,14 +1,6 @@
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Optional,
-    Self,
-    Set,
-    Tuple,
-)
-
+from collections.abc import Callable
 from pathlib import Path
+from typing import Any, Self
 
 import numpy as np
 import torch
@@ -34,7 +26,6 @@ logger = Logging.get_logger(__name__)
 
 
 class BaseLearningProcess(LearningProcessInfoMixin):
-
     def __init__(
         self,
         module: Module.BaseLearningModule,
@@ -78,7 +69,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
     #     self._training_loss_history["loss"].append(loss)
 
     def _evaluate_one_batch(
-        self, data_batch: Tuple[torch.Tensor, ...]
+        self, data_batch: tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
         """
         Evaluate one batch of data and return the loss tensor.
@@ -102,10 +93,9 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
     def evaluate_model(
         self,
-        data_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        data_loader: DataLoader[tuple[torch.Tensor, ...]],
         evaluation_config: EvaluationConfigProtocol,
     ) -> NDArray:
-
         with self._module.evaluation_mode():
             logger.info("Evaluating model...")
             losses = []
@@ -127,7 +117,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         return np.array(losses)
 
     def _train_one_batch(
-        self, data_batch: Tuple[torch.Tensor, ...]
+        self, data_batch: tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
         self._optimizer.zero_grad()
         loss_tensor = self._evaluate_one_batch(
@@ -139,8 +129,8 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
     def train_model(
         self,
-        training_data_loader: DataLoader[Tuple[torch.Tensor, ...]],
-        validation_data_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        training_data_loader: DataLoader[tuple[torch.Tensor, ...]],
+        validation_data_loader: DataLoader[tuple[torch.Tensor, ...]],
         training_config: TrainingConfig,
     ) -> None:
         with self._module.training_mode():
@@ -181,14 +171,13 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
     def training(
         self,
-        training_data_loader: DataLoader[Tuple[torch.Tensor, ...]],
-        validation_data_loader: DataLoader[Tuple[torch.Tensor, ...]],
+        training_data_loader: DataLoader[tuple[torch.Tensor, ...]],
+        validation_data_loader: DataLoader[tuple[torch.Tensor, ...]],
         training_config: TrainingConfig,
     ) -> None:
         self._checkpoint = Checkpoint(training_config.checkpoint)
 
         try:
-
             if not training_config.validation.initial.skip:
                 logger.info("Model evaluation before training...")
                 validation_losses = self.evaluate_model(
@@ -211,7 +200,6 @@ class BaseLearningProcess(LearningProcessInfoMixin):
             while training_config.termination.condition(
                 epoch=self._epoch
             ).not_satisfied():
-
                 self.train_model(
                     training_data_loader,
                     validation_data_loader,
@@ -236,7 +224,8 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
         finally:
             logger.info(
-                f"Training is terminated with the reason: {training_config.termination.reason} triggered!"
+                "Training is terminated with the reason: "
+                f"{training_config.termination.reason} triggered!"
             )
 
         self._checkpoint.finalize().save(
@@ -247,8 +236,8 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
     def test_model(
         self,
-        testing_data_loader: DataLoader[Tuple[torch.Tensor, ...]],
-        testing_config: Optional[TestingConfig] = None,
+        testing_data_loader: DataLoader[tuple[torch.Tensor, ...]],
+        testing_config: TestingConfig | None = None,
     ) -> None:
         if testing_config is None:
             testing_config = TestingConfig()
@@ -256,86 +245,28 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         testing_losses = self.evaluate_model(
             testing_data_loader, testing_config
         )
-        loss_mean, loss_std = float(testing_losses.mean()), float(
-            testing_losses.std()
+        loss_mean, loss_std = (
+            float(testing_losses.mean()),
+            float(testing_losses.std()),
         )
         logger.info(
-            f"Testing is completed with loss: {loss_mean}"
-            " \xb1 "
-            f"{loss_std}"
+            f"Testing is completed with loss: {loss_mean} \xb1 {loss_std}"
         )
 
-    # def _save_checkpoint_info(self) -> CheckpointInfo:
-    #     """
-    #     Save custom checkpoint information. This method can be overridden in the derived class.
-
-    #     Returns
-    #     -------
-    #     custom_checkpoint_info: CheckpointInfo
-    #         Custom checkpoint information.
-    #     """
-    #     custom_checkpoint_info = CheckpointInfo()
-    #     return custom_checkpoint_info
-
-    # def save_checkpoint_info(self) -> CheckpointInfo:
-    #     checkpoint_info = CheckpointInfo(
-    #         __iteration__=self._iteration,
-    #         __epoch__=self._epoch,
-    #         __training_loss__=self._training_loss,
-    #         __epoch_history__=self._epoch_history,
-    #         __validation_loss_history__=self._validation_loss_history,
-    #         __training_loss_history__=self._training_loss_history,
-    #     )
-    #     custom_checkpoint_info = self._save_checkpoint_info()
-    #     ReservedKeyNameValidator(
-    #         custom_checkpoint_info, checkpoint_info.keys()
-    #     )
-    #     checkpoint_info.update(custom_checkpoint_info)
-    #     return checkpoint_info
-
-    # def _load_checkpoint_info(self, checkpoint_info: CheckpointInfo) -> None:
-    #     """
-    #     Load custom checkpoint information. This method can be overridden in the derived class.
-
-    #     Parameters
-    #     ----------
-    #     checkpoint_info : CheckpointInfo
-    #         Custom checkpoint information to be loaded.
-    #     """
-    #     pass
-
-    # def load_checkpoint_info(
-    #     self,
-    #     checkpoint_info: CheckpointInfo,
-    # ) -> None:
-
-    #     self._iteration = checkpoint_info.pop("__iteration__")
-    #     self._epoch = checkpoint_info.pop("__epoch__")
-    #     self._training_loss = checkpoint_info.pop("__training_loss__")
-
-    #     self._epoch_history = checkpoint_info.pop("__epoch_history__")
-    #     self._validation_loss_history = checkpoint_info.pop(
-    #         "__validation_loss_history__"
-    #     )
-    #     self._training_loss_history = checkpoint_info.pop(
-    #         "__training_loss_history__"
-    #     )
-
-    #     self._load_checkpoint_info(checkpoint_info)
-
-    def save_model_info(self) -> Dict[str, Any]:
+    def save_model_info(self) -> dict[str, Any]:
         """
-        Save custom model information. This method can be overridden in the derived class.
+        Save custom model information.
+        This method can be overridden in the derived class.
 
         Returns
         -------
         custom_model_info: Dict[str, Any]
             Custom model information.
         """
-        custom_model_info: Dict[str, Any] = dict()
+        custom_model_info: dict[str, Any] = dict()
         return custom_model_info
 
-    def _save_model_info(self) -> Dict[str, Any]:
+    def _save_model_info(self) -> dict[str, Any]:
         model_info = dict(
             __loss_function__=self._loss_function,
             __optimizer__=self._optimizer,
@@ -347,9 +278,9 @@ class BaseLearningProcess(LearningProcessInfoMixin):
 
     @classmethod
     def _load_model_info(
-        cls, model_info: Dict[str, Any]
-    ) -> Tuple[
-        Callable[..., torch.Tensor], torch.optim.Optimizer, Dict[str, Any]
+        cls, model_info: dict[str, Any]
+    ) -> tuple[
+        Callable[..., torch.Tensor], torch.optim.Optimizer, dict[str, Any]
     ]:
         loss_function = model_info.pop("__loss_function__")
         optimizer = model_info.pop("__optimizer__")
@@ -360,7 +291,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         cls,
         module: Module.BaseLearningModule,
         model_filepath: Path,
-        safe_callables: Optional[Set[serialization.SafeCallable]] = None,
+        safe_callables: set[serialization.SafeCallable] | None = None,
     ) -> Self:
         module, model_info, checkpoint_info = Checkpoint.load(
             module, model_filepath, safe_callables
@@ -377,7 +308,8 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         learning_process._load_checkpoint_info(checkpoint_info)
         logger.info(f"Learning process is loaded from {model_filepath}")
         logger.info(
-            f"with epoch: {learning_process._epoch} and iteration: {learning_process._iteration}"
+            f"with epoch: {learning_process._epoch} and "
+            f"iteration: {learning_process._iteration}"
         )
         return learning_process
 

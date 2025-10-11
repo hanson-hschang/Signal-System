@@ -1,10 +1,8 @@
-from typing import Optional, assert_never
-
 from enum import StrEnum
+from typing import assert_never
 
 import numpy as np
 from numpy.typing import ArrayLike
-from scipy.linalg import expm
 
 from ss.system.linear import ContinuousTimeLinearSystem
 from ss.utility.assertion import is_positive_integer
@@ -30,21 +28,23 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
         spring_constant: float = 1.0,
         damping_coefficient: float = 1.0,
         time_step: float = 0.01,
-        observation_choice: ObservationChoice = ObservationChoice.LAST_POSITION,
+        observation_choice: ObservationChoice = ObservationChoice.LAST_POSITION,  # noqa: E501
         control_choice: ControlChoice = ControlChoice.NO_CONTROL,
-        process_noise_covariance: Optional[ArrayLike] = None,
-        observation_noise_covariance: Optional[ArrayLike] = None,
+        process_noise_covariance: ArrayLike | None = None,
+        observation_noise_covariance: ArrayLike | None = None,
         batch_size: int = 1,
     ) -> None:
-        assert is_positive_integer(
-            number_of_connections
-        ), "number_of_connections should be a positive integer"
-        assert isinstance(
-            observation_choice, ObservationChoice
-        ), f"observation_choice should be one of {ObservationChoice.__members__.keys()}"
-        assert isinstance(
-            control_choice, ControlChoice
-        ), f"control_choice should be one of {ControlChoice.__members__.keys()}"
+        assert is_positive_integer(number_of_connections), (
+            "number_of_connections should be a positive integer"
+        )
+        assert isinstance(observation_choice, ObservationChoice), (
+            "observation_choice should be one "
+            f"of {ObservationChoice.__members__.keys()}"
+        )
+        assert isinstance(control_choice, ControlChoice), (
+            "control_choice should be one "
+            f"of {ControlChoice.__members__.keys()}"
+        )
 
         self._number_of_connections = int(number_of_connections)
         self._mass = mass
@@ -66,16 +66,16 @@ class MassSpringDamperSystem(ContinuousTimeLinearSystem):
             velocity_index = self._number_of_connections + i - 1
             matrix_A[
                 velocity_index + 0, position_index : position_index + 2
-            ] += (np.array([-1, 1]) * self._spring / self._mass)
+            ] += np.array([-1, 1]) * self._spring / self._mass
             matrix_A[
                 velocity_index + 1, position_index : position_index + 2
-            ] -= (np.array([-1, 1]) * self._spring / self._mass)
+            ] -= np.array([-1, 1]) * self._spring / self._mass
             matrix_A[
                 velocity_index + 0, velocity_index : velocity_index + 2
-            ] += (np.array([-1, 1]) * self._damping / self._mass)
+            ] += np.array([-1, 1]) * self._damping / self._mass
             matrix_A[
                 velocity_index + 1, velocity_index : velocity_index + 2
-            ] -= (np.array([-1, 1]) * self._damping / self._mass)
+            ] -= np.array([-1, 1]) * self._damping / self._mass
 
         self._observation_choice = observation_choice
         match self._observation_choice:

@@ -1,6 +1,5 @@
-from typing import DefaultDict, List
-
 from collections import defaultdict
+from typing import DefaultDict
 
 from numpy.typing import NDArray
 
@@ -12,17 +11,16 @@ logger = Logging.get_logger(__name__)
 
 
 class LearningProcessInfoMixin:
-
     def __init__(self) -> None:
         self._iteration: int = 0
         self._epoch: int = 0
         self._training_loss: float = 0.0
 
-        self._epoch_history: DefaultDict[str, List[int]] = defaultdict(list)
-        self._training_loss_history: DefaultDict[str, List[float]] = (
+        self._epoch_history: DefaultDict[str, list[int]] = defaultdict(list)
+        self._training_loss_history: DefaultDict[str, list[float]] = (
             defaultdict(list)
         )
-        self._validation_loss_history: DefaultDict[str, List[float]] = (
+        self._validation_loss_history: DefaultDict[str, list[float]] = (
             defaultdict(list)
         )
 
@@ -49,7 +47,7 @@ class LearningProcessInfoMixin:
         loss_mean, loss_std = float(losses.mean()), float(losses.std())
         self._validation_loss_history["loss_mean"].append(loss_mean)
         self._validation_loss_history["loss_std"].append(loss_std)
-        logger.info(f"Validation loss: {loss_mean}" " \xb1 " f"{loss_std}")
+        logger.info(f"Validation loss: {loss_mean} \xb1 {loss_std}")
         # \xb1 is a unicode character for the plus-minus sign (±)
 
     def _record_training_loss(self, loss: float) -> None:
@@ -64,7 +62,8 @@ class LearningProcessInfoMixin:
 
     def save_checkpoint_info(self) -> CheckpointInfo:
         """
-        Save custom checkpoint information. This method can be overridden in the derived class.
+        Save custom checkpoint information.
+        This method can be overridden in the derived class.
 
         Returns
         -------
@@ -92,7 +91,8 @@ class LearningProcessInfoMixin:
 
     def load_checkpoint_info(self, checkpoint_info: CheckpointInfo) -> None:
         """
-        Load custom checkpoint information. This method can be overridden in the derived class.
+        Load custom checkpoint information.
+        This method can be overridden in the derived class.
 
         Parameters
         ----------
@@ -105,7 +105,6 @@ class LearningProcessInfoMixin:
         self,
         checkpoint_info: CheckpointInfo,
     ) -> None:
-
         self._iteration = checkpoint_info.pop("__iteration__")
         self._epoch = checkpoint_info.pop("__epoch__")
         self._training_loss = checkpoint_info.pop("__training_loss__")

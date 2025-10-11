@@ -4,9 +4,7 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 
-from ss.estimation.filtering.hmm.learning.module import (
-    LearningDualHmmFilter,
-)
+from ss.estimation.filtering.hmm.learning.module import LearningDualHmmFilter
 from ss.utility.data import Data
 from ss.utility.device.manager import DeviceManager
 from ss.utility.learning.parameter.transformer.softmax import (
@@ -70,12 +68,16 @@ def inference(
     number_of_samples = 5
 
     logger.info(
-        f"The sequence of the first {given_time_horizon} observations from the data is: "
-        f"{observation_trajectory[0, :given_time_horizon]} (given observation)"
+        f"The sequence of the first {given_time_horizon} observations from "
+        f"the data is: {observation_trajectory[0, :given_time_horizon]} "
+        "(given observation)"
     )
+    true_observation = observation_trajectory[
+        0, given_time_horizon + 1 : given_time_horizon + 1 + future_time_steps
+    ]
     logger.info(
-        f"The sequence of the next {future_time_steps} observations from the data is: "
-        f"{observation_trajectory[0, given_time_horizon + 1: given_time_horizon + 1 + future_time_steps]}"
+        f"The sequence of the next {future_time_steps} observations "
+        f"from the data is: {true_observation} (true observation)"
     )
     torch_int_dtype = torch.int32
 
@@ -95,7 +97,9 @@ def inference(
         )
         logger.info("")
         logger.info(
-            f"Inferring {number_of_samples} samples of sequence of the next {future_time_steps} predictions based on the given observation: "
+            f"Inferring {number_of_samples} samples of sequence of "
+            f"the next {future_time_steps} predictions based "
+            "on the given observation: "
         )
         for k in logger.progress_bar(range(future_time_steps)):
             predicted_next_observation = (

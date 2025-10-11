@@ -1,7 +1,6 @@
-from typing import Generic, Type, assert_never, cast
-
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
+from typing import Generic, assert_never, cast
 
 from ss.utility.learning.parameter.manifold.config import (
     ManifoldParameterConfig,
@@ -22,7 +21,6 @@ from ss.utility.learning.parameter.transformer.softmax.linear.config import (
 class ProbabilityParameterConfig(
     ManifoldParameterConfig[SoftmaxTC], Generic[SoftmaxTC]
 ):
-
     class Option(StrEnum):
         SOFTMAX = auto()
         MIN_ZERO_NORM = auto()
@@ -54,5 +52,5 @@ class ProbabilityParameterConfig(
             case _ as _probability_option:
                 assert_never(_probability_option)
 
-    def get_transformer_type(self) -> Type[SoftmaxTC]:
+    def get_transformer_type(self) -> type[SoftmaxTC]:
         return type(self.transformer)

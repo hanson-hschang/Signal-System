@@ -1,15 +1,6 @@
+from collections.abc import Callable
 from types import TracebackType
-from typing import (
-    Callable,
-    List,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    TypeAlias,
-    TypeVar,
-    Union,
-)
+from typing import TypeAlias, TypeVar, Union
 
 import torch
 
@@ -20,23 +11,23 @@ from ss.utility.package import Package
 logger = Logging.get_logger(__name__)
 
 SafeCallable: TypeAlias = Union[
-    Callable, Tuple[Callable, str], TypeVar, Tuple[TypeVar, str]
+    Callable, tuple[Callable, str], TypeVar, tuple[TypeVar, str]
 ]
 
 
 class SafeCallables(set):
-    registered_safe_callables: Set[SafeCallable] = set()
+    registered_safe_callables: set[SafeCallable] = set()
     initialized = False
 
     def __init__(
-        self, safe_callables: Optional[Set[SafeCallable]] = None
+        self, safe_callables: set[SafeCallable] | None = None
     ) -> None:
         if safe_callables is None:
             safe_callables = set()
         super().__init__(safe_callables)
 
     def __enter__(self) -> None:
-        self._list_of_safe_callables: List[SafeCallable] = list(self)
+        self._list_of_safe_callables: list[SafeCallable] = list(self)
         self._list_of_safe_callables.extend(
             self.__class__.registered_safe_callables
         )
@@ -47,9 +38,9 @@ class SafeCallables(set):
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self._safe_globals_context_manager.__exit__(
             exc_type, exc_value, traceback
@@ -74,9 +65,9 @@ def add_config() -> SafeCallables:
     return safe_callables
 
 
-def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
+def add_subclass(base_class: type, package_name: str) -> SafeCallables:
     """
-    Register all subclasses of base_class found in the package to be safe callables
+    Register all subclasses of base_class found in package as safe callables
 
     Arguments
     ---------
@@ -98,25 +89,32 @@ def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
     # Add all classes and their fields as safe globals
     logger.debug("")
     logger.debug(
-        "Add the following classes and their fields as safe globals for torch.load method:"
+        "Add the following classes and their fields "
+        "as safe globals for torch.load method:"
     )
     safe_callables = SafeCallables()
     for cls in all_classes:
         logger.debug(
-            logger.indent() + f"{ cls.__qualname__ } "
-            f"( from { Package.resolve_module_name(cls.__module__) } module )"
+            f"{cls.__qualname__} "
+            f"( from {Package.resolve_module_name(cls.__module__)} module )",
+            indent_level=1,
         )
         unregistered_fields = get_nondefault_type_fields(cls)
         for field_name, field_type in unregistered_fields.items():
             logger.debug(
-                logger.indent(2) + f"{ field_name }: "
-                f"{ field_type.__qualname__ } "
-                f"( from { Package.resolve_module_name(field_type.__module__) } module )"
+                f"{field_name}: "
+                f"{field_type.__qualname__} (from "
+                f"{Package.resolve_module_name(field_type.__module__)}"
+                " module)",
+                indent_level=2,
             )
-            # The following lines is a temporary work around to the _get_user_allowed_globals
-            # defined in the torch._weights_only_unpickler.py (torch version 2.6.0). Issue link:
-            # https://github.com/pytorch/pytorch/issues/146814. The proper way should be
-            # module, name = f.__module__, f.__qualname__ rather than the current implementation
+            # The following lines is a temporary work around to
+            # the _get_user_allowed_globals defined in the
+            # torch._weights_only_unpickler.py (torch version 2.6.0).
+            # Issue link: https://github.com/pytorch/pytorch/issues/146814.
+            # The proper way should be
+            # module, name = f.__module__, f.__qualname__
+            # rather than the current implementation
             # module, name = f.__module__, f.__name__
             # unregistered_type = (
             #     field_type,
@@ -124,7 +122,8 @@ def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
             # )
             # safe_callables.add(unregistered_type)
 
-            # Once the _get_user_allowed_globals is fixed, the following line should be used instead
+            # Once the _get_user_allowed_globals is fixed,
+            # the following line should be used instead
             safe_callables.add(field_type)
 
     # Add all classes to the safe type set
@@ -133,27 +132,28 @@ def add_subclass(base_class: Type, package_name: str) -> SafeCallables:
     return safe_callables
 
 
-def add_type_var(bound_class: Type, package_name: str) -> SafeCallables:
-    from ss.utility.learning.parameter.transformer.config import (
-        TC,
-    )
+def add_type_var(bound_class: type, package_name: str) -> SafeCallables:
+    from ss.utility.learning.parameter.transformer.config import TC
     from ss.utility.learning.parameter.transformer.exp.config import ExpTC
     from ss.utility.learning.parameter.transformer.softmax.config import (
         SoftmaxTC,
     )
-    from ss.utility.learning.parameter.transformer.softmax.linear.config import (
+    from ss.utility.learning.parameter.transformer.softmax.linear.config import (  # noqa: E501
         LinearSoftmaxTC,
     )
 
     safe_type_vars = SafeCallables(
         {
-            TC,
-            SoftmaxTC,
-            ExpTC,
-            LinearSoftmaxTC,
+            (TYPE, TYPE.__name__)
+            for TYPE in [
+                TC,
+                SoftmaxTC,
+                ExpTC,
+                LinearSoftmaxTC,
+            ]
         }
     )
-    # The following is a old implementation that requires the TypeVar name
+
     # safe_type_vars = SafeCallables(
     #     {
     #         (TC, TC.__name__),
@@ -163,29 +163,10 @@ def add_type_var(bound_class: Type, package_name: str) -> SafeCallables:
     #     }
     # )
 
-    # Import all submodules to ensure all classes are loaded
-    # Package.import_submodules(package_name)
-
-    # safe_type_vars = SafeCallables()
-
-    # safe_type_vars.update(Package.get_bounded_type_var(bound_class))
-
-    # for type_var in Package.get_bounded_type_var(bound_class):
-    #     safe_type_vars.add(type_var)
-
-    # # Inspect all objects in the typing module
-    # for name, obj in inspect.getmembers(typing):
-    #     # Check if the object is a TypeVar
-    #     if isinstance(obj, typing.TypeVar):
-    #         # Check if the TypeVar has a bound and if it's the specified class
-    #         if hasattr(obj, "__bound__") and obj.__bound__ is bound_class:
-    #             bound_typevars.append(obj)
-
     return safe_type_vars
 
 
 def add_builtin() -> SafeCallables:
-
     import operator
     from collections import defaultdict
 

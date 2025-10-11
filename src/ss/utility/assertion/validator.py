@@ -1,25 +1,8 @@
-from types import FrameType
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    Iterable,
-    KeysView,
-    List,
-    Literal,
-    Optional,
-    Set,
-    Type,
-    TypeVar,
-    Union,
-    assert_never,
-    cast,
-    overload,
-)
-
 import inspect
+from collections.abc import Callable, Iterable, KeysView
 from pathlib import Path
+from types import FrameType
+from typing import Any, TypeVar, cast
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -44,7 +27,7 @@ T = TypeVar("T", bound="Validator")
 
 
 class ValidatorMeta(type):  # pragma: no cover
-    def __call__(cls: Type[T], *args: Any, **kwargs: Any) -> T:  # type: ignore
+    def __call__(cls: type[T], *args: Any, **kwargs: Any) -> T:  # type: ignore
         # Create instance (calls __init__)
         instance: T = super().__call__(*args, **kwargs)  # type: ignore
         # Call __post_init__ after initialization
@@ -57,8 +40,8 @@ class Validator(metaclass=ValidatorMeta):
     def __init__(self, argument: Any) -> None:
         self._argument = argument
         self._name = self._get_validator_argument_name(inspect.currentframe())
-        self._errors: List[str] = []
-        self._validate_functions: List[Callable[[], bool]] = []
+        self._errors: list[str] = []
+        self._validate_functions: list[Callable[[], bool]] = []
 
     def __post_init__(self) -> None:
         for validate in self._validate_functions:
@@ -75,8 +58,7 @@ class Validator(metaclass=ValidatorMeta):
         self._errors.extend(errors)
 
     @staticmethod
-    def _get_validator_argument_name(frame: Optional[FrameType]) -> str:
-
+    def _get_validator_argument_name(frame: FrameType | None) -> str:
         # Get the frame of the caller
         call_line = get_call_line(frame)
 
@@ -105,7 +87,7 @@ class Validator(metaclass=ValidatorMeta):
 class ReservedKeyNameValidator(Validator):
     def __init__(
         self,
-        dictionary: Dict[str, Any],
+        dictionary: dict[str, Any],
         reserved_key_view: KeysView[str],
         allow_dunder_names: bool = False,
     ) -> None:
@@ -122,7 +104,8 @@ class ReservedKeyNameValidator(Validator):
             if key == "_":
                 self.add_error(
                     "key cannot be a single underline '_'. "
-                    f"The dictionary {self._name} given has a key '{key}' as a single underline."
+                    f"The dictionary {self._name} given has "
+                    f"a key '{key}' as a single underline."
                 )
                 return False
         return True
@@ -133,8 +116,10 @@ class ReservedKeyNameValidator(Validator):
                 continue
             if key[:2] == "__" and key[-2:] == "__":
                 self.add_error(
-                    "key cannot be a dunder name string (both start and end with '__'). "
-                    f"The dictionary {self._name} given has a key '{key}' as a dunder name."
+                    "key cannot be a dunder name string "
+                    "(both start and end with '__'). "
+                    f"The dictionary {self._name} given "
+                    f"has a key '{key}' as a dunder name."
                 )
                 return False
         return True
@@ -145,8 +130,10 @@ class ReservedKeyNameValidator(Validator):
         for key in self._dictionary.keys():
             if key in self._reserved_keys_view:
                 self.add_error(
-                    f"key '{key}' is a reserved key name string for the dictionary {self._name}. "
-                    f"Do not use the following reserved names: {self._reserved_keys_view} as keys."
+                    f"key '{key}' is a reserved key name string "
+                    f"for the dictionary {self._name}. "
+                    f"Do not use the following reserved names: "
+                    f"{self._reserved_keys_view} as keys."
                 )
                 return False
         return True
@@ -155,7 +142,7 @@ class ReservedKeyNameValidator(Validator):
 class BasicScalarValidator(Validator):
     def __init__(
         self,
-        value: Union[int, float],
+        value: int | float,
         range_validation: Callable[..., bool],
     ) -> None:
         super().__init__(value)
@@ -183,14 +170,14 @@ class BasicScalarValidator(Validator):
         )
         return False
 
-    def get_value(self) -> Union[int, float]:
+    def get_value(self) -> int | float:
         return self._value
 
 
 class IntegerValidator(BasicScalarValidator):
     def __init__(
         self,
-        value: Union[int, float],
+        value: int | float,
         range_validation: Callable[..., bool] = is_integer,
     ) -> None:
         super().__init__(value, range_validation)
@@ -200,19 +187,19 @@ class IntegerValidator(BasicScalarValidator):
 
 
 class PositiveIntegerValidator(IntegerValidator):
-    def __init__(self, value: Union[int, float]) -> None:
+    def __init__(self, value: int | float) -> None:
         super().__init__(value, is_positive_integer)
 
 
 class NonnegativeIntegerValidator(IntegerValidator):
-    def __init__(self, value: Union[int, float]) -> None:
+    def __init__(self, value: int | float) -> None:
         super().__init__(value, is_nonnegative_integer)
 
 
 class NumberValidator(BasicScalarValidator):
     def __init__(
         self,
-        value: Union[int, float],
+        value: int | float,
         range_validation: Callable[..., bool] = is_number,
     ) -> None:
         super().__init__(value, range_validation)
@@ -222,19 +209,19 @@ class NumberValidator(BasicScalarValidator):
 
 
 class PositiveNumberValidator(NumberValidator):
-    def __init__(self, value: Union[int, float]) -> None:
+    def __init__(self, value: int | float) -> None:
         super().__init__(value, is_positive_number)
 
 
 class NonnegativeNumberValidator(NumberValidator):
-    def __init__(self, value: Union[int, float]) -> None:
+    def __init__(self, value: int | float) -> None:
         super().__init__(value, is_nonnegative_number)
 
 
 class SignalTrajectoryValidator(Validator):
-    def __init__(self, signal_trajectory: Dict[str, ArrayLike]) -> None:
+    def __init__(self, signal_trajectory: dict[str, ArrayLike]) -> None:
         super().__init__(signal_trajectory)
-        self._signal_trajectory = cast(Dict[str, ArrayLike], self._argument)
+        self._signal_trajectory = cast(dict[str, ArrayLike], self._argument)
         self.add_validation(
             self._validate_type,
             self._validate_time_key,
@@ -258,7 +245,7 @@ class SignalTrajectoryValidator(Validator):
         )
         return False
 
-    def get_trajectory(self) -> Dict[str, NDArray[np.float64]]:
+    def get_trajectory(self) -> dict[str, NDArray[np.float64]]:
         signal_trajectory = dict()
         for key, value in self._signal_trajectory.items():
             signal_trajectory[key] = np.array(value, dtype=np.float64)
@@ -266,17 +253,17 @@ class SignalTrajectoryValidator(Validator):
 
 
 class BasePathValidator(Validator):
-    def _resolve_path(self, path: Union[str, Path]) -> Path:
+    def _resolve_path(self, path: str | Path) -> Path:
         return Path(path).resolve()
 
     @staticmethod
-    def _create_folder(foldername: Union[str, Path]) -> None:
+    def _create_folder(foldername: str | Path) -> None:
         Path(foldername).mkdir(parents=True, exist_ok=True)
         print(f"folder: '{foldername}' is successfully created.\n")
 
     @staticmethod
     def _is_folder_creation(
-        foldername: Union[str, Path], auto_create: bool = False
+        foldername: str | Path, auto_create: bool = False
     ) -> bool:
         if auto_create:
             return True
@@ -298,7 +285,7 @@ class BasePathValidator(Validator):
 
 class FolderPathExistenceValidator(BasePathValidator):
     def __init__(
-        self, foldername: Union[str, Path], auto_create: bool = False
+        self, foldername: str | Path, auto_create: bool = False
     ) -> None:
         super().__init__(foldername)
         self._foldername = self._resolve_path(foldername)
@@ -315,7 +302,8 @@ class FolderPathExistenceValidator(BasePathValidator):
             self._create_folder(self._foldername)
             return True
 
-        # If the user does not want to create the folder, show an error message and return False
+        # If the user does not want to create the folder,
+        # show an error message and return False
         self.add_error(
             "foldername must be a valid and existed folderpath (str or Path).",
             f"foldername provided is '{self._foldername}'.",
@@ -328,7 +316,7 @@ class FolderPathExistenceValidator(BasePathValidator):
 
 class FilePathExistenceValidator(BasePathValidator):
     def __init__(
-        self, filename: Union[str, Path], extension: Union[str, Iterable[str]]
+        self, filename: str | Path, extension: str | Iterable[str]
     ) -> None:
         super().__init__(filename)
         self._filename = self._resolve_path(filename)
@@ -349,7 +337,8 @@ class FilePathExistenceValidator(BasePathValidator):
 
         # If not, show an error message and return False
         self.add_error(
-            f"filename must has the correct extension: {self._extension} and exist.",
+            f"filename must has the correct extension: "
+            f"{self._extension} and exist.",
             f"filename provided is '{self._filename}'.",
         )
         return False
@@ -361,8 +350,8 @@ class FilePathExistenceValidator(BasePathValidator):
 class FilePathValidator(BasePathValidator):
     def __init__(
         self,
-        filename: Union[str, Path],
-        extension: Optional[Union[str, Iterable[str]]] = None,
+        filename: str | Path,
+        extension: str | Iterable[str] | None = None,
         auto_create_directory: bool = True,
     ) -> None:
         super().__init__(filename)
@@ -399,13 +388,15 @@ class FilePathValidator(BasePathValidator):
             )
             return False
 
-        # The parent directory does not exist, ask the user if they want to create it
+        # The parent directory does not exist,
+        # ask the user if they want to create it
         foldername = Path(self._filename).parent
         if self._is_folder_creation(foldername, self._auto_create):
             self._create_folder(foldername)
             return True
 
-        # If the user does not want to create the folder, show an error message and return False
+        # If the user does not want to create the folder,
+        # show an error message and return False
         self.add_error(
             f"folder: '{foldername}' does not exist. ",
             "filename must be a valid filepath (str or Path)"

@@ -1,7 +1,6 @@
-from typing import Callable, Generic, Optional, Self, Tuple, TypeVar
-
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
+from typing import Generic
 
 from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (
@@ -12,7 +11,6 @@ from ss.utility.learning.parameter.transformer.config import TC
 
 @dataclass
 class EmissionMatrixConfig(BaseLearningConfig, Generic[TC]):
-
     probability_parameter: ProbabilityParameterConfig[TC] = field(
         default_factory=ProbabilityParameterConfig[TC]
     )
@@ -32,7 +30,6 @@ class EmissionMatrixConfig(BaseLearningConfig, Generic[TC]):
 
 @dataclass
 class ObservationConfig(BaseLearningConfig):
-
     class Option(StrEnum):
         CATEGORY = auto()
         # PROBABILITY = auto()
@@ -42,7 +39,6 @@ class ObservationConfig(BaseLearningConfig):
 
 @dataclass
 class EmissionConfig(BaseLearningConfig, Generic[TC]):
-
     # block: EmissionBlockConfig[TC] = field(
     #     default_factory=EmissionBlockConfig[TC]
     # )

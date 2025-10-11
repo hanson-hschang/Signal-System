@@ -1,9 +1,6 @@
-from typing import Optional
-
 from dataclasses import dataclass
 
 from ss.utility.click import BaseClickConfig
-from ss.utility.learning.process.config import ProcessConfig
 
 
 @dataclass

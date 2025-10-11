@@ -1,7 +1,4 @@
-from typing import Set, Type, TypeVar
-
 import importlib
-import inspect
 import pkgutil
 
 from ss.utility.logging import Logging
@@ -10,7 +7,7 @@ logger = Logging.get_logger(__name__)
 
 
 class Package:
-    imported_packages: Set[str] = set()
+    imported_packages: set[str] = set()
 
     @classmethod
     def import_submodules(
@@ -87,7 +84,7 @@ class Package:
         return module_name
 
     @staticmethod
-    def get_subclasses(base_class: Type) -> Set[Type]:
+    def get_subclasses(base_class: type) -> set[type]:
         """
         Get all subclasses recursively
 
@@ -107,31 +104,3 @@ class Package:
             subclasses.add(subclass)
             subclasses.update(Package.get_subclasses(subclass))
         return subclasses
-
-    # @staticmethod
-    # def get_bounded_type_var(bound_class: Type) -> Set[TypeVar]:
-    #     """
-    #     Get all bounded type variables recursively
-
-    #     Arguments
-    #     ---------
-    #     bound_class: Type
-    #         The base class to find bounded type variables of
-
-    #     Returns
-    #     -------
-    #     bounded_type_vars: Set[TypeVar]
-    #         Set of all bounded type variables
-    #     """
-    #     bounded_type_vars = set()
-    #     # Inspect all objects in the typing module
-    #     for name, obj in inspect.getmembers(typing):
-    #         print(name, obj)
-
-    #         # Check if the object is a TypeVar
-    #         if isinstance(obj, TypeVar):
-    #             # Check if the TypeVar has a bound and if it's the specified class
-    #             if hasattr(obj, "__bound__") and obj.__bound__ is bound_class:
-    #                 bounded_type_vars.add(obj)
-
-    #     return bounded_type_vars

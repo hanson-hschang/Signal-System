@@ -1,11 +1,7 @@
-from typing import List, Optional, Sequence, Tuple
-
 import numpy as np
 import torch
 from numpy.typing import ArrayLike
-from torch.utils.data import DataLoader
 
-from ss.utility.deprecation import deprecated
 from ss.utility.learning import dataset as Dataset
 
 
@@ -55,13 +51,13 @@ class HmmObservationDataset(Dataset.BaseDataset):
     def __len__(self) -> int:
         return self._length
 
-    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor]:
         return self._input_trajectory[index], self._output_trajectory[index]
 
     @classmethod
     def from_batch(
-        cls, batch: Tuple[torch.Tensor, ...]
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        cls, batch: tuple[torch.Tensor, ...]
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         """
         Extracts the data from the batch.
 
@@ -81,31 +77,3 @@ class HmmObservationDataset(Dataset.BaseDataset):
         """
         input_trajectory, output_trajectory = batch[0], batch[1]
         return input_trajectory, output_trajectory
-
-
-# @deprecated(
-#     alternative_usage="HmmObservationDataset(...).split(...).to_loaders(...)",
-# )
-# def hmm_observation_data_split_to_loaders(
-#     observation: ArrayLike,
-#     batch_size: int,
-#     max_length: int,
-#     stride: int,
-#     split_ratio: Sequence[float],
-#     batch_size: int = 128,
-#     shuffle: bool = True,
-#     random_seed: Optional[int] = None,
-# ) -> List[DataLoader]:
-#     data_loaders = Dataset.dataset_split_to_loaders(
-#         dataset=HmmObservationDataset(
-#             observation=observation,
-#             batch_size=batch_size,
-#             max_length=max_length,
-#             stride=stride,
-#         ),
-#         split_ratio=split_ratio,
-#         batch_size=batch_size,
-#         shuffle=shuffle,
-#         random_seed=random_seed,
-#     )
-#     return data_loaders  # type: ignore

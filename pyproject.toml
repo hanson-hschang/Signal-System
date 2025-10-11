@@ -40,7 +40,7 @@ dependencies = [
 Repository = "https://github.com/hanson-hschang/Signal-System"
 Issues = "https://github.com/hanson-hschang/Signal-System/issues"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pyupgrade>=3.15.2",
     "pre-commit>=3.7.1",
@@ -49,11 +49,9 @@ dev = [
     "pytest-cov>=5.0.0",
     "pytest-dependency>=0.6.0",
     "codecov>=2.1.13",
-    "black>=24.4.2",
-    "isort[colors]>=5.13.2",
+    "ruff",
     "mypy>=1.10.0",
     "mypy-extensions>=1.0.0",
-    "pip-tools>=7.4.0",
 ]
 
 [build-system]
@@ -67,84 +65,6 @@ packages = ["src/ss"]
 [tool.hatch.build.targets.sdist]
 # Ensure the source directory is included in the source distribution.
 include = ["/src"]
-
-[tool.black]
-# https://github.com/psf/black
-target-version = ["py313"]
-line-length = 79
-color = true
-
-exclude = '''
-/(
-    \.git
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-    | env
-    | venv
-)/
-'''
-
-[tool.isort]
-# https://github.com/timothycrosley/isort/
-line_length = 79  # https://peps.python.org/pep-0008/
-known_typing = [
-    "typing",
-    "types",
-    "typing_extensions",
-    "mypy",
-    "mypy_extensions",
-]
-sections = [
-    "FUTURE",
-    "TYPING",
-    "STDLIB",
-    "THIRDPARTY",
-    "FIRSTPARTY",
-    "LOCALFOLDER",
-]
-include_trailing_comma = true
-profile = "black"
-multi_line_output = 3
-indent = 4
-use_parentheses = true
-color_output = true
-
-[tool.mypy]
-# https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
-python_version = "3.13"
-pretty = true
-show_traceback = true
-color_output = true
-strict = true
-allow_redefinition = false
-check_untyped_defs = false
-disallow_subclassing_any = false
-disallow_untyped_calls = false
-disallow_any_generics = false
-disallow_incomplete_defs = true
-ignore_missing_imports = true
-implicit_reexport = true
-no_implicit_optional = true
-show_column_numbers = true
-show_error_codes = true
-show_error_context = true
-strict_equality = true
-strict_optional = true
-warn_no_return = true
-warn_redundant_casts = true
-warn_return_any = true
-warn_unreachable = false
-warn_unused_configs = true
-warn_unused_ignores = true
-exclude = [
-    'src/draft/.*\.py$',
-]
 
 [tool.pytest.ini_options]
 norecursedirs = [
@@ -196,3 +116,48 @@ omit = [
     "*/.local/*",
     "setup.py",
 ]
+
+[tool.ruff]
+# Set the line length for both the linter and formatter.
+line-length = 79
+
+# Set the target Python version.
+target-version = "py311"
+
+# Define files and directories to be excluded from checks.
+# Ruff uses glob patterns and merges the lists.
+exclude = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".tox",
+    ".venv",
+    "__pycache__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "env",
+    "venv",
+]
+
+[tool.ruff.lint]
+# Select the rule sets to enable.
+# "E" (pycodestyle errors), "W" (pycodestyle warnings), and "F" (Pyflakes)
+# are a good starting point to replicate flake8's default behavior.
+select = ["E", "F", "W"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true

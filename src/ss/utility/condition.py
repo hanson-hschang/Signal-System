@@ -1,6 +1,6 @@
-from typing import Callable, Iterable, Self
-
 from collections import OrderedDict
+from collections.abc import Callable, Iterable
+from typing import Self
 
 
 class Condition:

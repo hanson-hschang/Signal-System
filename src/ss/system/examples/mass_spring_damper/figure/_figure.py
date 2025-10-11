@@ -1,4 +1,4 @@
-from typing import Any, Dict, Self, Tuple
+from typing import Any, Self
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -15,7 +15,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
         self,
         time_trajectory: ArrayLike,
         state_trajectory: ArrayLike,
-        fig_size: Tuple[int, int] = (12, 8),
+        fig_size: tuple[int, int] = (12, 8),
     ) -> None:
         state_trajectory = np.array(state_trajectory)
 
@@ -26,12 +26,14 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
                 state_trajectory = state_trajectory[np.newaxis, :, :]
             case _:
                 pass
-        assert (
-            len(state_trajectory.shape) == 3
-        ), "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
+        assert len(state_trajectory.shape) == 3, (
+            "state_trajectory in general is a 3D array with "
+            "shape (batch_size, state_dim, time_length)."
+        )
         assert state_trajectory.shape[1] % 2 == 0, (
             "state_trajectory must have an even number of states_dim."
-            "state_trajectory in general is a 3D array with shape (batch_size, state_dim, time_length)."
+            "state_trajectory in general is a 3D array "
+            "with shape (batch_size, state_dim, time_length)."
         )
         self._number_of_connections = state_trajectory.shape[1] // 2
         super().__init__(
@@ -42,9 +44,10 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
             fig_layout=(2, self._number_of_connections),
         )
         assert state_trajectory.shape[2] == self._sequence_length, (
-            f"state_trajectory must have the same time horizon as time_trajectory. "
-            f"state_trajectory has the time horizon of {state_trajectory.shape[2]} "
-            f"while time_trajectory has the time horizon of {self._sequence_length}."
+            "state_trajectory must have the same time horizon "
+            "as time_trajectory. state_trajectory has the time horizon "
+            f"of {state_trajectory.shape[2]} while time_trajectory "
+            f"has the time horizon of {self._sequence_length}."
         )
 
         self._state_trajectory = state_trajectory
@@ -65,7 +68,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
 
     def _compute_range(
         self, signal_trajectory: NDArray[np.float64]
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         signal_range = np.array(
             [np.min(signal_trajectory), np.max(signal_trajectory)]
         )
@@ -79,7 +82,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
         if self._batch_size <= 10:
             self._plot_each_system_trajectory()
         else:
-            kwargs: Dict = dict(
+            kwargs: dict = dict(
                 color=self._default_color,
                 alpha=self._default_alpha,
             )
@@ -122,7 +125,7 @@ class MassSpringDamperStateTrajectoryFigure(TimeTrajectoryFigure):
         for d, state_name in enumerate(self._state_name):
             self._subplots[d][0].set_ylabel(state_name)
         for j in range(self._number_of_connections):
-            self._subplots[0][j].set_title(f"Mass {j+1}")
+            self._subplots[0][j].set_title(f"Mass {j + 1}")
 
     def _plot_systems_statistics_trajectory(
         self,

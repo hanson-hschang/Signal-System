@@ -1,6 +1,5 @@
-from typing import Any, Dict, Optional, Self, Set, Tuple, Union
-
 from pathlib import Path
+from typing import Any, Self
 
 import h5py
 import numpy as np
@@ -29,7 +28,7 @@ class CheckpointInfo(dict):
         super().__init__(**kwargs)
 
     @classmethod
-    def load(cls, filename: Union[str, Path]) -> Self:
+    def load(cls, filename: str | Path) -> Self:
         filepath = FilePathValidator(
             filename, cls.FILE_EXTENSION
         ).get_filepath()
@@ -40,8 +39,8 @@ class CheckpointInfo(dict):
         return cls(**checkpoint_info)
 
     @classmethod
-    def _load(cls, group: h5py.Group) -> Dict[str, Any]:
-        checkpoint_info: Dict[str, Any] = dict()
+    def _load(cls, group: h5py.Group) -> dict[str, Any]:
+        checkpoint_info: dict[str, Any] = dict()
         for key, value in group.items():
             if isinstance(value, h5py.Group):
                 checkpoint_info[key] = cls._load(value)
@@ -55,14 +54,15 @@ class CheckpointInfo(dict):
                         checkpoint_info[key] = np.array(value)
                     case _ as _invalid_type:
                         logger.warning(
-                            f"invalid type: {_invalid_type} read from the checkpoint_info file"
+                            f"invalid type: {_invalid_type} "
+                            "read from the checkpoint_info file"
                         )
                         logger.warning(f"{key}: {value}")
             else:
                 checkpoint_info[key] = value
         return checkpoint_info
 
-    def save(self, filename: Union[str, Path]) -> None:
+    def save(self, filename: str | Path) -> None:
         filepath = FilePathValidator(
             filename, self.FILE_EXTENSION
         ).get_filepath()
@@ -91,9 +91,7 @@ class CheckpointInfo(dict):
 
 
 class Checkpoint:
-    def __init__(
-        self, config: Optional[Config.CheckpointConfig] = None
-    ) -> None:
+    def __init__(self, config: Config.CheckpointConfig | None = None) -> None:
         if config is None:
             config = Config.CheckpointConfig()
         self._config = config
@@ -139,11 +137,12 @@ class Checkpoint:
         self,
         module: BaseLearningModule,
         checkpoint_info: CheckpointInfo,
-        model_info: Dict[str, Any],
+        model_info: dict[str, Any],
     ) -> None:
         if self._index == self._initial_index:
             logger.info(
-                f"checkpoints are saved every {self._config.per_epoch_period} epoch(s) "
+                "checkpoints are saved every "
+                f"{self._config.per_epoch_period} epoch(s) "
                 + (
                     "with the initial checkpoint skipped"
                     if self._initial_skip
@@ -173,8 +172,8 @@ class Checkpoint:
         cls,
         module: BLM,
         model_filepath: Path,
-        safe_callables: Optional[Set[serialization.SafeCallable]] = None,
-    ) -> Tuple[BLM, Dict[str, Any], CheckpointInfo]:
+        safe_callables: set[serialization.SafeCallable] | None = None,
+    ) -> tuple[BLM, dict[str, Any], CheckpointInfo]:
         module_filepath = (
             model_filepath
             if model_filepath.suffix in module.FILE_EXTENSIONS

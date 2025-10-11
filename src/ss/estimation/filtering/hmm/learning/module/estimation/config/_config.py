@@ -1,10 +1,7 @@
-from typing import Generic, Optional
-
 from dataclasses import dataclass, field
 from enum import StrEnum, auto
+from typing import Generic
 
-from ss.utility.assertion.validator import NonnegativeIntegerValidator
-from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,
@@ -25,7 +22,6 @@ from ss.utility.learning.parameter.transformer.config import TC
 
 @dataclass
 class EstimationMatrixConfig(BaseLearningConfig, Generic[TC]):
-
     probability_parameter: ProbabilityParameterConfig[TC] = field(
         default_factory=ProbabilityParameterConfig[TC]
     )
@@ -33,7 +29,6 @@ class EstimationMatrixConfig(BaseLearningConfig, Generic[TC]):
 
 @dataclass
 class EstimationConfig(BaseLearningConfig, Generic[TC]):
-
     class Option(StrEnum):
         ESTIMATED_STATE = auto()
         # PREDICTED_STATE = auto()

@@ -1,6 +1,6 @@
-from typing import Callable, Generic, Tuple, cast
-
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Generic, cast
 
 from ss.estimation.filtering.hmm.learning.module.emission.config import (
     EmissionConfig,
@@ -15,8 +15,6 @@ from ss.estimation.filtering.hmm.learning.module.filter.config import (
 from ss.estimation.filtering.hmm.learning.module.transition.config import (
     TransitionConfig,
 )
-from ss.utility.assertion.validator import PositiveIntegerValidator
-from ss.utility.descriptor import DataclassDescriptor
 from ss.utility.learning.module.config import BaseLearningConfig
 from ss.utility.learning.parameter.probability.config import (
     ProbabilityParameterConfig,

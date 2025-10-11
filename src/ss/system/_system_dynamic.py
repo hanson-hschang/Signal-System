@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
@@ -14,7 +14,7 @@ class ContinuousTimeSystem(System):
     class _NoiseCovarianceValidator(Validator):
         def __init__(
             self,
-            noise_covariance: Optional[ArrayLike],
+            noise_covariance: ArrayLike | None,
             dimension: int,
         ) -> None:
             super().__init__(noise_covariance)
@@ -29,7 +29,8 @@ class ContinuousTimeSystem(System):
             if (len(shape) == 2) and (shape[0] == shape[1] == self._dimension):
                 return True
             self._errors.append(
-                f"{self._name} should be a square matrix and have shape ({self._dimension}, {self._dimension})"
+                f"{self._name} should be a square matrix and have "
+                f"shape ({self._dimension}, {self._dimension})"
             )
             return False
 
@@ -38,18 +39,18 @@ class ContinuousTimeSystem(System):
 
     def __init__(
         self,
-        time_step: Union[int, float],
+        time_step: int | float,
         state_dim: int,
         observation_dim: int,
         control_dim: int = 0,
         batch_size: int = 1,
-        process_noise_covariance: Optional[ArrayLike] = None,
-        observation_noise_covariance: Optional[ArrayLike] = None,
+        process_noise_covariance: ArrayLike | None = None,
+        observation_noise_covariance: ArrayLike | None = None,
         **kwargs: Any,
     ) -> None:
-        assert is_positive_number(
-            time_step
-        ), f"time_step {time_step} must be a positive number"
+        assert is_positive_number(time_step), (
+            f"time_step {time_step} must be a positive number"
+        )
         self._time_step = time_step
 
         super().__init__(
@@ -98,9 +99,10 @@ class ContinuousTimeSystem(System):
             observation_noise_covariance=self._observation_noise_covariance,
         )
 
-    def process(self, time: Union[int, float]) -> Union[int, float]:
+    def process(self, time: int | float) -> int | float:
         """
-        Update the state of each system by one time step based on the current state and control (if existed).
+        Update the state of each system by one time step based on
+        the current state and control (if existed).
 
         Parameters
         ----------
@@ -143,8 +145,8 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
         observation_dim: int,
         control_dim: int = 0,
         batch_size: int = 1,
-        process_noise_covariance: Optional[ArrayLike] = None,
-        observation_noise_covariance: Optional[ArrayLike] = None,
+        process_noise_covariance: ArrayLike | None = None,
+        observation_noise_covariance: ArrayLike | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(

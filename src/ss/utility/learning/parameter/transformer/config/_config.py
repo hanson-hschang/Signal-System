@@ -1,6 +1,5 @@
-from typing import Final, TypeVar
-
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import TypeVar
 
 from ss.utility.learning.module.config import BaseLearningConfig
 

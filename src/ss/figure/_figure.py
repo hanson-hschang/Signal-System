@@ -1,7 +1,6 @@
-from typing import List, Literal, Optional, Self, Tuple
-
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal, Self
 
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
@@ -24,11 +23,11 @@ class Figure:
     def __init__(
         self,
         sup_xlabel: str = "",
-        fig_size: Tuple = (12, 8),
-        fig_title: Optional[str] = None,
-        fig_layout: Tuple[int, int] = (1, 1),
-        column_ratio: Optional[Tuple[float, ...]] = None,
-        row_ratio: Optional[Tuple[float, ...]] = None,
+        fig_size: tuple = (12, 8),
+        fig_title: str | None = None,
+        fig_layout: tuple[int, int] = (1, 1),
+        column_ratio: tuple[float, ...] | None = None,
+        row_ratio: tuple[float, ...] | None = None,
     ) -> None:
         self._sup_xlabel = sup_xlabel
         self._fig_size = fig_size
@@ -42,7 +41,7 @@ class Figure:
             width_ratios=column_ratio,
             height_ratios=row_ratio,
         )
-        self._subplots: List[List[Axes]] = []
+        self._subplots: list[list[Axes]] = []
         for row in range(self._fig_layout[0]):
             self._subplots.append([])
             for col in range(self._fig_layout[1]):
@@ -89,11 +88,11 @@ class Figure:
         ax: Axes,
         position: (
             Literal["top", "center", "bottom", "zero", "one"]
-            | Tuple[Literal["axes", "data"], float]
+            | tuple[Literal["axes", "data"], float]
         ),
         line_width: float,
     ) -> Axes:
-        _position: Tuple[Literal["axes", "data"], float]
+        _position: tuple[Literal["axes", "data"], float]
         match position:
             case "top":
                 _position = ("axes", 1.0)
@@ -133,11 +132,11 @@ class Figure:
         ax: Axes,
         position: (
             Literal["left", "center", "right", "zero", "one"]
-            | Tuple[Literal["axes", "data"], float]
+            | tuple[Literal["axes", "data"], float]
         ),
         line_width: float,
     ) -> Axes:
-        _position: Tuple[Literal["axes", "data"], float]
+        _position: tuple[Literal["axes", "data"], float]
         match position:
             case "right":
                 _position = ("axes", 1.0)
@@ -176,14 +175,16 @@ class Figure:
         cls,
         ax: Axes,
         *,
-        horizontal_axis_position: Optional[
+        horizontal_axis_position: None
+        | (
             Literal["top", "center", "bottom", "zero", "one"]
-            | Tuple[Literal["axes", "data"], float]
-        ] = None,
-        vertical_axis_position: Optional[
+            | tuple[Literal["axes", "data"], float]
+        ) = None,
+        vertical_axis_position: None
+        | (
             Literal["left", "center", "right", "zero", "one"]
-            | Tuple[Literal["axes", "data"], float]
-        ] = None,
+            | tuple[Literal["axes", "data"], float]
+        ) = None,
         line_width: float = 1,
         tick_label_font_size: float = 12,
     ) -> Axes:

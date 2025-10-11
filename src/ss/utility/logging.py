@@ -1,37 +1,26 @@
-from types import TracebackType
-from typing import (
-    Dict,
-    Iterable,
-    Mapping,
-    Optional,
-    Tuple,
-    Type,
-    TypeAlias,
-    Union,
-    override,
-)
-
 import logging
 import sys
 from collections import OrderedDict
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum
 from pathlib import Path
+from types import TracebackType
+from typing import Optional, TypeAlias, Union, override
 
 from tqdm import tqdm
-from tqdm.contrib.logging import logging_redirect_tqdm
 
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.singleton import SingletonMeta
 
 ExcInfoType: TypeAlias = Union[
     bool,
-    Tuple[
-        Type[BaseException],
+    tuple[
+        type[BaseException],
         BaseException,
         Optional[TracebackType],
     ],
-    Tuple[None, None, None],
+    tuple[None, None, None],
     BaseException,
 ]
 
@@ -46,7 +35,7 @@ class LogLevel(IntEnum):
 
 @dataclass
 class LogfileSetting:
-    filename: Union[str, Path]
+    filename: str | Path
     log_level: LogLevel
     log_format: str
     datetime_format: str
@@ -72,7 +61,7 @@ class Logger(logging.Logger):
         self,
         iterable: Iterable,
         *,
-        total: Optional[int] = None,
+        total: int | None = None,
         show_progress: bool = True,
     ) -> tqdm:
         return tqdm(iterable, total=total, disable=not show_progress)
@@ -87,10 +76,10 @@ class Logger(logging.Logger):
         message: object,
         *args: object,
         indent_level: int = 0,
-        exc_info: Optional[ExcInfoType] = None,
+        exc_info: ExcInfoType | None = None,
         stack_info: bool = False,
         stacklevel: int = 1,
-        extra: Optional[Mapping[str, object]] = None,
+        extra: Mapping[str, object] | None = None,
     ) -> None:
         messages = str(message).split("\n")
         for _message in messages:
@@ -109,10 +98,10 @@ class Logger(logging.Logger):
         message: object,
         *args: object,
         indent_level: int = 0,
-        exc_info: Optional[ExcInfoType] = None,
+        exc_info: ExcInfoType | None = None,
         stack_info: bool = False,
         stacklevel: int = 1,
-        extra: Optional[Mapping[str, object]] = None,
+        extra: Mapping[str, object] | None = None,
     ) -> None:
         messages = str(message).split("\n")
         for _message in messages:
@@ -130,10 +119,10 @@ class Logger(logging.Logger):
         message: object,
         *args: object,
         indent_level: int = 0,
-        exc_info: Optional[ExcInfoType] = None,
+        exc_info: ExcInfoType | None = None,
         stack_info: bool = False,
         stacklevel: int = 1,
-        extra: Optional[Mapping[str, object]] = None,
+        extra: Mapping[str, object] | None = None,
     ) -> None:
         messages = str(message).split("\n")
         for _message in messages:
@@ -149,7 +138,7 @@ class Logger(logging.Logger):
 
 
 class Logging(metaclass=SingletonMeta):
-    _logger: Dict[str, Logger] = OrderedDict()
+    _logger: dict[str, Logger] = OrderedDict()
 
     @classmethod
     def get_logger(
@@ -202,7 +191,7 @@ class Logging(metaclass=SingletonMeta):
             max_name_length = max(max_name_length, len(name))
             logger.handlers = []
 
-        # Create formatters and change the format of loggers' name to have a fixed width
+        # Create formatters with a fixed width for loggers' names
         self.logfile_setting.log_format = (
             self.logfile_setting.log_format.replace(
                 "%(name)s", f"%(name){max_name_length}s"
@@ -250,13 +239,21 @@ class Logging(metaclass=SingletonMeta):
     @classmethod
     def basic_config(
         cls,
-        filename: Union[str, Path],
+        filename: str | Path,
         verbose: bool = False,
         debug: bool = False,
-        verbose_format: str = r"%(name)s | %(levelname)s | %(message)s",
-        logfile_format: str = r"%(asctime)s | %(name)s | %(levelname)-8s | %(message)s",
-        datetime_format: str = r"%Y-%m-%d %H:%M:%S",
+        verbose_format: str | None = None,
+        logfile_format: str | None = None,
+        datetime_format: str | None = None,
     ) -> "Logging":
+        if verbose_format is None:
+            verbose_format = r"%(name)s | %(levelname)s | %(message)s"
+        if logfile_format is None:
+            logfile_format = (
+                r"%(asctime)s | %(name)s | %(levelname)-8s | %(message)s"
+            )
+        if datetime_format is None:
+            datetime_format = r"%Y-%m-%d %H:%M:%S"
         return cls(
             LogfileSetting(
                 filename=filename,

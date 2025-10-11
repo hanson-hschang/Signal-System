@@ -1,6 +1,5 @@
-from typing import Any, Optional, assert_never, no_type_check
-
 from pathlib import Path
+from typing import Any, assert_never, no_type_check
 
 import click
 
@@ -29,13 +28,12 @@ from . import UserConfig, analysis, inference, training
     default=None,
 )
 def main(
-    config_filepath: Optional[Path],
+    config_filepath: Path | None,
     verbose: bool,
     debug: bool,
-    result_directory: Optional[Path],
+    result_directory: Path | None,
     **kwargs: Any,
 ) -> None:
-
     user_config = UserConfig.load(config_filepath, **kwargs)
 
     path_manager = basic_config(

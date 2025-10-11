@@ -1,24 +1,17 @@
-from typing import Generic, Tuple, assert_never
+from typing import Generic
 
 import torch
 
 from ss.estimation.filtering.hmm.learning.module.config import (
     LearningHmmFilterConfig,
 )
-from ss.estimation.filtering.hmm.learning.module.emission import (
-    EmissionModule,
-)
+from ss.estimation.filtering.hmm.learning.module.emission import EmissionModule
 from ss.estimation.filtering.hmm.learning.module.estimation import (
     EstimationModule,
 )
 from ss.estimation.filtering.hmm.learning.module.filter import FilterModule
 from ss.estimation.filtering.hmm.learning.module.transition import (
     TransitionModule,
-)
-from ss.utility.descriptor import (
-    BatchTensorReadOnlyDescriptor,
-    Descriptor,
-    ReadOnlyDescriptor,
 )
 from ss.utility.learning.module import BaseLearningModule
 from ss.utility.learning.parameter.transformer import T
@@ -33,7 +26,8 @@ class LearningHmmFilter(
     Generic[T, TC],
 ):
     """
-    `LearningHmmFilter` module for learning the hidden Markov model and estimating the next observation.
+    `LearningHmmFilter` module for learning the hidden Markov model
+    and estimating the next observation.
     """
 
     def __init__(
@@ -46,7 +40,8 @@ class LearningHmmFilter(
         Arguments:
         ----------
         config : LearningHmmFilterConfig
-            dataclass containing the configuration for the module `LearningHmmFilter` class
+            dataclass containing the configuration for the
+            module `LearningHmmFilter` class
         """
         super().__init__(config)
 
@@ -133,7 +128,7 @@ class LearningHmmFilter(
         """
 
         emission_trajectory: torch.Tensor = self._emission(
-            observation_trajectory,  # (batch_size, observation_dim=1, horizon,)
+            observation_trajectory,  # (batch_size, observation_dim=1, horizon)
         )  # (batch_size, state_dim, horizon,)
         # if self.training:
         #     noise = (
@@ -162,7 +157,8 @@ class LearningHmmFilter(
         Arguments:
         ----------
         observation : torch.Tensor
-            shape = (batch_size, observation_dim=1, horizon) or (batch_size, observation_dim=1,) or (observation_dim=1,)
+            shape = (batch_size, observation_dim=1, horizon) or
+            (batch_size, observation_dim=1,) or (observation_dim=1,)
         """
         emission_trajectory = self._emission.at_inference(
             observation,  # (batch_size, observation_dim=1, horizon,)
@@ -175,12 +171,14 @@ class LearningHmmFilter(
     @torch.inference_mode()
     def estimate(self) -> torch.Tensor:
         """
-        Compute the estimation. This method should be called after the `update` method.
+        Compute the estimation.
+        This method should be called after the `update` method.
 
         Returns
         -------
         estimation: torch.Tensor
-            Based on the estimation option in the configuration, the chosen estimation will be returned.
+            Based on the estimation option in the configuration,
+            the chosen estimation will be returned.
         """
         estimation: torch.Tensor = self._estimation.at_inference(
             self._filter.estimated_state,  # (batch_size, state_dim)

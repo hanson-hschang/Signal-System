@@ -3,7 +3,6 @@ from ss.utility.device.performance import Performance
 
 class CudaGpuPerformance(Performance):
     def __init__(self) -> None:
-
         super().__init__("cuda")
 
     def _process(self) -> None:

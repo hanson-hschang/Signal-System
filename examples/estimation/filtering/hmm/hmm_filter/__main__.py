@@ -1,6 +1,5 @@
-from typing import Any, Optional, no_type_check
-
 from pathlib import Path
+from typing import Any, no_type_check
 
 import click
 import numpy as np
@@ -29,13 +28,12 @@ from . import UserConfig, hmm_filtering
     default=None,
 )
 def main(
-    config_filepath: Optional[Path],
+    config_filepath: Path | None,
     verbose: bool,
     debug: bool,
     result_directory: Path,
     **kwargs: Any,
 ) -> None:
-
     user_config = UserConfig.load(config_filepath, **kwargs)
 
     path_manager = basic_config(

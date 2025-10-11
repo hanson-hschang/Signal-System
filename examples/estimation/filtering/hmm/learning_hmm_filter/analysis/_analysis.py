@@ -75,7 +75,9 @@ def analysis(
     # learned_transition_matrix = (
     #     learning_filter.transition_matrix[0].detach().numpy()
     # )
-    # learned_emission_matrix = learning_filter.emission_matrix.detach().numpy()
+    # learned_emission_matrix = (
+    #     learning_filter.emission_matrix.detach().numpy()
+    # )
 
     # Figure.StochasticMatrixFigure(
     #     stochastic_matrix=transition_matrix,
@@ -125,7 +127,8 @@ def analysis(
         )
     )
     logger.info(
-        f"empirical loss of learned HMM filter = {float(empirical_learning_filter_loss)}"
+        f"empirical loss of learned HMM filter = "
+        f"{float(empirical_learning_filter_loss)}"
     )
     # loss_mean_over_layer = loss_conversion(
     #     Utility.compute_layer_loss_trajectory(
@@ -139,14 +142,15 @@ def analysis(
 
     ## Compute an example loss trajectory of the filter and learning_filter
     learning_filter.batch_size = 1
-    filter_result_trajectory, learning_filter_result_trajectory = (
-        Utility.compute_loss_trajectory(
-            filter=filter,
-            learning_filter=learning_filter,
-            observation_trajectory=(
-                example_observation_trajectory := observation_trajectory[0]
-            ),
-        )
+    (
+        filter_result_trajectory,
+        learning_filter_result_trajectory,
+    ) = Utility.compute_loss_trajectory(
+        filter=filter,
+        learning_filter=learning_filter,
+        observation_trajectory=(
+            example_observation_trajectory := observation_trajectory[0]
+        ),
     )
 
     # Analysis visualization

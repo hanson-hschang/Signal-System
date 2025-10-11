@@ -1,9 +1,7 @@
-from typing import Tuple, Type, Union
-
 import numpy as np
 
 
-def get_type_string(allowed_types: Union[Type, Tuple[Type, ...]]) -> str:
+def get_type_string(allowed_types: type | tuple[type, ...]) -> str:
     """
     Convert type names to more readable format
 
@@ -33,14 +31,15 @@ def get_type_string(allowed_types: Union[Type, Tuple[Type, ...]]) -> str:
 
 
 def from_numpy_generic(
-    value: Union[np.bool_, np.integer, np.floating, np.character],
-) -> Union[bool, int, float, str]:
+    value: np.bool_ | np.integer | np.floating | np.character,
+) -> bool | int | float | str:
     """
     Convert numpy scalar to Python scalar with proper type hinting.
 
     Arguments:
     ----------
-        value: A numpy scalar value (np.bool_, np.integer, np.floating, np.character)
+        value: A numpy scalar value
+        (np.bool_, np.integer, np.floating, np.character)
 
     Returns:
     --------

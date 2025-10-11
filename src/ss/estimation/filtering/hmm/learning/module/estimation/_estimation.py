@@ -1,4 +1,5 @@
-from typing import Callable, Generic, assert_never
+from collections.abc import Callable
+from typing import Generic, assert_never
 
 import torch
 
@@ -76,7 +77,7 @@ class EstimationModule(
         self,
         estimated_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
-        # (batch_size, estimation_dim=state_dim, horizon) or (batch_size, estimation_dim=state_dim)
+        # (batch_size, estimation_dim=state_dim, [horizon])
         return estimated_state_trajectory
 
     @torch.compile
@@ -99,13 +100,10 @@ class EstimationModule(
     def forward(
         self,
         estimated_state_trajectory: torch.Tensor,
-        # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
-
         estimation_trajectory = self._forward(
-            estimated_state_trajectory,  # (batch_size, state_dim, horizon) or (batch_size, state_dim)
-            # predicted_state_trajectory,  # (batch_size, state_dim, horizon) or (batch_size, state_dim)
-        )  # (batch_size, estimation_dim, horizon) or (batch_size, estimation_dim)
+            estimated_state_trajectory,  # (batch_size, state_dim, [horizon])
+        )  # (batch_size, estimation_dim, [horizon])
 
         return estimation_trajectory
 

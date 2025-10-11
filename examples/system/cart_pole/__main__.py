@@ -61,7 +61,7 @@ def main(
     verbose: bool,
     debug: bool,
 ) -> None:
-    path_manager = basic_config(__file__, verbose, debug)
+    basic_config(__file__, verbose, debug)
 
     cart_pole_system = CartPoleSystem(
         cart_mass=cart_mass,
@@ -75,7 +75,7 @@ def main(
         cart_pole_system.control = [[1]] * batch_size
     else:
         cart_pole_system.control = [1]
-    time = cart_pole_system.process(0)
+    cart_pole_system.process(0)
     print(cart_pole_system.state)
     observation = cart_pole_system.observe()
     print(observation)

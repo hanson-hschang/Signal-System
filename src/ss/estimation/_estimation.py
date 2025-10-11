@@ -1,4 +1,5 @@
-from typing import Callable, Generic, Optional, TypeVar
+from collections.abc import Callable
+from typing import Generic, TypeVar
 
 import numpy as np
 from numba import njit, prange
@@ -35,7 +36,7 @@ class Estimator:
         state_dim: int,
         observation_dim: int,
         history_horizon: int,
-        estimation_model: Optional[Callable] = None,
+        estimation_model: Callable | None = None,
         batch_size: int = 1,
     ) -> None:
         self._state_dim = self._StateDimValidator(state_dim).get_value()
@@ -63,7 +64,8 @@ class Estimator:
             dtype=np.float64,
         )
 
-        # TODO: The following should be implemented as a validator for estimation_model.
+        # TODO: The following should be implemented as
+        # a validator for estimation_model.
         if estimation_model is None:
 
             @njit(cache=True)  # type: ignore
@@ -145,7 +147,8 @@ class Estimator:
             self._batch_size,
             self._observation_dim,
         ), (
-            f"observation must be in the shape of {(self._batch_size, self._observation_dim) = }. "
+            f"observation must be in the shape of "
+            f"{(self._batch_size, self._observation_dim) = }. "
             f"observation given has the shape of {observation.shape}."
         )
         self._update_observation(

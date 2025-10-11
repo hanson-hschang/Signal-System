@@ -1,13 +1,10 @@
-from typing import Any, Callable, Dict
-
+from collections.abc import Callable
 from pathlib import Path
 
 import torch
 
 from ss.estimation.filtering.hmm.learning.dataset import HmmObservationDataset
-from ss.estimation.filtering.hmm.learning.module import (
-    LearningDualHmmFilter,
-)
+from ss.estimation.filtering.hmm.learning.module import LearningDualHmmFilter
 from ss.estimation.filtering.hmm.learning.module.config import (
     LearningDualHmmFilterConfig,
 )
@@ -37,7 +34,6 @@ def training(
     result_directory: Path,
     new_training: bool = True,
 ) -> None:
-
     device_manager = DeviceManager()
 
     # Prepare data
@@ -116,7 +112,6 @@ def training(
 
     # Prepare learning process
     if new_training:
-
         # Prepare loss function
         loss_function = torch.nn.functional.cross_entropy
 
@@ -133,7 +128,6 @@ def training(
         )
 
     else:
-
         # Load learning process from checkpoint
         learning_process = LearningProcess.from_checkpoint(
             module=learning_filter,
@@ -171,7 +165,6 @@ def training(
         sampling_interval=1.0,
         result_directory=result_directory,
     ):
-
         learning_process.training(
             training_loader, evaluation_loader, training_config
         )

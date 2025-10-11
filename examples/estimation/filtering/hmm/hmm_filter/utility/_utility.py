@@ -31,11 +31,11 @@ def get_probability_matrix(
     nrows: int, ncols: int, temperature: float = 3
 ) -> NDArray:
     assert is_positive_integer(nrows), (
-        "The number of rows must be a positive integer. "
-        f"The given {nrows = }."
+        f"The number of rows must be a positive integer. The given {nrows = }."
     )
     assert is_positive_integer(ncols) and (ncols >= 2), (
-        "The number of columns must be a positive integer with minimum value of 2. "
+        "The number of columns must be a positive integer "
+        "with minimum value of 2. "
         f"The given {ncols = }."
     )
     min_number_of_non_zero_elements = max(2, ncols // 3)

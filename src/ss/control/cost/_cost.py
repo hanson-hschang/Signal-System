@@ -1,16 +1,13 @@
-from typing import Any, Callable, Dict, Self, Tuple
+from collections.abc import Callable
+from typing import Any
 
 import numpy as np
-from matplotlib.axes import Axes
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from ss.utility.assertion import is_positive_integer, is_positive_number
 from ss.utility.assertion.validator import Validator
 from ss.utility.callback import Callback
-from ss.utility.descriptor import (
-    BatchNDArrayDescriptor,
-    ReadOnlyDescriptor,
-)
+from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
 
 
 class Cost:
@@ -161,9 +158,9 @@ class CostCallback(Callback):
         step_skip: int,
         cost: Cost,
     ) -> None:
-        assert issubclass(
-            type(cost), Cost
-        ), "cost must be an instance of Cost."
+        assert issubclass(type(cost), Cost), (
+            "cost must be an instance of Cost."
+        )
         self._cost = cost
         super().__init__(step_skip)
 

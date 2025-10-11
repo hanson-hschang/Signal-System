@@ -1,20 +1,7 @@
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Generic,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
-
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Any, Generic, TypeVar, cast
 
 import torch
 from torch import nn
@@ -56,9 +43,10 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
 
     def __init__(self, config: Config.BLC, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        assert issubclass(
-            type(config), Config.BaseLearningConfig
-        ), f"{type(config) = } must be a subclass of {Config.BaseLearningConfig.__name__}"
+        assert issubclass(type(config), Config.BaseLearningConfig), (
+            f"{type(config) = } must be a subclass of "
+            f"{Config.BaseLearningConfig.__name__}"
+        )
         self._config = config
         self._inference = not self.training
         # self._device_manager = DeviceManager()
@@ -102,7 +90,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         #         print([c.__class__.__name__ for c in module.children()])
 
     @contextmanager
-    def training_mode(self) -> Generator[None, None, None]:
+    def training_mode(self) -> Generator[None]:
         try:
             training = self.training
             self.train()
@@ -111,7 +99,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
             self.train(training)
 
     @contextmanager
-    def evaluation_mode(self) -> Generator[None, None, None]:
+    def evaluation_mode(self) -> Generator[None]:
         try:
             training = self.training
             self.eval()
@@ -124,8 +112,8 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
 
     def save(
         self,
-        filename: Union[str, Path],
-        model_info: Optional[Dict[str, Any]] = None,
+        filename: str | Path,
+        model_info: dict[str, Any] | None = None,
     ) -> None:
         if model_info is None:
             model_info = dict()
@@ -145,11 +133,11 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
 
     @classmethod
     def load(
-        cls: Type[BLM],
-        filename: Union[str, Path],
-        safe_callables: Optional[Set[serialization.SafeCallable]] = None,
+        cls: type[BLM],
+        filename: str | Path,
+        safe_callables: set[serialization.SafeCallable] | None = None,
         strict: bool = True,
-    ) -> Tuple[BLM, Dict[str, Any]]:
+    ) -> tuple[BLM, dict[str, Any]]:
         if not strict:
             logger.warning(
                 "Loading with strict=False is not recommended. "
@@ -162,7 +150,7 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
         initialize_safe_callables()
 
         with serialization.SafeCallables(safe_callables):
-            model_info: Dict[str, Any] = torch.load(
+            model_info: dict[str, Any] = torch.load(
                 filepath,
                 map_location=Device.CPU,
                 weights_only=strict,
@@ -178,15 +166,13 @@ class BaseLearningModule(nn.Module, Generic[Config.BLC]):
 
 
 def reset_module(instance: Any) -> None:
-    reset_method: Optional[Callable[[], Any]] = getattr(
-        instance, "reset", None
-    )
+    reset_method: Callable[[], Any] | None = getattr(instance, "reset", None)
     if callable(reset_method):
         reset_method()
 
 
 def set_inference_mode(
-    module: Union[BaseLearningModule, nn.Module],
+    module: BaseLearningModule | nn.Module,
     inference: bool = True,
 ) -> None:
     if isinstance(module, BaseLearningModule):

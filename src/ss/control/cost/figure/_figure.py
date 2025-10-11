@@ -1,4 +1,4 @@
-from typing import Any, Dict, Self, Tuple
+from typing import Any, Self
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -16,7 +16,7 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
         self,
         time_trajectory: ArrayLike,
         cost_trajectory: ArrayLike,
-        fig_size: Tuple[int, int] = (12, 8),
+        fig_size: tuple[int, int] = (12, 8),
     ) -> None:
         cost_trajectory = np.array(cost_trajectory)
 
@@ -25,9 +25,10 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
                 cost_trajectory = cost_trajectory[np.newaxis, :]
             case _:
                 pass
-        assert (
-            len(cost_trajectory.shape) == 2
-        ), "cost_trajectory in general is a 2D array with shape (batch_size, time_length)."
+        assert len(cost_trajectory.shape) == 2, (
+            "cost_trajectory in general is a 2D array with shape "
+            "(batch_size, time_length)."
+        )
 
         super().__init__(
             time_trajectory,
@@ -37,7 +38,8 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
         )
         assert cost_trajectory.shape[1] == self._sequence_length, (
             "cost_trajectory must have the same length as time_trajectory."
-            "cost_trajectory in general is a 2D array with shape (batch_size, time_length)."
+            "cost_trajectory in general is a 2D array with shape "
+            "(batch_size, time_length)."
         )
         self._cost_trajectory = cost_trajectory
         self._cost_subplot: Axes = self._subplots[0][0]
@@ -52,7 +54,7 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
                 cumsum_cost_trajectory=cumsum_cost_trajectory,
             )
         else:
-            kwargs: Dict = dict(
+            kwargs: dict = dict(
                 color=self._default_color,
                 alpha=self._default_alpha,
             )
@@ -75,7 +77,7 @@ class CostTrajectoryFigure(SequenceTrajectoryFigure):
 
     def _plot_each_system_cost_trajectory(
         self,
-        cumsum_cost_trajectory: NDArray[np.float64],
+        cumsum_cost_trajectory: NDArray,
         **kwargs: Any,
     ) -> None:
         for i in range(self._batch_size):

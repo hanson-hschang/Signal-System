@@ -1,5 +1,3 @@
-from typing import Any, Callable, Optional
-
 import numpy as np
 from numba import njit, prange
 from numpy.typing import ArrayLike, NDArray
@@ -14,12 +12,12 @@ class HmmFilter(Filter):
     def __init__(
         self,
         system: HiddenMarkovModel,
-        initial_distribution: Optional[ArrayLike] = None,
-        estimation_matrix: Optional[ArrayLike] = None,
-        batch_size: Optional[int] = None,
+        initial_distribution: ArrayLike | None = None,
+        estimation_matrix: ArrayLike | None = None,
+        batch_size: int | None = None,
     ) -> None:
         assert issubclass(type(system), HiddenMarkovModel), (
-            f"system must be an instance of HiddenMarkovModel or its subclasses. "
+            "system must be of type HiddenMarkovModel or its subclasses. "
             f"system given is an instance of {type(system)}."
         )
         self._system = system
@@ -82,7 +80,8 @@ class HmmFilter(Filter):
     ) -> NDArray[np.float64]:
         batch_size: int = estimated_state.shape[0]
 
-        # update step based on observation (unnormalized conditional probability)
+        # update step based on observation
+        # (unnormalized conditional probability)
         # the transpose operation is for the purpose of the multi-system case
         estimated_state[:, :] = (
             estimated_state * emission_matrix[:, observation].T
