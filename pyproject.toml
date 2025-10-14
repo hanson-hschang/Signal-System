@@ -123,7 +123,7 @@ omit = [
 line-length = 79
 
 # Set the target Python version.
-target-version = "py311"
+target-version = "py313"
 
 # Define files and directories to be excluded from checks.
 # Ruff uses glob patterns and merges the lists.
