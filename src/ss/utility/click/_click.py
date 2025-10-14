@@ -116,10 +116,23 @@ def extract_choices_from_comment(help_text: str) -> tuple[list | None, str]:
     return None, help_text
 
 
+def remove_linting(help_text: str) -> str:
+    """Remove any linting or formatting artifacts from help text."""
+    # Remove noqa comments
+    help_text = re.sub(r"#\s*noqa.*", "", help_text).strip()
+    # Remove trailing whitespace
+    help_text = help_text.rstrip()
+    # Remove multiple consecutive spaces
+    help_text = re.sub(r"\s{2,}", " ", help_text).strip()
+    return help_text
+
+
 def create_option(
     field_name: str, field_type: Any, help_text: str
 ) -> Callable[[FC], FC]:
     """Create a Click option from a dataclass field."""
+    help_text = remove_linting(help_text)
+
     choices, help_text = extract_choices_from_comment(help_text)
 
     # Handle Optional types
