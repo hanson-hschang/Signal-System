@@ -113,6 +113,10 @@ class LearningDualHmmFilter(
     def filter(self) -> DualFilterModule:
         return self._filter
 
+    @property
+    def control_history(self) -> torch.Tensor:
+        return self._transition._control_history
+
     def forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
         """
         forward method for the `LearningDualHmmFilter` class

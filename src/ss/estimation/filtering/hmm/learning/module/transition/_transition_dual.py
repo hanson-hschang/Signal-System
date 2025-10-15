@@ -266,7 +266,7 @@ class DualTransitionModule(
         self,
         estimated_state_distribution_trajectory: torch.Tensor,
         emission_difference_trajectory: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> tuple[torch.Tensor, torch.Tensor]:
         # estimated_state_trajectory: (batch_size, state_dim, horizon)
         # emission_difference_trajectory: (batch_size, state_dim, horizon)
 
@@ -288,7 +288,10 @@ class DualTransitionModule(
             )
         )  # (batch_size, state_dim)
 
-        return self._normalize_distribution(estimated_state_distribution)
+        return (
+            self._normalize_distribution(estimated_state_distribution),
+            control_history,
+        )
 
     # @torch.compile
     def forward(
@@ -310,7 +313,7 @@ class DualTransitionModule(
         emission_difference_trajectory = 2 * emission_trajectory - 1
 
         for k in range(1, horizon + 1):
-            estimated_state = self._process(
+            estimated_state, _ = self._process(
                 estimated_state_distribution_trajectory[:, :, :k].clone(),
                 emission_difference_trajectory[:, :, :k],
             )
@@ -327,7 +330,7 @@ class DualTransitionModule(
         emission_difference_trajectory: torch.Tensor,
         estimated_state_distribution_trajectory: torch.Tensor,
     ) -> torch.Tensor:
-        self._estimated_state = self._process(
+        self._estimated_state, self._control_history = self._process(
             estimated_state_distribution_trajectory,
             emission_difference_trajectory,
         )
