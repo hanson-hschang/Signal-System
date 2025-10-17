@@ -1,4 +1,5 @@
 from typing import Generic, assert_never
+from collections.abc import Callable
 
 import torch
 import torch.nn as nn
@@ -41,17 +42,17 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
             (self._state_dim, self._discrete_observation_dim),
         )
 
-        # self._forward: Callable[[torch.Tensor], torch.Tensor]
-        # self._init_forward()
+        self._forward: Callable[[torch.Tensor], torch.Tensor]
+        self._init_forward()
 
-    # def _init_forward(self) -> None:
-    #     match self._config.observation.option:
-    #         case self._config.observation.Option.CATEGORY:
-    #             self._forward = self._forward_category
-    #         # case self._config.observation.Option.PROBABILITY:
-    #         #     self._forward = self._forward_probability
-    #         case _ as _option:
-    #             assert_never(_option)
+    def _init_forward(self) -> None:
+        match self._config.observation.option:
+            case self._config.observation.Option.CATEGORY:
+                self._forward = self._forward_category
+            case self._config.observation.Option.PROBABILITY:
+                self._forward = self._forward_probability
+            case _ as _option:
+                assert_never(_option)
 
     @property
     def matrix_parameter(
@@ -68,7 +69,10 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
     def matrix(self, matrix: torch.Tensor) -> None:
         self._matrix.set_value(matrix)
 
-    def _forward(self, observation_trajectory: torch.Tensor) -> torch.Tensor:
+    @torch.compile
+    def _forward_category(
+        self, observation_trajectory: torch.Tensor
+    ) -> torch.Tensor:
         # observation_trajectory: (batch_size, observation_dim=1, horizon)
 
         emission_matrix = self.matrix  # (state_dim, discrete_observation_dim)
@@ -80,20 +84,28 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
 
         return emission_trajectory
 
-    # def _forward_probability(
-    #     self,
-    #     observation_trajectory: torch.Tensor,
-    # ) -> torch.Tensor:
-    #     # observation_trajectory: (batch_size, horizon, discrete_observation_dim)  # noqa: E501
+    @torch.compile
+    def _forward_probability(
+        self,
+        observation_trajectory: torch.Tensor,
+    ) -> torch.Tensor:
+        # observation_trajectory: (batch_size, discrete_observation_dim, horizon)  # noqa: E501
 
-    #     emission_matrix = self.matrix  # (state_dim, discrete_observation_dim)  # noqa: E501
+        emission_matrix = (
+            self.matrix
+        )  # (state_dim, discrete_observation_dim)  # noqa: E501
 
-    #     emission_trajectory = torch.matmul(
-    #         observation_trajectory,  # (batch_size, horizon, discrete_observation_dim)  # noqa: E501
-    #         emission_matrix.T,  # (discrete_observation_dim, state_dim)
-    #     )  # (batch_size, horizon, state_dim)
+        # emission_trajectory = torch.matmul(
+        #     observation_trajectory,  # (batch_size, horizon, discrete_observation_dim)  # noqa: E501
+        #     emission_matrix.T,  # (discrete_observation_dim, state_dim)
+        # )  # (batch_size, horizon, state_dim)
+        emission_trajectory = torch.einsum(
+            "bmt, dm -> bdt",
+            observation_trajectory,  # (batch_size, discrete_observation_dim, horizon)  # noqa: E501
+            emission_matrix,  # (state_dim, discrete_observation_dim)
+        )
 
-    #     return emission_trajectory
+        return emission_trajectory
 
     def forward(
         self,
@@ -136,25 +148,25 @@ class EmissionModule(BaseLearningModule[EmissionConfig[TC]], Generic[T, TC]):
                     f"(batch_size={batch_size}, observation_dim=1, horizon). "
                     f"observation given has the shape = {observation.shape}."
                 )
-            # case self._config.observation.Option.PROBABILITY:
-            #     if observation.ndim == 1:
-            #         observation = observation.unsqueeze(
-            #             0
-            #         )  # (horizon=1, discrete_observation_dim)
-            #     if observation.ndim == 2:
-            #         if batch_size == 1:
-            #             observation = observation.unsqueeze(
-            #                 0
-            #             )  # (batch_size=1, horizon, discrete_observation_dim)  # noqa: E501
-            #         else:
-            #             observation = observation.unsqueeze(
-            #                 1
-            #             )  # (batch_size, horizon=1, discrete_observation_dim).  # noqa: E501
-            #     assert observation.ndim == 3, (
-            #         f"observation must be in the shape of "
-            #         f"(batch_size, horizon, discrete_observation_dim). "
-            #         f"observation given has the shape = {observation.shape}."
-            #     )
+            case self._config.observation.Option.PROBABILITY:
+                if observation.ndim == 1:
+                    observation = observation.unsqueeze(
+                        0
+                    )  # (batch_size=1, discrete_observation_dim)
+                if observation.ndim == 2:
+                    observation = observation.unsqueeze(
+                        -1
+                    )  # (batch_size, discrete_observation_dim, horizon=1).  # noqa: E501
+                assert observation.ndim == 3, (
+                    f"observation must be in the shape of "
+                    f"(batch_size={batch_size}, discrete_observation_dim, horizon). "  # noqa: E501
+                    f"observation given has the shape = {observation.shape}."
+                )
+                assert observation.shape[0] == batch_size, (
+                    f"observation must be in the shape of "
+                    f"(batch_size={batch_size}, discrete_observation_dim, horizon). "  # noqa: E501
+                    f"observation given has the shape = {observation.shape}."
+                )
             case _ as _option:
                 assert_never(_option)
         return observation

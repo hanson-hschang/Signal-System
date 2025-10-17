@@ -87,14 +87,19 @@ class EstimationModule(
         # predicted_state_trajectory: torch.Tensor,
     ) -> torch.Tensor:
         estimation_matrix = self.matrix  # (state_dim, estimation_dim)
-        estimation = torch.matmul(
-            torch.moveaxis(
-                estimated_state_trajectory, 1, 2
-            ),  # (batch_size, horizon, state_dim)
-            estimation_matrix,
-        )  # (batch_size, horizon, estimation_dim)
-        estimation = torch.moveaxis(estimation, 1, 2)
-        # (batch_size, estimation_dim, horizon)
+        # estimation = torch.matmul(
+        #     torch.moveaxis(
+        #         estimated_state_trajectory, 1, 2
+        #     ),  # (batch_size, horizon, state_dim)
+        #     estimation_matrix,
+        # )  # (batch_size, horizon, estimation_dim)
+        # estimation = torch.moveaxis(estimation, 1, 2)
+        # # (batch_size, estimation_dim, horizon)
+        estimation = torch.einsum(
+            "bdt, dm -> bmt",
+            estimated_state_trajectory,  # (batch_size, state_dim, horizon)
+            estimation_matrix,  # (state_dim, estimation_dim)
+        )
         return estimation
 
     def forward(
