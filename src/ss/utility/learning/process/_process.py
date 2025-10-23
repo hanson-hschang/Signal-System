@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from numpy.typing import NDArray
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import LRScheduler
 
 from ss.utility.assertion.validator import ReservedKeyNameValidator
 from ss.utility.device.manager import DeviceManager
@@ -16,6 +17,11 @@ from ss.utility.learning.process.config import (
     EvaluationConfigProtocol,
     TestingConfig,
     TrainingConfig,
+)
+from ss.utility.learning.step.scheduler import (
+    BaseStepScheduler,
+    StepScheduler,
+    StepSchedulerProtocol,
 )
 from ss.utility.learning.process.inference import InferenceContext
 from ss.utility.logging import Logging
@@ -31,12 +37,21 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         module: Module.BaseLearningModule,
         loss_function: Callable[..., torch.Tensor],
         optimizer: torch.optim.Optimizer,
+        step_scheduler: LRScheduler | BaseStepScheduler | None = None,
     ) -> None:
         super().__init__()
         self._device_manager = DeviceManager()
         self._module = self._device_manager.load_module(module)
         self._loss_function = loss_function
         self._optimizer = optimizer
+
+        self._step_scheduler: StepSchedulerProtocol
+        if step_scheduler is None:
+            self._step_scheduler = StepScheduler(optimizer)
+        elif isinstance(step_scheduler, LRScheduler):
+            self._step_scheduler = BaseStepScheduler.from_torch(step_scheduler)
+        else:
+            self._step_scheduler = step_scheduler
 
         # self._iteration: int = 0
         # self._epoch: int = 0
@@ -138,6 +153,8 @@ class BaseLearningProcess(LearningProcessInfoMixin):
             for data_batch in logger.progress_bar(
                 training_data_loader, total=len(training_data_loader)
             ):
+                self._record_step_size(self._optimizer)
+
                 training_loss = self._train_one_batch(data_batch).item()
                 self._record_training_loss(training_loss)
 
@@ -152,6 +169,8 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                     )
                     self._record_validation_loss(validation_losses)
 
+                    self._step_scheduler.condition(losses=validation_losses)
+
                     if training_config.checkpoint.condition(
                         validation=self.validation_count,
                     ).satisfied():
@@ -165,8 +184,15 @@ class BaseLearningProcess(LearningProcessInfoMixin):
                     iteration=self._iteration
                 ).satisfied():
                     break
+
+                self._step_scheduler.condition(iteration=self._iteration)
+                self._step_scheduler.step()
+
             else:
                 self._epoch += 1
+                self._step_scheduler.condition(epoch=self._epoch)
+                self._step_scheduler.step()
+
         logger.info(f"Training loss (running average): {self._training_loss}")
 
     def training(
@@ -270,6 +296,7 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         model_info = dict(
             __loss_function__=self._loss_function,
             __optimizer__=self._optimizer,
+            __step_scheduler__=self._step_scheduler,
         )
         custom_model_info = self.save_model_info()
         ReservedKeyNameValidator(custom_model_info, model_info.keys())
@@ -280,11 +307,15 @@ class BaseLearningProcess(LearningProcessInfoMixin):
     def _load_model_info(
         cls, model_info: dict[str, Any]
     ) -> tuple[
-        Callable[..., torch.Tensor], torch.optim.Optimizer, dict[str, Any]
+        Callable[..., torch.Tensor],
+        torch.optim.Optimizer,
+        BaseStepScheduler | None,
+        dict[str, Any],
     ]:
         loss_function = model_info.pop("__loss_function__")
         optimizer = model_info.pop("__optimizer__")
-        return loss_function, optimizer, model_info
+        step_scheduler = model_info.pop("__step_scheduler__", None)
+        return loss_function, optimizer, step_scheduler, model_info
 
     @classmethod
     def from_checkpoint(
@@ -296,13 +327,16 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         module, model_info, checkpoint_info = Checkpoint.load(
             module, model_filepath, safe_callables
         )
-        loss_function, optimizer, model_info = cls._load_model_info(model_info)
+        loss_function, optimizer, step_scheduler, model_info = (
+            cls._load_model_info(model_info)
+        )
         optimizer.param_groups = []
         optimizer.add_param_group({"params": module.parameters()})
         learning_process = cls(
             module=module,
             loss_function=loss_function,
             optimizer=optimizer,
+            step_scheduler=step_scheduler,
             **model_info,
         )
         learning_process._load_checkpoint_info(checkpoint_info)
