@@ -65,14 +65,17 @@ def add_config() -> SafeCallables:
     return safe_callables
 
 
-def add_subclass(base_class: type, package_name: str) -> SafeCallables:
+def add_sub_dataclass(
+    base_dataclass: type, package_name: str
+) -> SafeCallables:
     """
-    Register all subclasses of base_class found in package as safe callables
+    Register all subclasses of base_dataclass found in package
+    as safe callables
 
     Arguments
     ---------
-    base_class: Type
-        The base class to find subclasses of
+    base_dataclass: Type
+        The base dataclass to find subclasses of
     package_name: str
         The package name to search in (e.g., "ss")
     """
@@ -81,10 +84,10 @@ def add_subclass(base_class: type, package_name: str) -> SafeCallables:
     Package.import_submodules(package_name)
 
     # Get all subclasses
-    subclasses = Package.get_subclasses(base_class)
+    subclasses = Package.get_subclasses(base_dataclass)
 
     # Include base class
-    all_classes = subclasses.union({base_class})
+    all_classes = subclasses.union({base_dataclass})
 
     # Add all classes and their fields as safe globals
     logger.debug("")
@@ -125,6 +128,41 @@ def add_subclass(base_class: type, package_name: str) -> SafeCallables:
             # Once the _get_user_allowed_globals is fixed,
             # the following line should be used instead
             safe_callables.add(field_type)
+
+    # Add all classes to the safe type set
+    safe_callables.update(all_classes)
+
+    return safe_callables
+
+
+def add_sub_class(base_class: type, package_name: str) -> SafeCallables:
+    """
+    Register all subclasses of base_class found in package as safe callables
+
+    Arguments
+    ---------
+    base_class: Type
+        The base class to find subclasses of
+    package_name: str
+        The package name to search in (e.g., "ss")
+    """
+
+    # Import all submodules to ensure all classes are loaded
+    Package.import_submodules(package_name)
+
+    # Get all subclasses
+    subclasses = Package.get_subclasses(base_class)
+
+    # Include base class
+    all_classes = subclasses.union({base_class})
+
+    # Add all classes and their fields as safe globals
+    logger.debug("")
+    logger.debug(
+        "Add the following classes and their fields "
+        "as safe globals for torch.load method:"
+    )
+    safe_callables = SafeCallables()
 
     # Add all classes to the safe type set
     safe_callables.update(all_classes)

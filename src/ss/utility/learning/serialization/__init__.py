@@ -4,7 +4,8 @@ from ._serialization import (
     add_builtin,
     add_config,
     add_numpy_types,
-    add_subclass,
+    add_sub_dataclass,
+    add_sub_class,
     add_type_var,
 )
 
@@ -14,6 +15,7 @@ __all__ = [
     "add_builtin",
     "add_config",
     "add_numpy_types",
-    "add_subclass",
+    "add_sub_dataclass",
+    "add_sub_class",
     "add_type_var",
 ]

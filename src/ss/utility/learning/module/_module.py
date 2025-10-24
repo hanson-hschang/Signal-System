@@ -24,10 +24,10 @@ def initialize_safe_callables() -> None:
         from ss.utility.learning.parameter.transformer import Transformer
 
         serialization.add_config().to_registered_safe_callables()
-        serialization.add_subclass(
+        serialization.add_sub_dataclass(
             Config.BaseLearningConfig, "ss"
         ).to_registered_safe_callables()
-        serialization.add_subclass(
+        serialization.add_sub_class(
             BaseStepScheduler, "ss"
         ).to_registered_safe_callables()
         serialization.add_type_var(
