@@ -6,6 +6,7 @@ from typing import Any, Generic, TypeVar, cast
 import torch
 from torch import nn
 
+from ss.utility.learning.step.scheduler import BaseStepScheduler
 from ss.utility.assertion.validator import (
     FilePathValidator,
     ReservedKeyNameValidator,
@@ -25,6 +26,9 @@ def initialize_safe_callables() -> None:
         serialization.add_config().to_registered_safe_callables()
         serialization.add_subclass(
             Config.BaseLearningConfig, "ss"
+        ).to_registered_safe_callables()
+        serialization.add_subclass(
+            BaseStepScheduler, "ss"
         ).to_registered_safe_callables()
         serialization.add_type_var(
             Transformer, "ss"

@@ -53,36 +53,6 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         else:
             self._step_scheduler = step_scheduler
 
-        # self._iteration: int = 0
-        # self._epoch: int = 0
-        # self._training_loss: float = 0.0
-
-        # self._epoch_history: DefaultDict[str, List[int]] = defaultdict(list)
-        # self._training_loss_history: DefaultDict[str, List[float]] = (
-        #     defaultdict(list)
-        # )
-        # self._validation_loss_history: DefaultDict[str, List[float]] = (
-        #     defaultdict(list)
-        # )
-
-    # def _update_epoch(self, max_epoch: int) -> None:
-    #     self._epoch_history["iteration"].append(self._iteration)
-    #     self._epoch_history["epoch"].append(self._epoch)
-    #     logger.info(f"Finish epoch: {self._epoch} / {max_epoch}")
-    #     logger.info("")
-
-    # def _update_validation_loss(self, losses: NDArray) -> None:
-    #     self._validation_loss_history["iteration"].append(self._iteration)
-    #     loss_mean, loss_std = float(losses.mean()), float(losses.std())
-    #     self._validation_loss_history["loss_mean"].append(loss_mean)
-    #     self._validation_loss_history["loss_std"].append(loss_std)
-    #     logger.info(f"Validation loss: {loss_mean}" " \xb1 " f"{loss_std}")
-    #     # \xb1 is a unicode character for the plus-minus sign (±)
-
-    # def _update_training_loss(self, loss: float) -> None:
-    #     self._training_loss_history["iteration"].append(self._iteration)
-    #     self._training_loss_history["loss"].append(loss)
-
     def _evaluate_one_batch(
         self, data_batch: tuple[torch.Tensor, ...]
     ) -> torch.Tensor:
@@ -323,9 +293,10 @@ class BaseLearningProcess(LearningProcessInfoMixin):
         module: Module.BaseLearningModule,
         model_filepath: Path,
         safe_callables: set[serialization.SafeCallable] | None = None,
+        strict: bool = True,
     ) -> Self:
         module, model_info, checkpoint_info = Checkpoint.load(
-            module, model_filepath, safe_callables
+            module, model_filepath, safe_callables, strict=strict
         )
         loss_function, optimizer, step_scheduler, model_info = (
             cls._load_model_info(model_info)

@@ -173,6 +173,7 @@ class Checkpoint:
         module: BLM,
         model_filepath: Path,
         safe_callables: set[serialization.SafeCallable] | None = None,
+        strict: bool = True,
     ) -> tuple[BLM, dict[str, Any], CheckpointInfo]:
         module_filepath = (
             model_filepath
@@ -182,6 +183,7 @@ class Checkpoint:
         module, model_info = module.load(
             module_filepath,
             safe_callables,
+            strict=strict,
         )
         checkpoint_info = CheckpointInfo.load(
             model_filepath.with_suffix(CheckpointInfo.FILE_EXTENSION)

@@ -1,8 +1,12 @@
-from typing import Protocol
+from typing import Protocol, cast
 
 import torch
 from torch.optim import lr_scheduler
 from numpy.typing import NDArray
+
+from ss.utility.logging import Logging
+
+logger = Logging.get_logger(__name__)
 
 
 class StepSchedulerProtocol(Protocol):
@@ -34,9 +38,12 @@ class BaseStepScheduler:
         losses: NDArray | None = None,
         epoch: int | None = None,
     ) -> None:
-        self._iteration = iteration
-        self._validation_losses = losses
-        self._epoch = epoch
+        if iteration is not None:
+            self._iteration = iteration
+        if losses is not None:
+            self._validation_losses = losses
+        if epoch is not None:
+            self._epoch = epoch
 
     def _step_iteration(self) -> None: ...
 
@@ -93,7 +100,9 @@ class TorchStepScheduler(BaseStepScheduler):
         self._torch_lr_scheduler.step()
 
     def _step_validation(self, validation_losses: NDArray) -> None:
-        self._torch_lr_scheduler.step(validation_losses.mean())
+        cast(lr_scheduler.ReduceLROnPlateau, self._torch_lr_scheduler).step(
+            metrics=validation_losses.mean()
+        )
 
 
 class StepScheduler(BaseStepScheduler):
