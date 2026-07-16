@@ -1,7 +1,3 @@
-# pytorch model files
-*.pt
-*.pth
-
 # data files
 *.hdf5
 
