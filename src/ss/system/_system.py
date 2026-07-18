@@ -28,7 +28,9 @@ class System(eqx.Module):
             f"control_dim {self.control_dim} must be >= 0"
         )
 
-    def init_state(self) -> Float[Array, "state_dim"]:
+    def init_state(
+        self, random_key: PRNGKeyArray | None = None
+    ) -> Float[Array, state_dim]:
         return jnp.zeros(self.state_dim)
 
     def process(
