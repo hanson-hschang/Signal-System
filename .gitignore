@@ -1,5 +1,7 @@
 # data files
 *.hdf5
+*.mp4
+*.png
 
 # developer-specific files
 .vscode
