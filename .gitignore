@@ -2,6 +2,7 @@
 *.hdf5
 *.mp4
 *.png
+*.swp
 
 # developer-specific files
 .vscode
