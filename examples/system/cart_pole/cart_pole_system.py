@@ -1,5 +1,6 @@
 import jax
 import jax.numpy as jnp
+import equinox as eqx
 from jaxtyping import Array, Float, PRNGKeyArray
 
 from ss.system import System
@@ -23,16 +24,16 @@ class CartPoleSystem(System):
     https://courses.ece.ucsb.edu/ECE594/594D_W10Byl/hw/cartpole_eom.pdf
     """
 
-    time_step: float = 0.001
-    state_dim: int = 4
-    observation_dim: int = 4
-    control_dim: int = 1
+    time_step: float = eqx.field(static=True, default=0.001)
+    state_dim: int = eqx.field(static=True, default=4)
+    observation_dim: int = eqx.field(static=True, default=4)
+    control_dim: int = eqx.field(static=True, default=1)
 
     cart_mass: float = 1.0
     pole_mass: float = 0.01
     pole_length: float = 2.0
     gravity: float = 9.81
-    batch_size: int = 1
+    batch_size: int = eqx.field(static=True, default=1)
 
     def __check_init__(self) -> None:
         super().__check_init__()
@@ -66,42 +67,40 @@ class CartPoleSystem(System):
             random_key, shape=(self.batch_size, self.state_dim)
         )
 
-    def process(
-        self,
-        time: float,
-        state: Float[Array, "batch_size state_dim"],  # noqa: F722
-        control: Float[Array, "batch_size control_dim"],  # noqa: F722
-        random_key: PRNGKeyArray,
-    ) -> tuple[float, Float[Array, "batch_size state_dim"]]:  # noqa: F722
-        # RK4
-        half_step = 0.5 * self.time_step
-        k1 = self._df(time, state, control)
-        k2 = self._df(time + half_step, state + half_step * k1, control)
-        k3 = self._df(time + half_step, state + half_step * k2, control)
-        k4 = self._df(
-            time + self.time_step, state + self.time_step * k3, control
-        )
-        process_noise = self._process_noise(time, state, random_key)
-        state = state + self.time_step * (k1 + 2 * k2 + 2 * k3 + k4) / 6
-        state = state + process_noise
-        return (
-            time + self.time_step,
-            state,
-        )
-
     def observe(
         self,
         time: float,
         state: Float[Array, "batch_size state_dim"],  # noqa: F722
         random_key: PRNGKeyArray,
     ) -> Float[Array, "batch_size observation_dim"]:  # noqa: F722
-        return state + self._observation_noise(time, state, random_key)
+        return state
 
-    def _df(
+    def process(
+        self,
+        time: Array,
+        state: Array,
+        random_key: PRNGKeyArray,
+        *,
+        control: Array | None = None,
+    ) -> tuple[Array, Array]:
+        # NOTE: Easy RK4 step impl. Consider diffrax.Tsit5 :)
+        half_step = 0.5 * self.time_step
+        k1 = self.dynamics(time, state, control)
+        k2 = self.dynamics(time + half_step, state + half_step * k1, control)
+        k3 = self.dynamics(time + half_step, state + half_step * k2, control)
+        k4 = self.dynamics(
+            time + self.time_step,
+            state + self.time_step * k3,
+            control,
+        )
+        next_state = state + self.time_step * (k1 + 2 * k2 + 2 * k3 + k4) / 6
+        return time + self.time_step, next_state
+
+    def dynamics(
         self,
         time: float,
         state: Array,
-        control: Array,
+        control: Array | None = None,
     ) -> Float[Array, "batch_size state_dim"]:  # noqa: F722
         """
         Cart-pole physics ODEs
@@ -109,7 +108,6 @@ class CartPoleSystem(System):
         cart_velocity = state[:, 1]
         pole_angle = state[:, 2]
         pole_angular_velocity = state[:, 3]
-        force = control[:, 0]
 
         total_mass = self.cart_mass + self.pole_mass
         total_mass_adjusted = self.cart_mass + (
@@ -117,17 +115,28 @@ class CartPoleSystem(System):
         )
         pole_mass_length = self.pole_mass * self.pole_length
 
-        common_numerator = force + (
+        common_numerator = (
             pole_mass_length * jnp.sin(pole_angle) * pole_angular_velocity**2
         )
-        pole_angular_acceleration = (
+        pole_angular_acceleration_numerator = (
             total_mass * self.gravity * jnp.sin(pole_angle)
-            - force * jnp.cos(pole_angle)
             - pole_mass_length
-            * pole_angular_velocity**2
+            * pole_angular_velocity** 2
             * jnp.sin(pole_angle)
             * jnp.cos(pole_angle)
-        ) / (total_mass_adjusted * self.pole_length)
+        )
+        # This is intended branching: JAX expression saves for no-control
+        if control is not None:
+            force = control[:, 0]
+            common_numerator = common_numerator + force
+            pole_angular_acceleration_numerator = (
+                pole_angular_acceleration_numerator
+                - force * jnp.cos(pole_angle)
+            )
+
+        pole_angular_acceleration = pole_angular_acceleration_numerator / (
+            total_mass_adjusted * self.pole_length
+        )
         cart_acceleration = (
             common_numerator
             - self.pole_mass
