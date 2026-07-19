@@ -117,39 +117,47 @@ class DiscreteTimeSystem(ContinuousTimeSystem):
 SystemT = TypeVar("SystemT", bound=System)
 
 
-def simulate_step(
-    system: SystemT,
-    control_policy: Callable[[Float, Array], Array],
-    carry: tuple[Float, Array],
-    random_key: PRNGKeyArray,
-) -> tuple[tuple[Float, Array], tuple[Float, Array, Array, Array]]:
-
-    previous_time, previous_state = carry
-    process_key, observe_key = jax.random.split(random_key, 2)
-
-    observation = system.observe(previous_time, previous_state, observe_key)
-    control = control_policy(previous_time, observation)
-    time, state = system.process(
-        time=previous_time,
-        state=previous_state,
-        control=control,
-        random_key=process_key,
-    )
-    return (time, state), (time, state, observation, control)
-
 def simulate(
     system: SystemT,
     initial_time: Float,
     initial_state: Array,
     keys: PRNGKeyArray,
-    control_policy: Callable[[Float, Array], Array] = lambda time, observation: jnp.zeros((1,)),
-) -> tuple[Array, Array, Array, Array]:
+    control_policy: Callable[[Float, Array], Array] | None = None,
+) -> tuple[Array, Array, Array, Array | None]:
     """
-    Simulate a system over a time horizon, given an initial state and a sequence of random keys.
-    The control policy is a function that takes the current time and observation and returns the control input.
+    Simulate from an initial state using a sequence of random keys.
+
+    The control policy receives the current time and observation and returns
+    the control input.
+    Pass ``control_policy=None`` to use a system's uncontrolled process path.
     """
 
-    body = partial(simulate_step, system, control_policy)
+    def body(
+        carry: tuple[Float, Array],
+        random_key: PRNGKeyArray,
+    ) -> tuple[tuple[Float, Array], tuple[Float, Array, Array, Array | None]]:
+        previous_time, previous_state = carry
+        process_key, observe_key = jax.random.split(random_key, 2)
+
+        observation = system.observe(
+            previous_time, previous_state, observe_key
+        )
+        if control_policy is None:
+            control = None
+            time, state = system.process(
+                time=previous_time,
+                state=previous_state,
+                random_key=process_key,
+            )
+        else:
+            control = control_policy(previous_time, observation)
+            time, state = system.process(
+                time=previous_time,
+                state=previous_state,
+                control=control,
+                random_key=process_key,
+            )
+        return (time, state), (time, state, observation, control)
 
     _, (times, states, observations, controls) = jax.lax.scan(
         body, (initial_time, initial_state), keys
@@ -169,11 +177,13 @@ def batch_simulate(
     initial_time: Float,
     initial_states: Array,  # (batch, state_dim,)
     keys: PRNGKeyArray,  # (batch, num_steps,)
-    control_policy: Callable[[Float, Array], Array] = lambda time, observation: jnp.zeros((1,)),
+    control_policy: Callable[[Float, Array], Array] = None,
 ) -> tuple[Array, Array, Array, Array]:
     """
-    Simulate a batch of systems over a time horizon, given initial states and a batch of random keys.
-    The control policy is a function that takes the current time and observation and returns the control input.
+    Simulate a batch of systems from the supplied initial states.
+
+    The control policy receives the current time and observation and returns
+    the control input.
     """
     _batch_simulate = jax.vmap(simulate, in_axes=(None, None, 0, 0, None))
     return _batch_simulate(

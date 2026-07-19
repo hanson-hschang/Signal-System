@@ -2,7 +2,6 @@ from pathlib import Path
 
 import click
 import jax
-import jax.numpy as jnp
 
 from ss.system import simulate
 
@@ -84,12 +83,11 @@ def main(
     initial_state = system.init_state(initial_key)
     random_keys = jax.random.split(simulation_key, num_steps)
 
-    control_policy = lambda time, observation: jnp.zeros(
-        (batch_size, system.control_dim)
-    )
-
     times, states, _, _ = simulate(
-        system, 0.0, initial_state, random_keys, control_policy
+        system,
+        0.0,
+        initial_state,
+        random_keys,
     )
 
     print(f"final_state={states[-1]}")
