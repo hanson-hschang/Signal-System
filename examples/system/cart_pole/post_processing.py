@@ -61,7 +61,10 @@ def render_animation(
 ) -> None:
     """Render one cart-pole trajectory as an MP4 animation."""
 
+    duration = times[-1] - times[0]
     num_steps = times.shape[0]
+    frame_count = min(num_steps, max(2, round(duration * fps)))
+    frame_indices = jnp.linspace(0, num_steps - 1, frame_count, dtype=int)
 
     marker_radius = max(0.08, 0.06 * pole_length)
     x_positions = states[:, :, 0]
@@ -106,12 +109,13 @@ def render_animation(
     time_label = axis.text(0.02, 0.95, "", transform=axis.transAxes)
 
     def update(frame_index: int):
+        state_index = frame_indices[frame_index]
         artists = []
         for batch_index, mechanism in enumerate(mechanisms):
             # Cart graphics: dumbell - rod connecting two circle
             cart, pole, bob = mechanism
-            cart_position = states[frame_index, batch_index, 0]
-            pole_angle = states[frame_index, batch_index, 2]
+            cart_position = states[state_index, batch_index, 0]
+            pole_angle = states[state_index, batch_index, 2]
             pivot_x = cart_position
             pivot_y = 0
             bob_x = pivot_x + pole_length * jnp.sin(pole_angle)
@@ -122,13 +126,13 @@ def render_animation(
             bob.center = (bob_x, bob_y)
             artists.extend(mechanism)
 
-        time_label.set_text(f"t = {times[frame_index]:.2f} s")
+        time_label.set_text(f"t = {times[state_index]:.2f} s")
         return *artists, time_label
 
     animation = FuncAnimation(
         figure,
         update,
-        frames=num_steps,
+        frames=frame_count,
         interval=1000 / fps,
         blit=True,
     )
