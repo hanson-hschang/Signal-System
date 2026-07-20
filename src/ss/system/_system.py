@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, TypeVar
 
+from copy import copy
+
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -18,6 +20,7 @@ class System(eqx.Module):
     state_dim: int = eqx.field(static=True)
     observation_dim: int = eqx.field(static=True)
     control_dim: int = eqx.field(static=True)
+    batch_size: int = eqx.field(static=True)
 
     def __check_init__(self) -> None:
         assert self.time_step >= 0, f"time_step {self.time_step} must be >= 0"
@@ -28,6 +31,14 @@ class System(eqx.Module):
         assert self.control_dim >= 0, (
             f"control_dim {self.control_dim} must be >= 0"
         )
+        assert self.batch_size > 0, f"batch_size {self.batch_size} must be > 0"
+
+    def duplicate(self, *, batch_size: int) -> Self:
+        """Return an immutable copy configured for a new batch size."""
+        assert batch_size > 0, f"batch_size {batch_size} must be > 0"
+        duplicate = copy(self)
+        object.__setattr__(duplicate, "batch_size", batch_size)
+        return duplicate
 
     def init_state(
         self, random_key: PRNGKeyArray | None = None
