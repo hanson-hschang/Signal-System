@@ -1,4 +1,5 @@
 """Lazy re-exports -- see ss/__init__.py for rationale."""
+
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -6,9 +7,7 @@ if TYPE_CHECKING:
         ContinuousTimeSystem,
         DiscreteTimeSystem,
         System,
-        simulate_step,
         simulate,
-        batch_simulate,
     )
     from .cart_pole import CartPoleSystem
     # from .discrete import HiddenMarkovModel
@@ -25,9 +24,7 @@ _EXPORTS: dict[str, str] = {
     "ContinuousTimeSystem": "_system",
     "DiscreteTimeSystem": "_system",
     "System": "_system",
-    "simulate_step": "_system",
     "simulate": "_system",
-    "batch_simulate": "_system",
     "CartPoleSystem": "cart_pole",
     # "HiddenMarkovModel": "discrete",
     # "ContinuousTimeLinearSystem": "linear",

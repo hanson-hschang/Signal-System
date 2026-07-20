@@ -1,18 +1,19 @@
-"""
-A dynamical system framework for simulating continuous and discrete time systems.
-"""
+"""Framework for simulating continuous and discrete-time systems."""
+
 from __future__ import annotations
 
-from typing import Callable, TypeVar
-from functools import partial
+from typing import TYPE_CHECKING, TypeVar
+
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, PRNGKeyArray
+from jaxtyping import Array, Float, PRNGKeyArray, PyTree
+
+if TYPE_CHECKING:
+    from ss.control._control import Controller
 
 
 class System(eqx.Module):
-
     time_step: float = eqx.field(static=True)
     state_dim: int = eqx.field(static=True)
     observation_dim: int = eqx.field(static=True)
@@ -122,70 +123,75 @@ def simulate(
     initial_time: Float,
     initial_state: Array,
     keys: PRNGKeyArray,
-    control_policy: Callable[[Float, Array], Array] | None = None,
+    controller: Controller | None = None,
 ) -> tuple[Array, Array, Array, Array | None]:
-    """
-    Simulate from an initial state using a sequence of random keys.
-
-    The control policy receives the current time and observation and returns
-    the control input.
-    Pass ``control_policy=None`` to use a system's uncontrolled process path.
-    """
+    """Simulate batches with a time scan containing vmapped system steps."""
+    if controller is not None:
+        assert system.batch_size == controller.batch_size  # TODO: message
+        controller_state = controller.init_state()  # TODO: key?
+    else:
+        controller_state = None
 
     def body(
-        carry: tuple[Float, Array],
+        carry: tuple[
+            Float,  # time
+            Array,  # system state
+            PyTree[Array] | None,  # control state
+        ],
         random_key: PRNGKeyArray,
-    ) -> tuple[tuple[Float, Array], tuple[Float, Array, Array, Array | None]]:
-        previous_time, previous_state = carry
-        process_key, observe_key = jax.random.split(random_key, 2)
+    ) -> tuple[  # NOTE: Not exactly sure why this structure is necessary
+        tuple[Float, Array, PyTree[Array]],
+        tuple[Float, Array, Array, Array | None],
+    ]:
+        previous_time, previous_state, controller_state = carry
 
-        observation = system.observe(
-            previous_time, previous_state, observe_key
-        )
-        if control_policy is None:
+        # Key splits
+        step_keys = jax.random.split(random_key, 2 * system.batch_size + 1)
+        observe_keys = step_keys[: system.batch_size]
+        process_keys = step_keys[system.batch_size : 2 * system.batch_size]
+        controller_key = step_keys[-1]
+
+        observation = jax.vmap(
+            lambda state, key: system.observe(previous_time, state, key)
+        )(previous_state, observe_keys)
+
+        if controller is None:
             control = None
-            time, state = system.process(
-                time=previous_time,
-                state=previous_state,
-                random_key=process_key,
-            )
+            next_controller_state = None
+            next_times, state = jax.vmap(
+                lambda x, key: system.process(
+                    time=previous_time,
+                    state=x,
+                    random_key=key,
+                )
+            )(previous_state, process_keys)
         else:
-            control = control_policy(previous_time, observation)
-            time, state = system.process(
-                time=previous_time,
-                state=previous_state,
-                control=control,
-                random_key=process_key,
+            control, next_controller_state, _ = controller(
+                controller_state,
+                previous_time,
+                observation,
+                controller_key,
             )
-        return (time, state), (time, state, observation, control)
+            next_times, state = jax.vmap(
+                lambda x, u, key: system.process(
+                    time=previous_time,
+                    state=x,
+                    control=u,
+                    random_key=key,
+                )
+            )(previous_state, control, process_keys)
+
+        time = next_times[0]
+        return (
+            time,
+            state,
+            next_controller_state,
+        ), (time, state, observation, control)
 
     _, (times, states, observations, controls) = jax.lax.scan(
-        body, (initial_time, initial_state), keys
+        jax.jit(body),  # NOTE: Slightly debatable if jit layer is needed.
+        (initial_time, initial_state, controller_state),
+        keys,
     )
-
-    if states.ndim == 1:
-        states = states[:, jnp.newaxis]
-
-    if observations.ndim == 1:
-        observations = observations[:, jnp.newaxis]
 
     return times, states, observations, controls
-
-
-def batch_simulate(
-    system: SystemT,
-    initial_time: Float,
-    initial_states: Array,  # (batch, state_dim,)
-    keys: PRNGKeyArray,  # (batch, num_steps,)
-    control_policy: Callable[[Float, Array], Array] = None,
-) -> tuple[Array, Array, Array, Array]:
-    """
-    Simulate a batch of systems from the supplied initial states.
-
-    The control policy receives the current time and observation and returns
-    the control input.
-    """
-    _batch_simulate = jax.vmap(simulate, in_axes=(None, None, 0, 0, None))
-    return _batch_simulate(
-        system, initial_time, initial_states, keys, control_policy
-    )
