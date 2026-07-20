@@ -58,10 +58,9 @@ def main(
     weights = CostWeights()
 
     random_key = jax.random.PRNGKey(0)
-    state = jnp.broadcast_to(
-        jnp.array([0.0, 0.0, initial_angle, 0.0]),
-        (batch_size, system.state_dim),
-    )
+    initial_key, simulation_key = jax.random.split(random_key)
+    state = system.init_state(initial_key)
+    state = state.at[:, 2].add(initial_angle)
     controller = MPPIController(
         control_dim=system.control_dim,
         batch_size=system.batch_size,
@@ -74,7 +73,7 @@ def main(
         noise_sigma=noise_sigma,
         control_limit=control_limit,
     )
-    random_keys = jax.random.split(random_key, num_steps)
+    random_keys = jax.random.split(simulation_key, num_steps)
     times, states, _, controls = simulate(
         system,
         0.0,
