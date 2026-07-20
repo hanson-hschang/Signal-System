@@ -53,7 +53,13 @@ def plot_simulation(
     axes[2, 0].set_ylabel("Force (N)")
     axes[2, 0].grid(alpha=0.3)
 
-    axes[2, 1].plot(times, running_costs, color="tab:purple")
+    for batch_index in range(running_costs.shape[1]):
+        axes[2, 1].plot(
+            times,
+            running_costs[:, batch_index],
+            linewidth=1.3,
+            alpha=0.8,
+        )
     axes[2, 1].set_title("Running cost")
     axes[2, 1].set_ylabel("Cost")
     axes[2, 1].grid(alpha=0.3)

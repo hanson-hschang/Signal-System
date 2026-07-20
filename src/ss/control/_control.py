@@ -1,7 +1,10 @@
 from abc import abstractmethod
 
 import equinox as eqx
-from jaxtyping import Array, PRNGKeyArray
+from jaxtyping import Array, Float, PRNGKeyArray, PyTree
+
+type ControllerState = PyTree[Array]
+type Diagnostics = PyTree[Array]
 
 
 class Controller(eqx.Module):
@@ -14,15 +17,19 @@ class Controller(eqx.Module):
         assert self.control_dim > 0, "control_dim must be > 0"
         assert self.batch_size > 0, "batch_size must be > 0"
 
-    def init_state(self):
+    def init_state(self) -> ControllerState:
         return ()
 
     @abstractmethod
     def __call__(
         self,
-        controller_state,
-        time: Array,
-        observation: Array,
+        controller_state: ControllerState,
+        time: Float[Array, ""],
+        observation: Float[Array, "batch_size observation_dim"],
         random_key: PRNGKeyArray,
-    ):
+    ) -> tuple[
+        Float[Array, "batch_size control_dim"],
+        ControllerState,
+        Diagnostics,
+    ]:
         raise NotImplementedError

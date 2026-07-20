@@ -1,5 +1,4 @@
 from pathlib import Path
-import sys
 
 import click
 import jax
@@ -24,6 +23,7 @@ from .post_processing import (
 )
 @click.option("--horizon", type=click.IntRange(min=1), default=60)
 @click.option("--num-samples", type=click.IntRange(min=1), default=1024)
+@click.option("--batch-size", type=click.IntRange(min=1), default=1)
 @click.option(
     "--temperature",
     type=click.FloatRange(min=0, min_open=True),
@@ -46,6 +46,7 @@ def main(
     time_step: float,
     horizon: int,
     num_samples: int,
+    batch_size: int,
     temperature: float,
     noise_sigma: float,
     control_limit: float,
@@ -53,18 +54,18 @@ def main(
     save_dir: Path | None,
 ) -> None:
     num_steps = round(duration / time_step)
-    system = CartPoleSystem(time_step=time_step, batch_size=1)
-    rollout_system = CartPoleSystem(
-        time_step=time_step, batch_size=num_samples
-    )
+    system = CartPoleSystem(time_step=time_step, batch_size=batch_size)
     weights = CostWeights()
 
     random_key = jax.random.PRNGKey(0)
-    state = jnp.array([[0.0, 0.0, initial_angle, 0.0]])
+    state = jnp.broadcast_to(
+        jnp.array([0.0, 0.0, initial_angle, 0.0]),
+        (batch_size, system.state_dim),
+    )
     controller = MPPIController(
         control_dim=system.control_dim,
         batch_size=system.batch_size,
-        rollout_system=rollout_system,
+        rollout_system=system,
         running_cost=weights.running_cost,
         terminal_cost=weights.terminal_cost,
         horizon=horizon,
@@ -81,9 +82,9 @@ def main(
         random_keys,
         controller=controller,
     )
-    costs = weights.running_cost(states[:, 0, :], controls[:, 0, :])
-    click.echo(f"final_state={states[-1, 0]}")
-    click.echo(f"total_running_cost={jnp.sum(costs) * time_step}")
+    costs = weights.running_cost(states, controls)
+    click.echo(f"final_state={states[-1]}")
+    click.echo(f"total_running_cost={jnp.sum(costs, axis=0) * time_step}")
 
     if save_dir is not None:
         save_dir.mkdir(parents=True, exist_ok=True)

@@ -4,9 +4,17 @@ from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._control import Controller  # noqa: F401
+    from .mppi import (  # noqa: F401
+        MPPIController,
+        MPPIControllerState,
+        MPPIDiagnostics,
+    )
 
 _EXPORTS: dict[str, str] = {
     "Controller": "_control",
+    "MPPIController": "mppi",
+    "MPPIControllerState": "mppi",
+    "MPPIDiagnostics": "mppi",
 }
 
 __all__ = list(_EXPORTS)  # type: ignore[reportUnsupportedDunderAll]

@@ -7,10 +7,10 @@ from typing import TYPE_CHECKING, TypeVar
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, PRNGKeyArray, PyTree
+from jaxtyping import Array, Float, PRNGKeyArray
 
 if TYPE_CHECKING:
-    from ss.control._control import Controller
+    from ss.control._control import Controller, ControllerState
 
 
 class System(eqx.Module):
@@ -136,11 +136,11 @@ def simulate(
         carry: tuple[
             Float,  # time
             Array,  # system state
-            PyTree[Array] | None,  # control state
+            ControllerState | None,  # controller state
         ],
         random_key: PRNGKeyArray,
     ) -> tuple[  # NOTE: Not exactly sure why this structure is necessary
-        tuple[Float, Array, PyTree[Array]],
+        tuple[Float, Array, ControllerState | None],
         tuple[Float, Array, Array, Array | None],
     ]:
         previous_time, previous_state, controller_state = carry
