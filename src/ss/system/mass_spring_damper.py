@@ -24,7 +24,12 @@ class ControlChoice(StrEnum):
 
 
 class MassSpringDamperSystem(ContinuousTimeSystem):
-    """A wall-connected chain with state ``[positions, velocities]``."""
+    """A discrete noisy chain with state ``[positions, velocities]``.
+
+    The deterministic matrices are obtained from a continuous model using an
+    exact zero-order hold. Noise covariance arguments describe the discrete
+    noise added once per simulation step.
+    """
 
     number_of_connections: int = eqx.field(static=True)
     mass: float = eqx.field(static=True)
@@ -147,6 +152,36 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
             next_state += self.discrete_control_matrix @ control
         next_state += self._process_noise(time, state, random_key)
         return time + self.time_step, next_state
+
+    def _process_noise(
+        self, time: float, state: Array, random_key: PRNGKeyArray
+    ) -> Array:
+        del time, state
+        return self._sample_noise(
+            random_key, self.process_noise_covariance, self.state_dim
+        )
+
+    def _observation_noise(
+        self, time: float, state: Array, random_key: PRNGKeyArray
+    ) -> Array:
+        del time, state
+        return self._sample_noise(
+            random_key,
+            self.observation_noise_covariance,
+            self.observation_dim,
+        )
+
+    @staticmethod
+    def _sample_noise(
+        random_key: PRNGKeyArray, covariance: Array, dimension: int
+    ) -> Array:
+        return jax.lax.cond(
+            jnp.all(covariance == 0),
+            lambda: jnp.zeros(dimension),
+            lambda: jax.random.multivariate_normal(
+                random_key, jnp.zeros(dimension), covariance
+            ),
+        )
 
     @staticmethod
     def _covariance_or_zeros(

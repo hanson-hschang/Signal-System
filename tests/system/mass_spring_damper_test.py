@@ -87,3 +87,37 @@ def test_mass_spring_damper_initialization_and_duplication_are_batched() -> (
     assert duplicate.init_state().shape == (5, 6)
     assert duplicate.discrete_state_matrix.shape == (6, 6)
     assert system.batch_size == 2
+
+
+def test_noise_covariances_are_discrete_and_used_without_time_scaling() -> (
+    None
+):
+    process_covariance = 0.4 * jnp.eye(2)
+    observation_covariance = jnp.array([[0.3]])
+    system = MassSpringDamperSystem(
+        number_of_connections=1,
+        time_step=0.01,
+        process_noise_covariance=process_covariance,
+        observation_noise_covariance=observation_covariance,
+    )
+    process_keys = jax.random.split(jax.random.PRNGKey(2), 20_000)
+    observation_keys = jax.random.split(jax.random.PRNGKey(3), 20_000)
+    zero_state = jnp.zeros(2)
+
+    _, process_samples = jax.vmap(
+        lambda key: system.process(0.0, zero_state, key)
+    )(process_keys)
+    observation_samples = jax.vmap(
+        lambda key: system.observe(0.0, zero_state, key)
+    )(observation_keys)
+
+    assert jnp.allclose(
+        jnp.var(process_samples, axis=0),
+        jnp.diag(process_covariance),
+        atol=0.02,
+    )
+    assert jnp.allclose(
+        jnp.var(observation_samples, axis=0),
+        jnp.diag(observation_covariance),
+        atol=0.02,
+    )
