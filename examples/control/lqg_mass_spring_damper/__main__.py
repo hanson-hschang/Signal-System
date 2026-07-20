@@ -81,11 +81,21 @@ def main(
     )
 
     if save_dir is not None:
-        from .post_processing import plot_simulation
+        from .post_processing import plot_simulation, render_animation
 
         save_dir.mkdir(parents=True, exist_ok=True)
-        output_path = save_dir / "lqg_mass_spring_damper.png"
-        plot_simulation(times, states, controls, running_costs, output_path)
+        plot_simulation(
+            times,
+            states,
+            controls,
+            running_costs,
+            save_dir / "lqg_mass_spring_damper.png",
+        )
+        render_animation(
+            times,
+            states,
+            save_dir / "lqg_mass_spring_damper.mp4",
+        )
         click.echo(f"Saved LQG results to {save_dir}")
 
 
