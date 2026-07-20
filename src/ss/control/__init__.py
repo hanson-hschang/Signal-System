@@ -4,6 +4,11 @@ from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._control import Controller  # noqa: F401
+    from .lqg import (  # noqa: F401
+        LQGController,
+        LQGControllerState,
+        LQGDiagnostics,
+    )
     from .mppi import (  # noqa: F401
         MPPIController,
         MPPIControllerState,
@@ -12,6 +17,9 @@ if TYPE_CHECKING:
 
 _EXPORTS: dict[str, str] = {
     "Controller": "_control",
+    "LQGController": "lqg",
+    "LQGControllerState": "lqg",
+    "LQGDiagnostics": "lqg",
     "MPPIController": "mppi",
     "MPPIControllerState": "mppi",
     "MPPIDiagnostics": "mppi",
