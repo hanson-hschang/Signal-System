@@ -3,10 +3,8 @@ from pathlib import Path
 import click
 import jax
 
-from ss.system import simulate
+from ss.system import CartPoleSystem, simulate
 
-# User-defined-system
-from .cart_pole_system import CartPoleSystem
 from .post_processing import plot_simulation, render_animation
 
 

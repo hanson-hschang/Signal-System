@@ -10,6 +10,7 @@ if TYPE_CHECKING:
         simulate,
         batch_simulate,
     )
+    from .cart_pole import CartPoleSystem
     # from .discrete import HiddenMarkovModel
     # from .linear import (
     #     ContinuousTimeLinearSystem,
@@ -27,6 +28,7 @@ _EXPORTS: dict[str, str] = {
     "simulate_step": "_system",
     "simulate": "_system",
     "batch_simulate": "_system",
+    "CartPoleSystem": "cart_pole",
     # "HiddenMarkovModel": "discrete",
     # "ContinuousTimeLinearSystem": "linear",
     # "DiscreteTimeLinearSystem": "linear",
@@ -34,7 +36,7 @@ _EXPORTS: dict[str, str] = {
     # "DiscreteTimeNonlinearSystem": "nonlinear",
 }
 
-__all__ = list(_EXPORTS) # type: ignore[reportUnsupportedDunderAll]
+__all__ = list(_EXPORTS)  # type: ignore[reportUnsupportedDunderAll]
 
 
 def __getattr__(name: str) -> Any:
