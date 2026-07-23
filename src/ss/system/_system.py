@@ -48,44 +48,52 @@ class System(eqx.Module):
     def process(
         self,
         time: float,
-        state: Float[Array, "state_dim"],
-        control: Float[Array, "control_dim"],
+        state: Float[Array, state_dim],
+        control: Float[Array, control_dim],
         random_key: PRNGKeyArray,
-    ) -> tuple[float, Float[Array, "state_dim"]]:
+    ) -> tuple[float, Float[Array, state_dim]]:
         return (
             time + self.time_step,
-            self._state_process(time, state, control) + self._process_noise(time, state, random_key)
+            self._state_process(time, state, control)
+            + self._process_noise(time, state, random_key),
         )
 
     def observe(
         self,
         time: float,
-        state: Float[Array, "state_dim"],
+        state: Float[Array, state_dim],
         random_key: PRNGKeyArray,
-    ) -> Float[Array, "observation_dim"]:
-        return self._observation_process(time, state) + self._observation_noise(
-            time, state, random_key
-        )
+    ) -> Float[Array, observation_dim]:
+        return self._observation_process(
+            time, state
+        ) + self._observation_noise(time, state, random_key)
 
     def _state_process(
         self, time: float, state: Array, control: Array
-    ) -> Float[Array, "state_dim"]:
+    ) -> Float[Array, state_dim]:
         return state
 
-    def _observation_process(self, time: float, state: Array) -> Float[Array, "observation_dim"]:
+    def _observation_process(
+        self, time: float, state: Array
+    ) -> Float[Array, observation_dim]:
         return jnp.zeros(self.observation_dim)
 
-    def _process_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+    def _process_noise(
+        self, time: float, state: Array, random_key: PRNGKeyArray
+    ) -> Array:
         return jnp.zeros(self.state_dim)
 
-    def _observation_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+    def _observation_noise(
+        self, time: float, state: Array, random_key: PRNGKeyArray
+    ) -> Array:
         return jnp.zeros(self.observation_dim)
 
 
 class ContinuousTimeSystem(System):
-
-    process_noise_covariance: Float[Array, "state_dim state_dim"]
-    observation_noise_covariance: Float[Array, "observation_dim observation_dim"]
+    process_noise_covariance: Float[Array, state_dim state_dim]
+    observation_noise_covariance: Float[
+        Array, observation_dim observation_dim
+    ]
 
     def __check_init__(self) -> None:
         super().__check_init__()
@@ -100,7 +108,9 @@ class ContinuousTimeSystem(System):
             f"{self.observation_noise_covariance.shape}"
         )
 
-    def _process_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+    def _process_noise(
+        self, time: float, state: Array, random_key: PRNGKeyArray
+    ) -> Array:
         cov = self.process_noise_covariance * jnp.sqrt(self.time_step)
         # multivariate_normal requires positive-definite covariance; when
         # covariance is identically zero (no noise requested) skip sampling
@@ -108,22 +118,30 @@ class ContinuousTimeSystem(System):
         return jax.lax.cond(
             jnp.all(cov == 0),
             lambda: jnp.zeros(self.state_dim),
-            lambda: jax.random.multivariate_normal(random_key, jnp.zeros(self.state_dim), cov),
+            lambda: jax.random.multivariate_normal(
+                random_key, jnp.zeros(self.state_dim), cov
+            ),
         )
 
-    def _observation_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+    def _observation_noise(
+        self, time: float, state: Array, random_key: PRNGKeyArray
+    ) -> Array:
         cov = self.observation_noise_covariance * jnp.sqrt(self.time_step)
         return jax.lax.cond(
             jnp.all(cov == 0),
             lambda: jnp.zeros(self.observation_dim),
-            lambda: jax.random.multivariate_normal(random_key, jnp.zeros(self.observation_dim), cov),
+            lambda: jax.random.multivariate_normal(
+                random_key, jnp.zeros(self.observation_dim), cov
+            ),
         )
 
 
 class DiscreteTimeSystem(ContinuousTimeSystem):
     def __check_init__(self) -> None:
         super().__check_init__()
-        assert self.time_step == 1, "DiscreteTimeSystem requires time_step == 1"
+        assert self.time_step == 1, (
+            "DiscreteTimeSystem requires time_step == 1"
+        )
 
 
 SystemT = TypeVar("SystemT", bound=System)
@@ -143,6 +161,7 @@ def simulate(
     else:
         controller_state = None
 
+    @jax.jit
     def body(
         carry: tuple[
             Float,  # time
@@ -162,20 +181,16 @@ def simulate(
         process_keys = step_keys[system.batch_size : 2 * system.batch_size]
         controller_key = step_keys[-1]
 
-        observation = jax.vmap(
-            lambda state, key: system.observe(previous_time, state, key)
-        )(previous_state, observe_keys)
+        observation = system.observe(
+            previous_time, previous_state, observe_keys
+        )
 
         if controller is None:
             control = None
             next_controller_state = None
-            next_times, state = jax.vmap(
-                lambda x, key: system.process(
-                    time=previous_time,
-                    state=x,
-                    random_key=key,
-                )
-            )(previous_state, process_keys)
+            next_time, state = system.process(
+                previous_time, previous_state, process_keys
+            )
         else:
             control, next_controller_state, _ = controller(
                 controller_state,
@@ -183,24 +198,18 @@ def simulate(
                 observation,
                 controller_key,
             )
-            next_times, state = jax.vmap(
-                lambda x, u, key: system.process(
-                    time=previous_time,
-                    state=x,
-                    control=u,
-                    random_key=key,
-                )
-            )(previous_state, control, process_keys)
+            next_time, state = system.process(
+                previous_time, previous_state, process_keys, control=control
+            )
 
-        time = next_times[0]
         return (
-            time,
+            next_time,
             state,
             next_controller_state,
-        ), (time, state, observation, control)
+        ), (next_time, state, observation, control)
 
     _, (times, states, observations, controls) = jax.lax.scan(
-        jax.jit(body),  # NOTE: Slightly debatable if jit layer is needed.
+        body,
         (initial_time, initial_state, controller_state),
         keys,
     )

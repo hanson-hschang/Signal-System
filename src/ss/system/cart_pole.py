@@ -47,7 +47,7 @@ class CartPoleSystem(System):
 
     def observe(
         self,
-        time: float,
+        time: Float,
         state: Float[Array, "state_dim"],
         random_key: PRNGKeyArray,
     ) -> Float[Array, "observation_dim"]:
@@ -55,7 +55,7 @@ class CartPoleSystem(System):
 
     def process(
         self,
-        time: Array,
+        time: Float,
         state: Array,
         random_key: PRNGKeyArray,
         *,
