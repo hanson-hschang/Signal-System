@@ -40,6 +40,7 @@ dev = [
     "pyupgrade>=3.15.2",
     "pre-commit>=3.7.1",
     "pytest>=8.2.1",
+    "pytest-cov>=7.1.0",
     "pytest-mock>=3.14.0",
     "ruff",
     "mypy>=1.10.0",
@@ -143,6 +144,12 @@ exclude = [
 # "E" (pycodestyle errors), "W" (pycodestyle warnings), and "F" (Pyflakes)
 # are a good starting point to replicate flake8's default behavior.
 select = ["E", "F", "W"]
+ignore = [
+    # For JAX + jaxtyping
+    "E731",  # Allow lambda! :)
+    "F722",  # Syntax error in forward annotation (triggered by multi-dimensional jaxtyping shapes)
+    "F821",  # Undefined name (optional, if single-dimension shapes trigger it)
+]
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
