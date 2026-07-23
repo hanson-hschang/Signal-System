@@ -150,7 +150,7 @@ def simulate(
             ControllerState | None,  # controller state
         ],
         random_key: PRNGKeyArray,
-    ) -> tuple[  # NOTE: Not exactly sure why this structure is necessary
+    ) -> tuple[
         tuple[Float, Array, ControllerState | None],
         tuple[Float, Array, Array, Array | None],
     ]:
