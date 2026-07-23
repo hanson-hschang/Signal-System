@@ -37,7 +37,6 @@ dependencies = [
 [dependency-groups]
 dev = [
     "scipy>=1.11.0",
-    "pyupgrade>=3.15.2",
     "pre-commit>=3.7.1",
     "pytest>=8.2.1",
     "pytest-cov>=7.1.0",
@@ -143,13 +142,20 @@ exclude = [
 # Select the rule sets to enable.
 # "E" (pycodestyle errors), "W" (pycodestyle warnings), and "F" (Pyflakes)
 # are a good starting point to replicate flake8's default behavior.
-select = ["E", "F", "W"]
+select = ["E", "F", "W", "UP"]
 ignore = [
     # For JAX + jaxtyping
     "E731",  # Allow lambda! :)
     "F722",  # Syntax error in forward annotation (triggered by multi-dimensional jaxtyping shapes)
     "F821",  # Undefined name (optional, if single-dimension shapes trigger it)
+    "UP037",  # Keep quotes on jaxtyping shape strings (e.g. Float[Array, "state_dim"])
+    # Keep typing.Generic / TypeVar for now (PEP 695 migration is a separate change)
+    "UP046",
+    "UP047",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/latest/config_file.html#using-a-pyproject-toml-file
