@@ -40,7 +40,7 @@ class System(eqx.Module):
         object.__setattr__(duplicate, "batch_size", batch_size)
         return duplicate
 
-    def init_state(
+    def initial_state(
         self, random_key: PRNGKeyArray | None = None
     ) -> Float[Array, state_dim]:
         return jnp.zeros(self.state_dim)

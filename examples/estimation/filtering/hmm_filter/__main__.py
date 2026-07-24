@@ -12,7 +12,7 @@ import jax
 import jax.numpy as jnp
 
 from ss.system.discrete import HiddenMarkovModel
-from ss.system import simulate, batch_simulate
+from ss.system import simulate
 
 from ss.estimation.filtering.hmm import HmmFilter
 from ss.estimation.filtering import filtering, batch_filtering
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     print("=== single rollout ===")
     time_horizon = 10
 
-    initial_state = jnp.array(0, dtype=jnp.int32)
+    initial_state = system.initial_state(random_key)
     random_keys = jax.random.split(random_key, time_horizon)
 
     times, states, observations, _ = simulate(
@@ -62,12 +62,15 @@ if __name__ == "__main__":
 
     print("=== batch filtering ===")
     batch_size = 5
+    systems = system.duplicate(batch_size=batch_size)
 
-    init_states = jnp.tile(jnp.array(0, dtype=jnp.int32), (batch_size, 1))
-    random_keys = jax.random.split(random_key, (batch_size, time_horizon))
+    initial_state_key, random_key = jax.random.split(random_key)
+    initial_state_keys = jax.random.split(initial_state_key, batch_size)
+    init_states = systems.initial_state(initial_state_keys)
+    random_keys = jax.random.split(random_key, time_horizon)
 
-    batch_times, batch_states, batch_observations, _ = batch_simulate(
-        system, 0, init_states, random_keys
+    batch_times, batch_states, batch_observations, _ = simulate(
+        systems, 0, init_states, random_keys
     )
 
     print("batch_times shape:", batch_times.shape)

@@ -23,5 +23,5 @@ def test_duplicate_system_with_new_batch_size() -> None:
     assert duplicate.pole_mass == system.pole_mass
     assert duplicate.pole_length == system.pole_length
     assert duplicate.gravity == system.gravity
-    assert duplicate.init_state().shape == (8, system.state_dim)
-    assert jnp.all(duplicate.init_state() == 0)
+    assert duplicate.initial_state().shape == (8, system.state_dim)
+    assert jnp.all(duplicate.initial_state() == 0)

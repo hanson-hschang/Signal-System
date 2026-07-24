@@ -78,7 +78,7 @@ def main(
     random_key = jax.random.PRNGKey(0)
     initial_key, simulation_key = jax.random.split(random_key)
 
-    initial_state = system.init_state(initial_key)
+    initial_state = system.initial_state(initial_key)
     random_keys = jax.random.split(simulation_key, num_steps)
 
     times, states, _, _ = simulate(

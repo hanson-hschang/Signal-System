@@ -29,7 +29,7 @@ class CartPoleSystem(System):
         assert self.gravity >= 0, "gravity must be >= 0"
         assert self.batch_size > 0, "batch_size must be > 0"
 
-    def init_state(
+    def initial_state(
         self, random_key: PRNGKeyArray | None = None
     ) -> Float[Array, "batch_size state_dim"]:  # noqa: F722
         """Initialize near the unstable upright equilibrium."""
