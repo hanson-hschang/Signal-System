@@ -59,7 +59,8 @@ def main(
 
     random_key = jax.random.PRNGKey(0)
     initial_key, simulation_key = jax.random.split(random_key)
-    state = system.init_state(initial_key)
+    initial_key, initial_system_key = jax.random.split(initial_key)
+    state = system.init_state(initial_system_key)
     state = state.at[:, 2].add(initial_angle)
     controller = MPPIController(
         control_dim=system.control_dim,
@@ -80,6 +81,7 @@ def main(
         state,
         random_keys,
         controller=controller,
+        initial_key=initial_key,
     )
     costs = weights.running_cost(states, controls)
     click.echo(f"final_state={states[-1]}")

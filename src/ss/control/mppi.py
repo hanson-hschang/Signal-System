@@ -68,7 +68,7 @@ class MPPIController(Controller):
         assert self.noise_sigma > 0
         assert self.control_limit > 0
 
-    def init_state(self) -> MPPIControllerState:
+    def init_state(self, random_key: PRNGKeyArray | None = None) -> MPPIControllerState:
         return MPPIControllerState(
             jnp.zeros((self.batch_size, self.horizon, self.control_dim))
         )
@@ -126,8 +126,8 @@ class MPPIController(Controller):
             next_times, next_states = jax.vmap(self.rollout_system.process)(
                 times,
                 states,
+                controls,
                 process_keys,
-                control=controls,
             )
             total_cost += self.rollout_system.time_step * jax.vmap(
                 self.running_cost

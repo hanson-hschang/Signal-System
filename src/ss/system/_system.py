@@ -153,6 +153,7 @@ def simulate(
     initial_state: Array,
     keys: PRNGKeyArray,
     controller: Controller | None = None,
+    initial_key: PRNGKeyArray | None = None,
 ) -> tuple[Array, Array, Array, Array | None]:
     """Simulate batches with a time scan containing vmapped system steps."""
     if controller is not None:
@@ -160,8 +161,7 @@ def simulate(
             f"system.batch_size {system.batch_size} must match "
             f"controller.batch_size {controller.batch_size}"
         )
-        keys, controller_key = jax.random.split(keys, 2)
-        controller_state = controller.init_state(controller_key)
+        controller_state = controller.init_state(initial_key)
     else:
         controller_state = None
 

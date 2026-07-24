@@ -57,9 +57,8 @@ class CartPoleSystem(System):
         self,
         time: Float,
         state: Array,
+        control: Array | None,
         random_key: PRNGKeyArray,
-        *,
-        control: Array | None = None,
     ) -> tuple[Array, Array]:
         half_step = 0.5 * self.time_step
         k1 = self.dynamics(time, state, control)
