@@ -29,6 +29,7 @@ class HiddenMarkovModel(System):
         self,
         transition_matrix: Array,
         emission_matrix: Array,
+        batch_size: int = 1,
     ) -> None:
         self._transition_matrix = ProbabilityParameter(
             jnp.asarray(transition_matrix),
@@ -43,6 +44,7 @@ class HiddenMarkovModel(System):
             observation_dim=1,
             control_dim=0,
             time_step=1.0,
+            batch_size=batch_size,
         )
 
     @property
@@ -102,38 +104,55 @@ class HiddenMarkovModel(System):
             "emission_matrix rows must sum to 1"
         )
 
-    def init_state(
+    def initial_state(
         self, key: PRNGKeyArray, initial_distribution: Array | None = None
-    ) -> Int[Array, ""]:
+    ) -> Int[Array, "batch_size"]:
         if initial_distribution is None:
             initial_distribution = (
                 jnp.ones(self.discrete_state_dim) / self.discrete_state_dim
             )
-        return jax.random.categorical(key, jnp.log(initial_distribution))
+
+        logits = jnp.log(initial_distribution)
+
+        # Force a single key (2,) to become a batch of one (1, 2)
+        batched_key = jnp.atleast_2d(key)
+
+        assert batched_key.shape[0] == self.batch_size, (
+            f"key batch size {batched_key.shape[0]} must match "
+            f"system batch size {self.batch_size}"
+        )
+
+        # in_axes=(0, None) maps over the batch dimension of 'key' (axis 0),
+        # but uses the exact same 'logits' array (axis None) for every key.
+        return jax.vmap(jax.random.categorical, in_axes=(0, None))(batched_key, logits)
 
     def process(
         self,
         time: float,
-        state: Int[Array, ""],
-        random_key: PRNGKeyArray,
-        control: Array | None = None,
-    ) -> tuple[float, Int[Array, ""]]:
-        return time + self.time_step, jax.random.categorical(
-            random_key, jnp.log(self.transition_matrix[state]),
+        state: Int[Array, "batch_size"],
+        control: Array | None,
+        random_keys: PRNGKeyArray,
+    ) -> tuple[float, Int[Array, "batch_size"]]:
+        return time + self.time_step, jax.vmap(jax.random.categorical)(
+            random_keys,
+            jnp.log(self.transition_matrix[state]),
         )
 
     def observe(
         self,
         time: float,
-        state: Int[Array, ""],
-        random_key: PRNGKeyArray,
-    ) -> Int[Array, ""]:
-        return jax.random.categorical(random_key, jnp.log(self.emission_matrix[state]))
+        state: Int[Array, "batch_size"],
+        random_keys: PRNGKeyArray,
+    ) -> Int[Array, "batch_size"]:
+        return jax.vmap(jax.random.categorical)(
+            random_keys,
+            jnp.log(self.emission_matrix[state])
+        )
 
-    def state_one_hot(self, state: Int[Array, ""]) -> Array:
+    def state_one_hot(self, state: Int[Array, "batch_size discrete_state_dim"]) -> Array:
         return jax.nn.one_hot(state, self.discrete_state_dim)
 
-    def observation_one_hot(self, observation: Int[Array, ""]) -> Array:
+    def observation_one_hot(self, observation: Int[Array, "batch_size discrete_observation_dim"]) -> Array:
         return jax.nn.one_hot(observation, self.discrete_observation_dim)
 
 
