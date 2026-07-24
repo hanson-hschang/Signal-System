@@ -49,7 +49,7 @@ class System(eqx.Module):
         self,
         time: float,
         state: Float[Array, state_dim],
-        control: Float[Array, control_dim],
+        control: Float[Array, control_dim] | None,
         random_key: PRNGKeyArray,
     ) -> tuple[float, Float[Array, state_dim]]:
         return (
@@ -69,7 +69,7 @@ class System(eqx.Module):
         ) + self._observation_noise(time, state, random_key)
 
     def _state_process(
-        self, time: float, state: Array, control: Array
+        self, time: float, state: Array, control: Array | None
     ) -> Float[Array, state_dim]:
         return state
 
@@ -156,8 +156,12 @@ def simulate(
 ) -> tuple[Array, Array, Array, Array | None]:
     """Simulate batches with a time scan containing vmapped system steps."""
     if controller is not None:
-        assert system.batch_size == controller.batch_size  # TODO: message
-        controller_state = controller.init_state()  # TODO: key?
+        assert system.batch_size == controller.batch_size, (
+            f"system.batch_size {system.batch_size} must match "
+            f"controller.batch_size {controller.batch_size}"
+        )
+        keys, controller_key = jax.random.split(keys, 2)
+        controller_state = controller.init_state(controller_key)
     else:
         controller_state = None
 
@@ -189,7 +193,7 @@ def simulate(
             control = None
             next_controller_state = None
             next_time, state = system.process(
-                previous_time, previous_state, process_keys
+                previous_time, previous_state, control, process_keys
             )
         else:
             control, next_controller_state, _ = controller(
@@ -199,7 +203,7 @@ def simulate(
                 controller_key,
             )
             next_time, state = system.process(
-                previous_time, previous_state, process_keys, control=control
+                previous_time, previous_state, control, process_keys,
             )
 
         return (
