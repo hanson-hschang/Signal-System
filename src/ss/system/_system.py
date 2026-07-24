@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, TypeVar, Self
 
 from copy import copy
 
@@ -90,9 +90,9 @@ class System(eqx.Module):
 
 
 class ContinuousTimeSystem(System):
-    process_noise_covariance: Float[Array, state_dim state_dim]
+    process_noise_covariance: Float[Array, "state_dim state_dim"]
     observation_noise_covariance: Float[
-        Array, observation_dim observation_dim
+        Array, "observation_dim observation_dim"
     ]
 
     def __check_init__(self) -> None:
