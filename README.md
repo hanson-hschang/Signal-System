@@ -11,7 +11,6 @@
 
 [![package: uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://docs.astral.sh/uv/)
 [![CI/CD: pre-commit](https://img.shields.io/badge/CI/CD-pre--commit-FAB040?logo=pre-commit)](https://pre-commit.com/)
-[![syntax: pyupgrade](https://img.shields.io/badge/syntax-pyupgrade-blue?logo=pyupgrade)](https://github.com/pyupgrade/pyupgrade)
 [![unit test: pytest](https://img.shields.io/badge/unit_test-pytest-0A9EDC?logo=pytest)](https://docs.pytest.org/)
 [![lint & format:Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![static type: mypy](https://img.shields.io/badge/static_type-mypy-blue)](https://mypy-lang.org/)

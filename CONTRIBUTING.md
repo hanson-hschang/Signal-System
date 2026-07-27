@@ -120,9 +120,8 @@ This installs the package in editable mode along with all development dependenci
 
 **Development Tools:**
 - pre-commit (git hooks)
-- pyupgrade (syntax upgrades)
 - pytest (testing framework)
-- Ruff (linting and formatting)
+- Ruff (linting, formatting, and syntax upgrades)
 - mypy (static type checking)
 - bandit (security checking)
 
