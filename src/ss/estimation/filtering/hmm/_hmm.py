@@ -1,5 +1,5 @@
-"""
-"""
+""" """
+
 from __future__ import annotations
 
 import equinox as eqx
@@ -8,6 +8,7 @@ from jaxtyping import Array, Float, Int
 
 from ss.estimation.filtering import Filter
 from ss.utility.parameter.probability import ProbabilityParameter
+
 
 class HmmFilter(Filter):
     _transition_matrix: ProbabilityParameter
@@ -44,21 +45,24 @@ class HmmFilter(Filter):
         return self._emission_matrix.value()
 
     def with_transition_matrix(
-            self, transition_matrix: Array,
-        ) -> "HmmFilter":
+        self,
+        transition_matrix: Array,
+    ) -> "HmmFilter":
         assert transition_matrix.shape == self.transition_matrix.shape, (
-            f"transition_matrix must have shape {self.transition_matrix.shape}, "
+            "transition_matrix must have "
+            f"shape {self.transition_matrix.shape}, "
             f"got {transition_matrix.shape}"
         )
         return eqx.tree_at(
             update_transition_matrix,
             self,
-            ProbabilityParameter(jnp.asarray(transition_matrix))
+            ProbabilityParameter(jnp.asarray(transition_matrix)),
         )
 
     def with_emission_matrix(
-            self, emission_matrix: Array,
-        ) -> "HmmFilter":
+        self,
+        emission_matrix: Array,
+    ) -> "HmmFilter":
         assert emission_matrix.shape == self.emission_matrix.shape, (
             f"emission_matrix must have shape {self.emission_matrix.shape}, "
             f"got {emission_matrix.shape}"
@@ -66,15 +70,15 @@ class HmmFilter(Filter):
         return eqx.tree_at(
             update_emission_matrix,
             self,
-            ProbabilityParameter(jnp.asarray(emission_matrix))
+            ProbabilityParameter(jnp.asarray(emission_matrix)),
         )
 
     def update(
         self,
         time: Float,
-        prior: Float[Array, "state_dim"], # noqa: F821
-        observation: Int[Array, "observation_dim"], # noqa: F821
-    ) -> tuple[Float, Float[Array, "state_dim"]]: # noqa: F821
+        prior: Float[Array, "state_dim"],  # noqa: F821
+        observation: Int[Array, "observation_dim"],  # noqa: F821
+    ) -> tuple[Float, Float[Array, "state_dim"]]:  # noqa: F821
         """Update the belief state given a new observation."""
         likelihood = self.emission_matrix[:, observation[0]]
         # update step (unnormalized posterior given the new observation)
@@ -85,12 +89,14 @@ class HmmFilter(Filter):
         belief = posterior @ self.transition_matrix
         return time + self.time_step, belief
 
+
 def update_transition_matrix(
-        filter: "HmmFilter",
-    ) -> "ProbabilityParameter":
+    filter: "HmmFilter",
+) -> "ProbabilityParameter":
     return filter._transition_matrix
 
+
 def update_emission_matrix(
-        filter: "HmmFilter",
-    ) -> "ProbabilityParameter":
+    filter: "HmmFilter",
+) -> "ProbabilityParameter":
     return filter._emission_matrix

@@ -1,9 +1,10 @@
 """
 This example demonstrates how to learn the parameters of a Hidden Markov Model
 (HMM) using the cross-entropy loss function. The code initializes a random HMM
-system, simulates observations, and then trains a filter to learn the transition
+system, simulates observations, and trains a filter to learn the transition
 and emission matrices from the simulated data.
 """
+
 from __future__ import annotations
 
 import optax
@@ -18,27 +19,34 @@ from ss.system.discrete import HiddenMarkovModel
 from ss.system import simulate
 
 
-
 # random initialize transition and emission matrices (rows are distributions)
-def random_stochastic_matrix(n_rows: int, n_cols: int, random_key: PRNGKeyArray) -> Array:
+def random_stochastic_matrix(
+    n_rows: int, n_cols: int, random_key: PRNGKeyArray
+) -> Array:
     # sample each row from a symmetric Dirichlet
     keys = jax.random.split(random_key, n_rows)
     rows = [jax.random.dirichlet(k, jnp.ones(n_cols)) for k in keys]
     return jnp.stack(rows)
 
-def cross_entropy_loss(model: HmmFilter, batch: Array, random_key: PRNGKeyArray | None) -> Array:
+
+def cross_entropy_loss(
+    model: HmmFilter, batch: Array, random_key: PRNGKeyArray | None
+) -> Array:
     """Compute the cross-entropy loss between the predicted and true
     observation distributions for a batch of sequences.
 
     Args:
         model: The HMM model.
-        batch: An array of shape (batch_size, sequence_length+1, observation_dim=1)
+        batch: An array of shape
+          (batch_size, sequence_length+1, observation_dim=1)
           containing the true observations.
         random_key: A random key for generating random numbers.
     Returns:
         The average cross-entropy loss over the batch.
     """
-    assert random_key is not None, "random_key must be provided for loss computation"
+    assert random_key is not None, (
+        "random_key must be provided for loss computation"
+    )
 
     batch_size, sequence_length_plus_one, observation_dim = batch.shape
     input_observations = batch[:, :-1, :]  # all but last observation
@@ -46,9 +54,7 @@ def cross_entropy_loss(model: HmmFilter, batch: Array, random_key: PRNGKeyArray 
 
     # Normalize so each row sums to 1.0
     initial_beliefs = jax.random.dirichlet(
-        random_key,
-        alpha=jnp.ones(model.state_dim),
-        shape=(batch_size,)
+        random_key, alpha=jnp.ones(model.state_dim), shape=(batch_size,)
     )
 
     _, batch_beliefs = batch_filtering(
@@ -57,9 +63,9 @@ def cross_entropy_loss(model: HmmFilter, batch: Array, random_key: PRNGKeyArray 
 
     # Compute the predicted observation distributions
     predicted_observation_distributions = jnp.einsum(
-        'bts,so->bto', batch_beliefs, model.emission_matrix
+        "bts,so->bto", batch_beliefs, model.emission_matrix
     )
-    # TODO: Refactor to compute manual cross-entropy (-sum(targets * log(probs))).
+    # TODO: Refactor to compute cross-entropy (-sum(targets * log(probs))).
     # Passing log(probs) into softmax_cross_entropy works mathematically, but
     # it causes redundant exp/log operations under the hood.
     # safe_probs = jnp.clip(predicted_observation_distributions, 1e-7, 1.0)
@@ -72,11 +78,11 @@ def cross_entropy_loss(model: HmmFilter, batch: Array, random_key: PRNGKeyArray 
 
     return jnp.mean(losses)
 
+
 if __name__ == "__main__":
-
-
-    print("=== Discrete State Dynamic System Simulation: Hidden Markov Model ===")
-
+    print(
+        "=== Discrete State Dynamic System Simulation: Hidden Markov Model ==="
+    )
 
     random_key = jax.random.PRNGKey(0)
     key_sys, key_sim = jax.random.split(random_key)
@@ -98,12 +104,14 @@ if __name__ == "__main__":
     random_keys = jax.random.split(random_key, time_horizon)
 
     times, states, observations, _ = simulate(
-        system, 0, initial_state, random_keys,
+        system,
+        0,
+        initial_state,
+        random_keys,
     )
 
     print(states)
     print(observations)
-
 
     # random initialize filter parameters (independent of system)
     key_filter = jax.random.PRNGKey(0)
@@ -116,10 +124,14 @@ if __name__ == "__main__":
     print(f"filter: {filter}")
     print(filter.transition_matrix)
 
-    learning_process = LearningProcess[HmmFilter](filter, cross_entropy_loss, optax.adam(1e-2))
+    learning_process = LearningProcess[HmmFilter](
+        filter, cross_entropy_loss, optax.adam(1e-2)
+    )
 
     learning_process.train_one_epoch(
-        training_data_loader=[observations[None, :, :] for _ in range(10)],  # iterator of shape (1, time_horizon, 1)
+        training_data_loader=[
+            observations[None, :, :] for _ in range(10)
+        ],  # iterator of shape (1, time_horizon, 1)
         validation_data_loader=None,
         random_key=jax.random.PRNGKey(0),
     )

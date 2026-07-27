@@ -56,21 +56,24 @@ class HiddenMarkovModel(System):
         return self._emission_matrix.value()
 
     def with_transition_matrix(
-            self, transition_matrix: Array,
-        ) -> "HiddenMarkovModel":
+        self,
+        transition_matrix: Array,
+    ) -> "HiddenMarkovModel":
         assert transition_matrix.shape == self.transition_matrix.shape, (
-            f"transition_matrix must have shape {self.transition_matrix.shape}, "
+            "transition_matrix must have shape "
+            f"{self.transition_matrix.shape}, "
             f"got {transition_matrix.shape}"
         )
         return eqx.tree_at(
             update_transition_matrix,
             self,
-            ProbabilityParameter(jnp.asarray(transition_matrix))
+            ProbabilityParameter(jnp.asarray(transition_matrix)),
         )
 
     def with_emission_matrix(
-            self, emission_matrix: Array,
-        ) -> "HiddenMarkovModel":
+        self,
+        emission_matrix: Array,
+    ) -> "HiddenMarkovModel":
         assert emission_matrix.shape == self.emission_matrix.shape, (
             f"emission_matrix must have shape {self.emission_matrix.shape}, "
             f"got {emission_matrix.shape}"
@@ -78,13 +81,17 @@ class HiddenMarkovModel(System):
         return eqx.tree_at(
             update_emission_matrix,
             self,
-            ProbabilityParameter(jnp.asarray(emission_matrix))
+            ProbabilityParameter(jnp.asarray(emission_matrix)),
         )
 
     def __check_init__(self) -> None:
         super().__check_init__()
         transition_matrix_shape = self.transition_matrix.shape
-        assert transition_matrix_shape[0] == transition_matrix_shape[1] == self.discrete_state_dim, (
+        assert (
+            transition_matrix_shape[0]
+            == transition_matrix_shape[1]
+            == self.discrete_state_dim
+        ), (
             f"transition_matrix must be square ({self.discrete_state_dim}, "
             f"{self.discrete_state_dim}), got {transition_matrix_shape}"
         )
@@ -97,7 +104,8 @@ class HiddenMarkovModel(System):
             f"got shape {emission_matrix_shape}"
         )
         assert emission_matrix_shape[1] == self.discrete_observation_dim, (
-            f"emission_matrix must have {self.discrete_observation_dim} columns, "
+            "emission_matrix must have "
+            f"{self.discrete_observation_dim} columns, "
             f"got shape {emission_matrix_shape}"
         )
         assert jnp.allclose(self.emission_matrix.sum(axis=1), 1.0), (
@@ -124,7 +132,9 @@ class HiddenMarkovModel(System):
 
         # in_axes=(0, None) maps over the batch dimension of 'key' (axis 0),
         # but uses the exact same 'logits' array (axis None) for every key.
-        return jax.vmap(jax.random.categorical, in_axes=(0, None))(batched_key, logits)
+        return jax.vmap(jax.random.categorical, in_axes=(0, None))(
+            batched_key, logits
+        )
 
     def process(
         self,
@@ -145,23 +155,27 @@ class HiddenMarkovModel(System):
         random_keys: PRNGKeyArray,
     ) -> Int[Array, "batch_size"]:
         return jax.vmap(jax.random.categorical)(
-            random_keys,
-            jnp.log(self.emission_matrix[state])
+            random_keys, jnp.log(self.emission_matrix[state])
         )
 
-    def state_one_hot(self, state: Int[Array, "batch_size discrete_state_dim"]) -> Array:
+    def state_one_hot(
+        self, state: Int[Array, "batch_size discrete_state_dim"]
+    ) -> Array:
         return jax.nn.one_hot(state, self.discrete_state_dim)
 
-    def observation_one_hot(self, observation: Int[Array, "batch_size discrete_observation_dim"]) -> Array:
+    def observation_one_hot(
+        self, observation: Int[Array, "batch_size discrete_observation_dim"]
+    ) -> Array:
         return jax.nn.one_hot(observation, self.discrete_observation_dim)
 
 
 def update_transition_matrix(
-        model: "HiddenMarkovModel",
-    ) -> "ProbabilityParameter":
+    model: "HiddenMarkovModel",
+) -> "ProbabilityParameter":
     return model._transition_matrix
 
+
 def update_emission_matrix(
-        model: "HiddenMarkovModel",
-    ) -> "ProbabilityParameter":
+    model: "HiddenMarkovModel",
+) -> "ProbabilityParameter":
     return model._emission_matrix

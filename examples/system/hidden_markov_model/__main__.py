@@ -1,6 +1,7 @@
 """
 A discrete-state dynamical system, such as a Hidden Markov Model (HMM).
 """
+
 from __future__ import annotations
 
 import jax
@@ -10,9 +11,9 @@ from ss.system.discrete import HiddenMarkovModel
 from ss.system import simulate
 
 if __name__ == "__main__":
-
-
-    print("=== Discrete State Dynamic System Simulation: Hidden Markov Model ===")
+    print(
+        "=== Discrete State Dynamic System Simulation: Hidden Markov Model ==="
+    )
 
     system = HiddenMarkovModel(
         transition_matrix=jnp.array([[0.7, 0.3], [0.4, 0.6]]),
@@ -22,9 +23,7 @@ if __name__ == "__main__":
     print("transition_matrix:\n", system.transition_matrix)
     print("emission_matrix:\n", system.emission_matrix)
 
-    system = system.with_transition_matrix(
-        jnp.array([[0.6, 0.4], [0.5, 0.5]])
-    )
+    system = system.with_transition_matrix(jnp.array([[0.6, 0.4], [0.5, 0.5]]))
     print("updated transition_matrix:\n", system.transition_matrix)
 
     print("=== single rollout ===")
@@ -36,18 +35,19 @@ if __name__ == "__main__":
     random_keys = jax.random.split(random_key, time_horizon)
 
     times, states, observations, _ = simulate(
-        system, 0, initial_state, random_keys,
+        system,
+        0,
+        initial_state,
+        random_keys,
     )
 
     print("times:", times.shape)
     print("states:", states.shape)
     print("observations:", observations.shape)
 
-
     print("=== batched rollout ===")
     batch_size = 15
     systems = system.duplicate(batch_size=batch_size)
-
 
     random_key = jax.random.PRNGKey(0)
     initial_state_key, random_key = jax.random.split(random_key)

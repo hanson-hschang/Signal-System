@@ -1,4 +1,5 @@
 """Lazy re-exports -- see ss/__init__.py for rationale."""
+
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -8,7 +9,7 @@ _EXPORTS: dict[str, str] = {
     "HmmFilter": "_hmm",
 }
 
-__all__ = list(_EXPORTS) # type: ignore[reportUnsupportedDunderAll]
+__all__ = list(_EXPORTS)  # type: ignore[reportUnsupportedDunderAll]
 
 
 def __getattr__(name: str) -> Any:

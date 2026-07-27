@@ -1,6 +1,7 @@
 """
 Parameter classes for handling constrained parameters in JAX.
 """
+
 from __future__ import annotations
 
 from typing import Protocol, Generic, TypeVar
@@ -13,7 +14,9 @@ class Transformer(Protocol):
     def forward(self, raw_value: Array) -> Array: ...
     def inverse(self, value: Array) -> Array: ...
 
+
 T = TypeVar("T", bound=Transformer)
+
 
 class Parameter(eqx.Module, Generic[T]):
     """

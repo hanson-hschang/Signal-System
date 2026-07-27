@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from functools import partial
@@ -11,7 +10,6 @@ from jaxtyping import Array, Float
 
 
 class Filter(eqx.Module):
-
     time_step: float = eqx.field(static=True)
     state_dim: int = eqx.field(static=True)
     observation_dim: int = eqx.field(static=True)
@@ -38,10 +36,8 @@ class Filter(eqx.Module):
         # control: Float[Array, "control_dim"],
     ) -> tuple[Float, Float[Array, "state_dim"]]:
         posterior = prior
-        return (
-            time + self.time_step,
-            posterior
-        )
+        return (time + self.time_step, posterior)
+
 
 FilterT = TypeVar("FilterT", bound=Filter)
 
@@ -68,7 +64,8 @@ def filtering(
     Args:
         filter: The filter to use for the filtering process.
         initial_time: The initial time before processing any observations.
-        initial_belief: The initial belief state before processing any observations.
+        initial_belief: The initial belief state before processing any
+            observations.
         observations: A sequence of observations to process.
 
     Returns:
@@ -80,15 +77,14 @@ def filtering(
     body = partial(filtering_step, filter)
 
     _, (times, beliefs) = jax.lax.scan(
-        body,
-        (initial_time, initial_belief),
-        observations
+        body, (initial_time, initial_belief), observations
     )
 
     if beliefs.ndim == 1:
         beliefs = beliefs[:, jnp.newaxis]
 
     return times, beliefs
+
 
 def batch_filtering(
     filter: FilterT,
@@ -101,18 +97,28 @@ def batch_filtering(
     Args:
         filter: The filter to use for the filtering process.
         initial_time: The initial time before processing any observations.
-        initial_beliefs: An array of initial belief states for each sequence in the batch.
+        initial_beliefs: An array of initial belief states for each sequence in
+            the batch.
         observations: A batch of sequences of observations to process.
 
     Returns:
         A tuple containing:
-            - An array of times corresponding to each observation processed for each sequence in the batch.
-            - An array of beliefs corresponding to each observation processed for each sequence in the batch.
+            - An array of times corresponding to each observation processed for
+                each sequence in the batch.
+            - An array of beliefs corresponding to each observation processed
+                for each sequence in the batch.
     """
 
+    # filter is static, initial_time is static
+    # initial_beliefs and observations are batched
     _batch_filtering = jax.vmap(
         filtering,
-        in_axes=(None, None, 0, 0),  # filter is static, initial_time is static, initial_beliefs and observations are batched
+        in_axes=(
+            None,
+            None,
+            0,
+            0,
+        ),
     )
 
     return _batch_filtering(

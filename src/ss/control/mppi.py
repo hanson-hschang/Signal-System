@@ -68,7 +68,9 @@ class MPPIController(Controller):
         assert self.noise_sigma > 0
         assert self.control_limit > 0
 
-    def init_state(self, random_key: PRNGKeyArray | None = None) -> MPPIControllerState:
+    def init_state(
+        self, random_key: PRNGKeyArray | None = None
+    ) -> MPPIControllerState:
         return MPPIControllerState(
             jnp.zeros((self.batch_size, self.horizon, self.control_dim))
         )

@@ -203,7 +203,10 @@ def simulate(
                 controller_key,
             )
             next_time, state = system.process(
-                previous_time, previous_state, control, process_keys,
+                previous_time,
+                previous_state,
+                control,
+                process_keys,
             )
 
         return (

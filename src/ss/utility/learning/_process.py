@@ -1,6 +1,7 @@
 """
 Learning process for training and evaluating models.
 """
+
 from __future__ import annotations
 
 from typing import cast, Protocol
@@ -22,7 +23,6 @@ Batch = TypeVar("Batch")
 
 @dataclass
 class LearningState(Generic[Model], eqx.Module):
-
     model_trainable: Model
     model_static: Model
     optimizer_state: optax.OptState
@@ -36,7 +36,9 @@ class LearningState(Generic[Model], eqx.Module):
         trainable_mask: PyTree | None = None,
     ) -> "LearningState[Model]":
         if trainable_mask is None:
-            trainable_mask = jax.tree_util.tree_map(eqx.is_inexact_array, model)
+            trainable_mask = jax.tree_util.tree_map(
+                eqx.is_inexact_array, model
+            )
         model_trainable, model_static = eqx.partition(model, trainable_mask)
         optimizer_state = optimizer.init(model_trainable)
         return cls(model_trainable, model_static, optimizer_state, optimizer)
@@ -55,10 +57,13 @@ def split_random_key(
     else:
         return None, None
 
+
 # Define loss function type hint
 class LossFunctionProtocol(Protocol[Model]):
-    def __call__(self, model: Model, batch: Any, random_key: PRNGKeyArray | None) -> Array:
-        ...
+    def __call__(
+        self, model: Model, batch: Any, random_key: PRNGKeyArray | None
+    ) -> Array: ...
+
 
 def make_train_step(
     loss_fn: LossFunctionProtocol[Model],
@@ -66,12 +71,12 @@ def make_train_step(
     [LearningState[Model], Batch, PRNGKeyArray | None],
     tuple[LearningState[Model], Array],
 ]:
-
     @eqx.filter_jit
     def train_step(
-        learning_state: LearningState[Model], batch: Batch, random_key: PRNGKeyArray | None
+        learning_state: LearningState[Model],
+        batch: Batch,
+        random_key: PRNGKeyArray | None,
     ) -> tuple[LearningState[Model], Array]:
-
         def partitioned_loss(model_trainable: Model) -> Array:
             model = eqx.combine(model_trainable, learning_state.model_static)
             return loss_fn(model, batch, random_key)
@@ -85,7 +90,9 @@ def make_train_step(
             learning_state.optimizer_state,
             cast(optax.Params, learning_state.model_trainable),
         )
-        model_trainable = eqx.apply_updates(learning_state.model_trainable, updates)
+        model_trainable = eqx.apply_updates(
+            learning_state.model_trainable, updates
+        )
 
         learning_state = LearningState[Model](
             model_trainable=model_trainable,
@@ -102,9 +109,10 @@ def make_train_step(
 def make_evaluate_step(
     loss_fn: LossFunctionProtocol[Model],
 ) -> Callable[[Model, Batch, PRNGKeyArray | None], Array]:
-
     @eqx.filter_jit
-    def eval_step(model: Model, batch: Batch, random_key: PRNGKeyArray | None) -> jax.Array:
+    def eval_step(
+        model: Model, batch: Batch, random_key: PRNGKeyArray | None
+    ) -> jax.Array:
         return loss_fn(model, batch, random_key)
 
     return eval_step
@@ -112,7 +120,6 @@ def make_evaluate_step(
 
 @dataclass
 class LearningProcessInfo:
-
     training_losses: list[float] = field(default_factory=list)
     validation_losses: list[float] = field(default_factory=list)
     epoch: int = 0
@@ -120,7 +127,6 @@ class LearningProcessInfo:
 
 
 class LearningProcess(Generic[Model]):
-
     def __init__(
         self,
         model: Model,
@@ -128,7 +134,9 @@ class LearningProcess(Generic[Model]):
         optimizer: optax.GradientTransformation,
         trainable_mask: PyTree | None = None,
     ) -> None:
-        self.learning_state = LearningState[Model].create(model, optimizer, trainable_mask)
+        self.learning_state = LearningState[Model].create(
+            model, optimizer, trainable_mask
+        )
         self._train_step = make_train_step(loss_function)
         self._evaluate_step = make_evaluate_step(loss_function)
         self._info = LearningProcessInfo()
@@ -143,7 +151,10 @@ class LearningProcess(Generic[Model]):
         random_key: PRNGKeyArray | None = None,
     ) -> jax.Array:
         losses = jnp.array(
-            [self._evaluate_step(self.model, batch, random_key) for batch in data_loader]
+            [
+                self._evaluate_step(self.model, batch, random_key)
+                for batch in data_loader
+            ]
         )
         return losses
 
@@ -162,7 +173,6 @@ class LearningProcess(Generic[Model]):
         )
 
         for batch in batch_loader:
-
             training_random_key, random_key = split_random_key(random_key)
 
             self.learning_state, loss = self._train_step(
@@ -180,8 +190,12 @@ class LearningProcess(Generic[Model]):
                 and validate_every is not None
                 and self._info.iteration % validate_every == 0
             ):
-                validation_random_key, random_key = split_random_key(random_key)
-                validation_losses = self.evaluate_model(validation_data_loader, validation_random_key)
+                validation_random_key, random_key = split_random_key(
+                    random_key
+                )
+                validation_losses = self.evaluate_model(
+                    validation_data_loader, validation_random_key
+                )
                 self._info.validation_losses.append(
                     float(jnp.mean(validation_losses))
                 )
@@ -197,12 +211,13 @@ class LearningProcess(Generic[Model]):
         validate_every: int | None = None,
         progress_bar: bool = True,
     ) -> LearningProcessInfo:
-        if (
-            validation_data_loader is not None
-            and self._info.epoch == 0
-        ):
-            initial_validation_random_key, random_key = split_random_key(random_key)
-            initial_losses = self.evaluate_model(validation_data_loader, initial_validation_random_key)
+        if validation_data_loader is not None and self._info.epoch == 0:
+            initial_validation_random_key, random_key = split_random_key(
+                random_key
+            )
+            initial_losses = self.evaluate_model(
+                validation_data_loader, initial_validation_random_key
+            )
             self._info.validation_losses.append(
                 float(jnp.mean(initial_losses))
             )
