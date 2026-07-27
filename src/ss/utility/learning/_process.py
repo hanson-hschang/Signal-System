@@ -58,10 +58,13 @@ def split_random_key(
         return None, None
 
 
+ModelInputT = TypeVar("ModelInputT", bound=eqx.Module, contravariant=True)
+
+
 # Define loss function type hint
-class LossFunctionProtocol(Protocol[Model]):
+class LossFunctionProtocol(Protocol[ModelInputT]):
     def __call__(
-        self, model: Model, batch: Any, random_key: PRNGKeyArray | None
+        self, model: ModelInputT, batch: Any, random_key: PRNGKeyArray | None
     ) -> Array: ...
 
 

@@ -33,7 +33,7 @@ _EXPORTS: dict[str, str] = {
     # "DiscreteTimeNonlinearSystem": "nonlinear",
 }
 
-__all__ = list(_EXPORTS)  # type: ignore[reportUnsupportedDunderAll]
+__all__ = list(_EXPORTS)
 
 
 def __getattr__(name: str) -> Any:

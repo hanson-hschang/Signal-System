@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 # =============================================================================
 _EXPORTS: dict[str, str] = {}
 
-__all__ = list(_EXPORTS) + ["__version__"]  # type: ignore[reportUnsupportedDunderAll]
+__all__ = list(_EXPORTS) + ["__version__"]
 
 
 def __getattr__(name: str) -> Any:

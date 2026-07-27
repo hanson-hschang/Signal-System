@@ -10,7 +10,7 @@ _EXPORTS: dict[str, str] = {
     "Parameter": "_parameter",
 }
 
-__all__ = list(_EXPORTS)  # type: ignore[reportUnsupportedDunderAll]
+__all__ = list(_EXPORTS)
 
 
 def __getattr__(name: str) -> Any:

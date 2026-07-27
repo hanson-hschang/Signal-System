@@ -7,7 +7,7 @@ if TYPE_CHECKING:
 
 _EXPORTS: dict[str, str] = {}
 
-__all__ = list(_EXPORTS)  # type: ignore[reportUnsupportedDunderAll]
+__all__ = list(_EXPORTS)
 
 
 def __getattr__(name: str) -> Any:
