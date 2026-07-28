@@ -1,3 +1,5 @@
+from functools import partial
+
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -8,11 +10,8 @@ from ._parameter import Parameter
 
 class SoftmaxTransformer(eqx.Module):
     """
-from functools import partial
-
-class SoftmaxTransformer(eqx.Module):
-    """
-    A transformer that maps raw values to a probability simplex via the softmax function.
+    A transformer that maps raw values to a probability simplex
+    via the softmax function.
     """
 
     @staticmethod
@@ -42,6 +41,4 @@ class ProbabilityParameter(Parameter[SoftmaxTransformer]):
     """
 
     def __init__(self, value: Array) -> None:
-        super().__init__(
-            value=jnp.asarray(value), transformer=SoftmaxTransformer()
-        )
+        super().__init__(value=value, transformer=SoftmaxTransformer())

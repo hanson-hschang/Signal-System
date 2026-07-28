@@ -10,7 +10,7 @@ from ss.system import System
 from ._control import Controller
 
 type RolloutCarry = tuple[
-    Float[Array, "batch_size num_samples"],  # times
+    Float[Array, "batch_size"],  # times
     Float[Array, "batch_size num_samples state_dim"],  # states
     Float[Array, "batch_size num_samples"],  # accumulated costs
 ]
@@ -111,7 +111,7 @@ class MPPIController(Controller):
                 observation.shape[-1],
             ),
         )
-        rollout_times = jnp.full((self.batch_size, self.num_samples), time)
+        rollout_times = jnp.full((self.batch_size,), time)
         rollout_keys = jax.random.split(
             rollout_key,
             (self.horizon, self.batch_size, self.num_samples),

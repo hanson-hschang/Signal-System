@@ -28,7 +28,7 @@ class HmmFilter(Filter):
         super().__check_init__()
         transition_shape = self.transition_matrix.shape
         assert self.state_dim == transition_shape[0], (
-            f"state_dim {self.state_dim} must match transition state dimension "
+            f"{self.state_dim=} must match transition state dimension "
             f"{transition_shape[0]}"
         )
         emission_shape = self.emission_matrix.shape
@@ -55,7 +55,7 @@ class HmmFilter(Filter):
 
     def with_transition_matrix(
         self,
-        transition_matrix: Array,
+        transition_matrix: Float[Array, "state_dim state_dim"],
     ) -> HmmFilter:
         assert transition_matrix.shape == self.transition_matrix.shape, (
             "transition_matrix must have shape "
@@ -64,12 +64,12 @@ class HmmFilter(Filter):
         return eqx.tree_at(
             lambda model: model.transition,
             self,
-            ProbabilityParameter(jnp.asarray(transition_matrix)),
+            ProbabilityParameter(transition_matrix),
         )
 
     def with_emission_matrix(
         self,
-        emission_matrix: Array,
+        emission_matrix: Float[Array, "state_dim observation_dim"],
     ) -> HmmFilter:
         assert emission_matrix.shape == self.emission_matrix.shape, (
             f"emission_matrix must have shape {self.emission_matrix.shape}, "
@@ -78,7 +78,7 @@ class HmmFilter(Filter):
         return eqx.tree_at(
             lambda model: model.emission,
             self,
-            ProbabilityParameter(jnp.asarray(emission_matrix)),
+            ProbabilityParameter(emission_matrix),
         )
 
     def update(

@@ -7,12 +7,14 @@ from __future__ import annotations
 from typing import Protocol, Generic, TypeVar
 
 import equinox as eqx
-from jaxtyping import Array
+from jaxtyping import Array, Float
 
 
 class Transformer(Protocol):
-    def forward(self, raw_value: Array) -> Array: ...
-    def inverse(self, value: Array) -> Array: ...
+    def forward(
+        self, raw_value: Float[Array, "..."]
+    ) -> Float[Array, "..."]: ...
+    def inverse(self, value: Float[Array, "..."]) -> Float[Array, "..."]: ...
 
 
 T = TypeVar("T", bound=Transformer)
@@ -27,15 +29,15 @@ class Parameter(eqx.Module, Generic[T]):
     the new value, rather than mutating the raw tensor in place.
     """
 
-    _tensor: Array
+    _tensor: Float[Array, "..."]
     _transformer: T
 
-    def __init__(self, value: Array, transformer: T) -> None:
+    def __init__(self, value: Float[Array, "..."], transformer: T):
         self._transformer = transformer
         self._tensor = self._transformer.inverse(value)
 
-    def value(self) -> Array:
+    def value(self) -> Float[Array, "..."]:
         return self._transformer.forward(self._tensor)
 
-    def from_value(self, value: Array) -> "Parameter[T]":
+    def from_value(self, value: Float[Array, "..."]) -> "Parameter[T]":
         return Parameter[T](value, self._transformer)

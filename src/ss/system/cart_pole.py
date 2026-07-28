@@ -48,19 +48,19 @@ class CartPoleSystem(System):
 
     def observe(
         self,
-        time: Float,
-        state: Float[Array, "state_dim"],
+        time: float,
+        state: Float[Array, "batch_size state_dim"],
         random_key: PRNGKeyArray,
-    ) -> Float[Array, "observation_dim"]:
+    ) -> Float[Array, "batch_size observation_dim"]:
         return state
 
     def process(
         self,
-        time: Float,
-        state: Array,
-        control: Array | None,
+        time: float,
+        state: Float[Array, "batch_size state_dim"],
+        control: Float[Array, "batch_size control_dim"] | None,
         random_key: PRNGKeyArray,
-    ) -> tuple[Array, Array]:
+    ) -> tuple[float, Float[Array, "batch_size state_dim"]]:
         half_step = 0.5 * self.time_step
         k1 = self.dynamics(time, state, control)
         k2 = self.dynamics(time + half_step, state + half_step * k1, control)
