@@ -1,3 +1,5 @@
+from functools import partial
+
 import equinox as eqx
 import jax
 import jax.numpy as jnp
@@ -8,20 +10,16 @@ from ._parameter import Parameter
 
 class SoftmaxTransformer(eqx.Module):
     """
-from functools import partial
-
-class SoftmaxTransformer(eqx.Module):
-    """
     A transformer that maps raw values to a probability simplex via the softmax function.
     """
 
     @staticmethod
     def forward(self, raw_value: Array) -> Array:
         return jax.nn.softmax(raw_value, axis=-1)
-    
+
     @staticmethod
     @partial(jax.jit, static_argnames=("log_zero_offset",))
-    def inverse(self, value: Array, log_zero_offset: float=20) -> Array:
+    def inverse(self, value: Array, log_zero_offset: float = 20) -> Array:
         # TODO: There should be a better way to handle the zero entries in the
         # softmax output. The current implementation computes the log of the
         # minimum non-zero value and subtracts a fixed offset to get a "safe"

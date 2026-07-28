@@ -61,8 +61,8 @@ def render_animation(
 ) -> None:
     """Render one cart-pole trajectory as an MP4 animation."""
 
-    duration = times[-1] - times[0]
-    num_steps = times.shape[0]
+    duration = float(times[-1] - times[0])
+    num_steps = int(times.shape[0])
     frame_count = min(num_steps, max(2, round(duration * fps)))
     frame_indices = jnp.linspace(0, num_steps - 1, frame_count, dtype=int)
 
@@ -72,8 +72,8 @@ def render_animation(
 
     figure, axis = plt.subplots(figsize=(10, 5), constrained_layout=True)
     axis.set_xlim(
-        x_positions.min() - horizontal_margin,
-        x_positions.max() + horizontal_margin,
+        float(x_positions.min()) - horizontal_margin,
+        float(x_positions.max()) + horizontal_margin,
     )
     axis.set_ylim(-pole_length - marker_radius, pole_length + marker_radius)
     axis.set_aspect("equal", adjustable="box")
@@ -108,9 +108,9 @@ def render_animation(
     #     axis.legend(loc="lower right", fontsize="small")
     time_label = axis.text(0.02, 0.95, "", transform=axis.transAxes)
 
-    def update(frame_index: int):
+    def update(frame_index: int):  # type: ignore[no-untyped-def]
         state_index = frame_indices[frame_index]
-        artists = []
+        artists = []  # type: ignore[var-annotated]
         for batch_index, mechanism in enumerate(mechanisms):
             # Cart graphics: dumbell - rod connecting two circle
             cart, pole, bob = mechanism
@@ -122,7 +122,7 @@ def render_animation(
             bob_y = pivot_y + pole_length * jnp.cos(pole_angle)
 
             cart.center = (cart_position, pivot_y)
-            pole.set_data((pivot_x, bob_x), (pivot_y, bob_y))
+            pole.set_data((pivot_x, bob_x), (pivot_y, bob_y))  # type: ignore[arg-type]
             bob.center = (bob_x, bob_y)
             artists.extend(mechanism)
 
