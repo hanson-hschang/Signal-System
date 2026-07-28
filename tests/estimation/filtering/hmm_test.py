@@ -36,15 +36,15 @@ class TestHmmFilter:
     ) -> None:
         prior = jnp.array([[1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]])
 
-        posterior = hmm_filter.update(prior, jnp.array([[0]]))
+        posterior = hmm_filter.update(0.0, prior, jnp.array([[0]]))
         assert jnp.allclose(posterior, jnp.array([[0.4, 0.1, 0.5]]), atol=1e-7)
 
-        estimated = hmm_filter.estimate(posterior)
+        estimated = hmm_filter.estimate(0.0, posterior)
         assert jnp.allclose(
             estimated, jnp.array([[0.425, 0.175, 0.4]]), atol=1e-7
         )
 
-        posterior = hmm_filter.update(estimated, jnp.array([[1]]))
+        posterior = hmm_filter.update(1.0, estimated, jnp.array([[1]]))
         assert jnp.allclose(
             posterior,
             jnp.array([[0.2, 0.3294117647, 0.4705882353]]),
@@ -70,7 +70,9 @@ class TestHmmFilter:
         initial_belief = jnp.array([[1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]])
         observations = jnp.array([[[0]], [[1]], [[0]]])  # (time, batch, obs)
 
-        beliefs = filtering(hmm_filter, initial_belief, observations)
+        times, beliefs = filtering(hmm_filter, 0.0, initial_belief, observations)
+        assert times.shape == (3,)
+        assert jnp.allclose(times, jnp.array([1.0, 2.0, 3.0]))
         assert beliefs.shape == (3, 1, 3)
         assert jnp.allclose(
             beliefs[0, 0], jnp.array([0.4, 0.1, 0.5]), atol=1e-7
@@ -83,9 +85,10 @@ class TestHmmFilter:
         initial_beliefs = jnp.concatenate(
             [initial_belief, initial_belief], axis=0
         )
-        batch_beliefs = filtering(
-            hmm_filter, initial_beliefs, batch_observations
+        batch_times, batch_beliefs = filtering(
+            hmm_filter, 0.0, initial_beliefs, batch_observations
         )
+        assert batch_times.shape == (3,)
         assert batch_beliefs.shape == (3, 2, 3)
         assert jnp.allclose(batch_beliefs[:, 0], beliefs[:, 0])
         assert jnp.allclose(batch_beliefs[:, 1], beliefs[:, 0])
@@ -95,15 +98,18 @@ class TestHmmFilter:
         observations = jnp.array([[[0]], [[1]]])  # (time, batch, obs)
 
         jitted = jax.jit(filtering)
-        beliefs = jitted(hmm_filter, initial_belief, observations)
+        times, beliefs = jitted(hmm_filter, 0.0, initial_belief, observations)
+        assert times.shape == (2,)
         assert beliefs.shape == (2, 1, 3)
 
         hmm_filter = hmm_filter.duplicate(batch_size=2)
-        batch_beliefs = jitted(
+        batch_times, batch_beliefs = jitted(
             hmm_filter,
+            0.0,
             jnp.concatenate([initial_belief, initial_belief], axis=0),
             jnp.concatenate([observations, observations], axis=1),
         )
+        assert batch_times.shape == (2,)
         assert batch_beliefs.shape == (2, 2, 3)
 
     def test_filtering_from_simulate_batch(self) -> None:
@@ -124,13 +130,16 @@ class TestHmmFilter:
         key = jax.random.PRNGKey(0)
         init_key, scan_key = jax.random.split(key)
         init_states = system.initial_state(init_key)
-        _, states, observations, _ = simulate(
+        sim_times, states, observations, _ = simulate(
             system, 0.0, 6, init_states, scan_key
         )
         assert states.shape[:2] == observations.shape[:2] == (6, 4)
         assert observations.shape == (6, 4, 1)
 
         initial_belief = jnp.full((4, 2), 0.5)
-        beliefs = filtering(hmm_filter, initial_belief, observations)
+        filter_times, beliefs = filtering(
+            hmm_filter, 0.0, initial_belief, observations
+        )
+        assert jnp.allclose(filter_times, sim_times)
         assert beliefs.shape == (6, 4, 2)
         assert jnp.allclose(jnp.sum(beliefs, axis=-1), 1.0)

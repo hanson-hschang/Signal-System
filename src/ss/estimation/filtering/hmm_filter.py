@@ -83,6 +83,7 @@ class HmmFilter(Filter):
 
     def update(
         self,
+        time: float,
         prior: Float[Array, "batch_size state_dim"],
         observation: Int[Array, "batch_size observation_dim"],
     ) -> Float[Array, "batch_size state_dim"]:
@@ -94,6 +95,7 @@ class HmmFilter(Filter):
 
     def estimate(
         self,
+        time: float,
         posterior: Float[Array, "batch_size state_dim"],
     ) -> Float[Array, "batch_size state_dim"]:
         """Chapman–Kolmogorov estimation step."""

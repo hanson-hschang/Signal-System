@@ -111,7 +111,7 @@ def main(
         batch_size=batch_size,
     )
     initial_belief = jnp.full((batch_size, filter.state_dim), 1.0 / state_dim)
-    beliefs = filtering(filter, initial_belief, observations)
+    _, beliefs = filtering(filter, 0.0, initial_belief, observations)
 
     print(f"system: {system}")
     print(f"filter: {filter}")
