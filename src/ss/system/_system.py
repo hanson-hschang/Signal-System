@@ -119,14 +119,21 @@ class ContinuousTimeSystem(System):
 
 
 class DiscreteTimeSystem(System):
-    discrete_state_dim: int = eqx.field(static=True)
-    discrete_observation_dim: int = eqx.field(static=True)
-
     def __check_init__(self) -> None:
         super().__check_init__()
         assert self.time_step == 1, (
             "DiscreteTimeSystem requires time_step == 1"
         )
+
+    @property
+    @abstractmethod
+    def discrete_state_dim(self) -> int:
+        pass
+
+    @property
+    @abstractmethod
+    def discrete_observation_dim(self) -> int:
+        pass
 
     def state_one_hot(
         self, state: Int[Array, "batch_size discrete_state_dim"]
@@ -140,6 +147,18 @@ class DiscreteTimeSystem(System):
 
 
 SystemT = TypeVar("SystemT", bound=System)
+
+type SimulateCarry = tuple[
+    float,  # time
+    Shaped[Array, "batch_size ..."],  # system state
+    ControllerState | None,  # controller state
+]
+type SimulateStep = tuple[
+    float,  # time
+    Shaped[Array, "batch_size ..."],  # state
+    Shaped[Array, "batch_size observation_dim"],  # observation
+    Float[Array, "batch_size control_dim"] | None,  # control
+]
 
 
 def simulate(
@@ -193,16 +212,9 @@ def simulate(
 
     @jax.jit
     def body(
-        carry: tuple[
-            Float,  # time
-            Array,  # system state
-            ControllerState | None,  # controller state
-        ],
+        carry: SimulateCarry,
         random_key: PRNGKeyArray,
-    ) -> tuple[
-        tuple[Float, Array, ControllerState | None],
-        tuple[Float, Array, Array, Array | None],
-    ]:
+    ) -> tuple[SimulateCarry, SimulateStep]:
         previous_time, previous_state, controller_state = carry
 
         observe_key, process_key, controller_key = jax.random.split(
