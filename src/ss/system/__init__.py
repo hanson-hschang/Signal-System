@@ -5,7 +5,6 @@ from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from ._system import (
         ContinuousTimeSystem,
-        DiscreteTimeSystem,
         System,
         simulate,
     )
@@ -22,7 +21,6 @@ if TYPE_CHECKING:
 
 _EXPORTS: dict[str, str] = {
     "ContinuousTimeSystem": "_system",
-    "DiscreteTimeSystem": "_system",
     "System": "_system",
     "simulate": "_system",
     "CartPoleSystem": "cart_pole",
