@@ -21,7 +21,6 @@ Model = TypeVar("Model", bound=eqx.Module)
 Batch = TypeVar("Batch")
 
 
-@dataclass
 class LearningState(Generic[Model], eqx.Module):
     model_trainable: Model
     model_static: Model
