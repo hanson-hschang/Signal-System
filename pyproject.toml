@@ -116,7 +116,7 @@ omit = [
 
 [tool.ruff]
 # Set the line length for both the linter and formatter.
-line-length = 79
+line-length = 120
 
 # Set the target Python version.
 target-version = "py313"

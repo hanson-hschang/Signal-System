@@ -70,7 +70,9 @@ class TestHmmFilter:
         initial_belief = jnp.array([[1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]])
         observations = jnp.array([[[0]], [[1]], [[0]]])  # (time, batch, obs)
 
-        times, beliefs = filtering(hmm_filter, 0.0, initial_belief, observations)
+        times, beliefs = filtering(
+            hmm_filter, 0.0, initial_belief, observations
+        )
         assert times.shape == (3,)
         assert jnp.allclose(times, jnp.array([1.0, 2.0, 3.0]))
         assert beliefs.shape == (3, 1, 3)
