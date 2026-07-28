@@ -92,9 +92,9 @@ class HmmFilter(Filter):
         updated = prior * likelihood
         return updated / jnp.sum(updated, axis=-1, keepdims=True)
 
-    def predict(
+    def estimate(
         self,
         posterior: Float[Array, "batch_size state_dim"],
     ) -> Float[Array, "batch_size state_dim"]:
-        """Chapman–Kolmogorov prediction step."""
+        """Chapman–Kolmogorov estimation step."""
         return posterior @ self.transition_matrix
