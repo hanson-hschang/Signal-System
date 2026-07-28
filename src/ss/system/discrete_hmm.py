@@ -16,7 +16,7 @@ from jaxtyping import Float, Array, Int, PRNGKeyArray
 
 from ss.utility.parameter.probability import ProbabilityParameter
 
-from ._system import DiscreteTimeSystem
+from ._system import System
 
 
 type TransitionMatrix = Float[Array, "discrete_state_dim discrete_state_dim"]
@@ -25,7 +25,7 @@ type EmissionMatrix = Float[
 ]
 
 
-class HiddenMarkovModel(DiscreteTimeSystem):
+class HiddenMarkovModel(System):
     """Discrete-state HMM with transition and emission probability matrices."""
 
     transition: ProbabilityParameter
@@ -39,6 +39,9 @@ class HiddenMarkovModel(DiscreteTimeSystem):
 
     def __check_init__(self) -> None:
         super().__check_init__()
+        assert self.time_step == 1, (
+            "HiddenMarkovModel requires time_step == 1"
+        )
         transition_shape = self.transition_matrix.shape
         assert transition_shape[0] == transition_shape[1], (
             f"transition_matrix must be square "
@@ -66,6 +69,16 @@ class HiddenMarkovModel(DiscreteTimeSystem):
     @property
     def emission_matrix(self) -> EmissionMatrix:
         return self.emission.value()
+
+    def state_one_hot(
+        self, state: Int[Array, "batch_size discrete_state_dim"]
+    ) -> Array:
+        return jax.nn.one_hot(state, self.discrete_state_dim)
+
+    def observation_one_hot(
+        self, observation: Int[Array, "batch_size discrete_observation_dim"]
+    ) -> Array:
+        return jax.nn.one_hot(observation, self.discrete_observation_dim)
 
     def with_transition_matrix(
         self,

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, TypeVar, Self
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from jaxtyping import Array, Float, Int, PRNGKeyArray, Shaped
+from jaxtyping import Array, Float, PRNGKeyArray, Shaped
 
 if TYPE_CHECKING:
     from ss.control._control import Controller, ControllerState
@@ -116,34 +116,6 @@ class ContinuousTimeSystem(System):
                 random_key, jnp.zeros(self.observation_dim), cov
             ),
         )
-
-
-class DiscreteTimeSystem(System):
-    def __check_init__(self) -> None:
-        super().__check_init__()
-        assert self.time_step == 1, (
-            "DiscreteTimeSystem requires time_step == 1"
-        )
-
-    @property
-    @abstractmethod
-    def discrete_state_dim(self) -> int:
-        pass
-
-    @property
-    @abstractmethod
-    def discrete_observation_dim(self) -> int:
-        pass
-
-    def state_one_hot(
-        self, state: Int[Array, "batch_size discrete_state_dim"]
-    ) -> Array:
-        return jax.nn.one_hot(state, self.discrete_state_dim)
-
-    def observation_one_hot(
-        self, observation: Int[Array, "batch_size discrete_observation_dim"]
-    ) -> Array:
-        return jax.nn.one_hot(observation, self.discrete_observation_dim)
 
 
 SystemT = TypeVar("SystemT", bound=System)
