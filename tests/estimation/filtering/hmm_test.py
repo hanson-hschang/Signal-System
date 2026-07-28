@@ -31,7 +31,7 @@ class TestHmmFilter:
         assert hmm_filter.transition_matrix.shape == (3, 3)
         assert hmm_filter.emission_matrix.shape == (3, 2)
 
-    def test_hmm_filter_update_and_predict(
+    def test_hmm_filter_update_and_estimate(
         self, hmm_filter: HmmFilter
     ) -> None:
         prior = jnp.array([[1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]])
@@ -39,12 +39,12 @@ class TestHmmFilter:
         posterior = hmm_filter.update(prior, jnp.array([[0]]))
         assert jnp.allclose(posterior, jnp.array([[0.4, 0.1, 0.5]]), atol=1e-7)
 
-        predicted = hmm_filter.predict(posterior)
+        estimated = hmm_filter.estimate(posterior)
         assert jnp.allclose(
-            predicted, jnp.array([[0.425, 0.175, 0.4]]), atol=1e-7
+            estimated, jnp.array([[0.425, 0.175, 0.4]]), atol=1e-7
         )
 
-        posterior = hmm_filter.update(predicted, jnp.array([[1]]))
+        posterior = hmm_filter.update(estimated, jnp.array([[1]]))
         assert jnp.allclose(
             posterior,
             jnp.array([[0.2, 0.3294117647, 0.4705882353]]),
