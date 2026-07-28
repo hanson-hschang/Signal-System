@@ -6,6 +6,7 @@ from typing import Self, TypeVar
 
 import equinox as eqx
 import jax
+import jax.numpy as jnp
 from jaxtyping import Array, Float, Shaped
 
 
@@ -39,6 +40,7 @@ class Filter(eqx.Module):
     @abstractmethod
     def update(
         self,
+        time: float,
         prior: Float[Array, "batch_size state_dim"],
         observation: Float[Array, "batch_size observation_dim"],
     ) -> Float[Array, "batch_size state_dim"]:
@@ -51,6 +53,7 @@ class Filter(eqx.Module):
 
     def estimate(
         self,
+        time: float,
         posterior: Float[Array, "batch_size state_dim"],
     ) -> Float[Array, "batch_size state_dim"]:
         """Estimate next-step prior from posterior.
@@ -73,12 +76,21 @@ class Filter(eqx.Module):
 
 FilterT = TypeVar("FilterT", bound=Filter)
 
+type FilteringCarry = tuple[
+    float,  # time
+    Float[Array, "batch_size state_dim"],  # prior belief
+]
+
 
 def filtering(
     filter: FilterT,
+    initial_time: float,
     initial_belief: Float[Array, "batch_size state_dim"],
     observations: Shaped[Array, "time batch_size observation_dim"],
-) -> Float[Array, "time batch_size state_dim"]:
+) -> tuple[
+    Float[Array, "time"],  # times
+    Float[Array, "time batch_size state_dim"],  # beliefs
+]:
     """Run filtering over a time-leading observation sequence.
 
     Layout matches ``simulate`` / ``lax.scan``: time axis first, then batch.
@@ -86,26 +98,36 @@ def filtering(
 
     Args:
         filter: The filter to use for the filtering process.
+        initial_time: Time before the first observation.
         initial_belief: Prior before the first observation,
             shape ``(batch_size, state_dim)``.
         observations: Observations with shape
             ``(time, batch_size, observation_dim)``.
 
     Returns:
-        Filtered beliefs, shape ``(time, batch_size, state_dim)``.
+        ``(times, beliefs)`` with leading time axis matching ``observations``.
+        ``times`` are the timestamps after each update step.
     """
 
     def step(
-        prior: Float[Array, "batch_size state_dim"],
+        carry: FilteringCarry,
         observation: Float[Array, "batch_size observation_dim"],
     ) -> tuple[
-        Float[Array, "batch_size state_dim"],  # next prior (scan carry)
-        Float[
-            Array, "batch_size state_dim"
-        ],  # filtered posterior (scan output)
+        FilteringCarry,
+        Float[Array, "batch_size state_dim"],  # filtered posterior
     ]:
-        posterior = filter.update(prior, observation)
-        return filter.estimate(posterior), posterior
+        time, prior = carry
+        posterior = filter.update(time, prior, observation)
+        next_prior = filter.estimate(time, posterior)
+        next_time = time + filter.time_step
+        return (next_time, next_prior), posterior
 
-    _, beliefs = jax.lax.scan(step, initial_belief, observations)
-    return beliefs
+    _, beliefs = jax.lax.scan(
+        step,
+        (initial_time, initial_belief),
+        observations,
+    )
+    times = initial_time + (jnp.arange(observations.shape[0]) + 1) * (
+        filter.time_step
+    )
+    return times, beliefs

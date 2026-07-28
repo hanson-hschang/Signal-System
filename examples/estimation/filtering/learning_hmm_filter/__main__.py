@@ -58,7 +58,7 @@ def cross_entropy_loss(
         random_key, alpha=jnp.ones(model.state_dim), shape=(batch_size,)
     )
 
-    beliefs = filtering(model, initial_belief, input_observations)
+    beliefs = filtering(model, 0.0, initial_belief, input_observations)[1]
 
     # Compute the predicted observation distributions
     predicted_observation_distributions = jnp.einsum(

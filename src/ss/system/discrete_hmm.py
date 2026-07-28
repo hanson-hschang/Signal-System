@@ -39,9 +39,6 @@ class HiddenMarkovModel(System):
 
     def __check_init__(self) -> None:
         super().__check_init__()
-        assert self.time_step == 1, (
-            "HiddenMarkovModel requires time_step == 1"
-        )
         transition_shape = self.transition_matrix.shape
         assert transition_shape[0] == transition_shape[1], (
             f"transition_matrix must be square "
