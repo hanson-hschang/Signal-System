@@ -16,13 +16,12 @@ class TestHmmFilter:
         return HmmFilter(
             transition=ProbabilityParameter(transition),
             emission=ProbabilityParameter(emission),
-            state_dim=3,
             batch_size=1,
         )
 
     def test_hmm_filter_dimensions(self, hmm_filter: HmmFilter) -> None:
         assert hmm_filter.state_dim == 3
-        assert hmm_filter.observation_dim == 1
+        assert hmm_filter.observation_dim == 2
         assert hmm_filter.control_dim == 0
         assert hmm_filter.batch_size == 1
         assert hmm_filter.time_step == 1.0
@@ -105,7 +104,6 @@ class TestHmmFilter:
         hmm_filter = HmmFilter(
             transition=ProbabilityParameter(transition),
             emission=ProbabilityParameter(emission),
-            state_dim=2,
             batch_size=4,
         )
 
