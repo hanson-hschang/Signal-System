@@ -81,7 +81,6 @@ def main(
     # NOTE: hardcoded for demonstration purposes. Later, replace with some sort of
     # table generation with arbitrary state and observation dimensions.
     state_dim = 2
-    discrete_observation_dim = 2
     transition_parameter = ProbabilityParameter(
         [[0.7, 0.3],
          [0.4, 0.6]]
@@ -99,15 +98,13 @@ def main(
     )
 
     initial_state = system.initial_state()
-    times, states, observations, _ = simulate(
-        system, 0.0, simulation_steps, initial_state, simulate_key
-    )
+    times, states, observations, _ = simulate(system, 0.0, simulation_steps, initial_state, simulate_key)
 
     # Set HMM filter and apply filtering to get beliefs.
     filter = HmmFilter(
         transition=transition_parameter,
         emission=emission_parameter,
-        state_dim=state_dim,
+        # state_dim=state_dim,
         batch_size=batch_size,
     )
     initial_belief = jnp.full((batch_size, filter.state_dim), 1.0 / state_dim)
@@ -122,9 +119,7 @@ def main(
     if save_dir is not None:
         save_dir.mkdir(parents=True, exist_ok=True)
         save_path = save_dir / "hmm_filter_plot.png"
-        plot_filtering(
-            times, states, observations, beliefs, save_path=save_path
-        )
+        plot_filtering(times, states, observations, beliefs, save_path=save_path)
 
 
 if __name__ == "__main__":

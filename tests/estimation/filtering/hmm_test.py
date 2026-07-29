@@ -11,9 +11,7 @@ from ss.utility.parameter.probability import ProbabilityParameter
 class TestHmmFilter:
     @pytest.fixture
     def hmm_filter(self) -> HmmFilter:
-        transition = jnp.array(
-            [[0.75, 0.25, 0.0], [0.0, 0.75, 0.25], [0.25, 0.0, 0.75]]
-        )
+        transition = jnp.array([[0.75, 0.25, 0.0], [0.0, 0.75, 0.25], [0.25, 0.0, 0.75]])
         emission = jnp.array([[0.8, 0.2], [0.2, 0.8], [0.5, 0.5]])
         return HmmFilter(
             transition=ProbabilityParameter(transition),
@@ -31,18 +29,14 @@ class TestHmmFilter:
         assert hmm_filter.transition_matrix.shape == (3, 3)
         assert hmm_filter.emission_matrix.shape == (3, 2)
 
-    def test_hmm_filter_update_and_estimate(
-        self, hmm_filter: HmmFilter
-    ) -> None:
+    def test_hmm_filter_update_and_estimate(self, hmm_filter: HmmFilter) -> None:
         prior = jnp.array([[1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]])
 
         posterior = hmm_filter.update(0.0, prior, jnp.array([[0]]))
         assert jnp.allclose(posterior, jnp.array([[0.4, 0.1, 0.5]]), atol=1e-7)
 
         estimated = hmm_filter.estimate(0.0, posterior)
-        assert jnp.allclose(
-            estimated, jnp.array([[0.425, 0.175, 0.4]]), atol=1e-7
-        )
+        assert jnp.allclose(estimated, jnp.array([[0.425, 0.175, 0.4]]), atol=1e-7)
 
         posterior = hmm_filter.update(1.0, estimated, jnp.array([[1]]))
         assert jnp.allclose(
@@ -51,15 +45,11 @@ class TestHmmFilter:
             atol=1e-7,
         )
 
-    def test_hmm_filter_with_matrices_is_immutable(
-        self, hmm_filter: HmmFilter
-    ) -> None:
+    def test_hmm_filter_with_matrices_is_immutable(self, hmm_filter: HmmFilter) -> None:
         new_transition = jnp.eye(3)
         new_emission = jnp.ones((3, 2)) / 2.0
 
-        updated = hmm_filter.with_transition_matrix(
-            new_transition
-        ).with_emission_matrix(new_emission)
+        updated = hmm_filter.with_transition_matrix(new_transition).with_emission_matrix(new_emission)
 
         assert updated is not hmm_filter
         assert jnp.allclose(updated.transition_matrix, new_transition)
@@ -70,26 +60,16 @@ class TestHmmFilter:
         initial_belief = jnp.array([[1.0 / 4.0, 1.0 / 4.0, 1.0 / 2.0]])
         observations = jnp.array([[[0]], [[1]], [[0]]])  # (time, batch, obs)
 
-        times, beliefs = filtering(
-            hmm_filter, 0.0, initial_belief, observations
-        )
+        times, beliefs = filtering(hmm_filter, 0.0, initial_belief, observations)
         assert times.shape == (3,)
         assert jnp.allclose(times, jnp.array([1.0, 2.0, 3.0]))
         assert beliefs.shape == (3, 1, 3)
-        assert jnp.allclose(
-            beliefs[0, 0], jnp.array([0.4, 0.1, 0.5]), atol=1e-7
-        )
+        assert jnp.allclose(beliefs[0, 0], jnp.array([0.4, 0.1, 0.5]), atol=1e-7)
 
         hmm_filter = hmm_filter.duplicate(batch_size=2)
-        batch_observations = jnp.concatenate(
-            [observations, observations], axis=1
-        )
-        initial_beliefs = jnp.concatenate(
-            [initial_belief, initial_belief], axis=0
-        )
-        batch_times, batch_beliefs = filtering(
-            hmm_filter, 0.0, initial_beliefs, batch_observations
-        )
+        batch_observations = jnp.concatenate([observations, observations], axis=1)
+        initial_beliefs = jnp.concatenate([initial_belief, initial_belief], axis=0)
+        batch_times, batch_beliefs = filtering(hmm_filter, 0.0, initial_beliefs, batch_observations)
         assert batch_times.shape == (3,)
         assert batch_beliefs.shape == (3, 2, 3)
         assert jnp.allclose(batch_beliefs[:, 0], beliefs[:, 0])
@@ -132,16 +112,12 @@ class TestHmmFilter:
         key = jax.random.PRNGKey(0)
         init_key, scan_key = jax.random.split(key)
         init_states = system.initial_state(init_key)
-        sim_times, states, observations, _ = simulate(
-            system, 0.0, 6, init_states, scan_key
-        )
+        sim_times, states, observations, _ = simulate(system, 0.0, 6, init_states, scan_key)
         assert states.shape[:2] == observations.shape[:2] == (6, 4)
         assert observations.shape == (6, 4, 1)
 
         initial_belief = jnp.full((4, 2), 0.5)
-        filter_times, beliefs = filtering(
-            hmm_filter, 0.0, initial_belief, observations
-        )
+        filter_times, beliefs = filtering(hmm_filter, 0.0, initial_belief, observations)
         assert jnp.allclose(filter_times, sim_times)
         assert beliefs.shape == (6, 4, 2)
         assert jnp.allclose(jnp.sum(beliefs, axis=-1), 1.0)

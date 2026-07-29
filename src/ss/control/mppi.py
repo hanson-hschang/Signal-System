@@ -66,12 +66,8 @@ class MPPIController(Controller):
         assert self.noise_sigma > 0
         assert self.control_limit > 0
 
-    def initial_state(
-        self, random_key: PRNGKeyArray | None = None
-    ) -> MPPIControllerState:
-        return MPPIControllerState(
-            jnp.zeros((self.batch_size, self.horizon, self.control_dim))
-        )
+    def initial_state(self, random_key: PRNGKeyArray | None = None) -> MPPIControllerState:
+        return MPPIControllerState(jnp.zeros((self.batch_size, self.horizon, self.control_dim)))
 
     def __call__(
         self,
@@ -130,9 +126,7 @@ class MPPIController(Controller):
                 controls,
                 process_keys,
             )
-            total_cost += self.rollout_system.time_step * jax.vmap(
-                self.running_cost
-            )(next_states, controls)
+            total_cost += self.rollout_system.time_step * jax.vmap(self.running_cost)(next_states, controls)
             return (next_times, next_states, total_cost), None
 
         (_, final_states, costs), _ = jax.lax.scan(
@@ -157,9 +151,7 @@ class MPPIController(Controller):
             -self.control_limit,
             self.control_limit,
         )
-        shifted = jnp.concatenate(
-            (controls[1:], jnp.zeros_like(controls[:1])), axis=0
-        )
+        shifted = jnp.concatenate((controls[1:], jnp.zeros_like(controls[:1])), axis=0)
         return (
             controls[0],
             MPPIControllerState(jnp.swapaxes(shifted, 0, 1)),

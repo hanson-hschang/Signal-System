@@ -15,18 +15,14 @@ def plot_simulation(
 ) -> None:
     """Plot one cart-pole trajectory and optionally save the figure."""
 
-    figure, axes = plt.subplots(
-        2, 2, figsize=(11, 7), sharex=True, constrained_layout=True
-    )
+    figure, axes = plt.subplots(2, 2, figsize=(11, 7), sharex=True, constrained_layout=True)
     series = (
         (0, "Cart position", "Position (m)"),
         (2, "Pole angle", "Angle (rad)"),
         (1, "Cart velocity", "Velocity (m/s)"),
         (3, "Pole angular velocity", "Angular velocity (rad/s)"),
     )
-    for axis, (state_index, title, ylabel) in zip(
-        axes.flat, series, strict=True
-    ):
+    for axis, (state_index, title, ylabel) in zip(axes.flat, series, strict=True):
         for batch_index in range(states.shape[1]):
             axis.plot(
                 times,
@@ -83,9 +79,7 @@ def render_animation(
     axis.grid(alpha=0.25)
     axis.axhline(0, color="0.3", linewidth=2)
 
-    colors = plt.colormaps["tab10"](
-        jnp.linspace(0, 1, states.shape[1], endpoint=False)
-    )
+    colors = plt.colormaps["tab10"](jnp.linspace(0, 1, states.shape[1], endpoint=False))
     mechanisms = []
     for batch_index, color in enumerate(colors):
         cart = Circle(

@@ -35,9 +35,7 @@ class LearningState(Generic[Model], eqx.Module):
         trainable_mask: PyTree | None = None,
     ) -> "LearningState[Model]":
         if trainable_mask is None:
-            trainable_mask = jax.tree_util.tree_map(
-                eqx.is_inexact_array, model
-            )
+            trainable_mask = jax.tree_util.tree_map(eqx.is_inexact_array, model)
         model_trainable, model_static = eqx.partition(model, trainable_mask)
         optimizer_state = optimizer.init(model_trainable)
         return cls(model_trainable, model_static, optimizer_state, optimizer)
@@ -62,9 +60,7 @@ ModelInputT = TypeVar("ModelInputT", bound=eqx.Module, contravariant=True)
 
 # Define loss function type hint
 class LossFunctionProtocol(Protocol[ModelInputT]):
-    def __call__(
-        self, model: ModelInputT, batch: Any, random_key: PRNGKeyArray | None
-    ) -> Array: ...
+    def __call__(self, model: ModelInputT, batch: Any, random_key: PRNGKeyArray | None) -> Array: ...
 
 
 def make_train_step(
@@ -83,18 +79,14 @@ def make_train_step(
             model = eqx.combine(model_trainable, learning_state.model_static)
             return loss_fn(model, batch, random_key)
 
-        loss, grads = eqx.filter_value_and_grad(partitioned_loss)(
-            learning_state.model_trainable
-        )
+        loss, grads = eqx.filter_value_and_grad(partitioned_loss)(learning_state.model_trainable)
 
         updates, optimizer_state = learning_state.optimizer.update(
             grads,
             learning_state.optimizer_state,
             cast(optax.Params, learning_state.model_trainable),
         )
-        model_trainable = eqx.apply_updates(
-            learning_state.model_trainable, updates
-        )
+        model_trainable = eqx.apply_updates(learning_state.model_trainable, updates)
 
         learning_state = LearningState[Model](
             model_trainable=model_trainable,
@@ -112,9 +104,7 @@ def make_evaluate_step(
     loss_fn: LossFunctionProtocol[Model],
 ) -> Callable[[Model, Batch, PRNGKeyArray | None], Array]:
     @eqx.filter_jit
-    def eval_step(
-        model: Model, batch: Batch, random_key: PRNGKeyArray | None
-    ) -> jax.Array:
+    def eval_step(model: Model, batch: Batch, random_key: PRNGKeyArray | None) -> jax.Array:
         return loss_fn(model, batch, random_key)
 
     return eval_step
@@ -136,9 +126,7 @@ class LearningProcess(Generic[Model]):
         optimizer: optax.GradientTransformation,
         trainable_mask: PyTree | None = None,
     ) -> None:
-        self.learning_state = LearningState[Model].create(
-            model, optimizer, trainable_mask
-        )
+        self.learning_state = LearningState[Model].create(model, optimizer, trainable_mask)
         self._train_step = make_train_step(loss_function)
         self._evaluate_step = make_evaluate_step(loss_function)
         self._info = LearningProcessInfo()
@@ -152,12 +140,7 @@ class LearningProcess(Generic[Model]):
         data_loader: Iterable[Any],
         random_key: PRNGKeyArray | None = None,
     ) -> jax.Array:
-        losses = jnp.array(
-            [
-                self._evaluate_step(self.model, batch, random_key)
-                for batch in data_loader
-            ]
-        )
+        losses = jnp.array([self._evaluate_step(self.model, batch, random_key) for batch in data_loader])
         return losses
 
     def train_one_epoch(
@@ -169,17 +152,13 @@ class LearningProcess(Generic[Model]):
         progress_bar: bool = True,
     ) -> None:
         batch_loader = (
-            tqdm(training_data_loader, desc=f"epoch {self._info.epoch}")
-            if progress_bar
-            else training_data_loader
+            tqdm(training_data_loader, desc=f"epoch {self._info.epoch}") if progress_bar else training_data_loader
         )
 
         for batch in batch_loader:
             training_random_key, random_key = split_random_key(random_key)
 
-            self.learning_state, loss = self._train_step(
-                self.learning_state, batch, training_random_key
-            )
+            self.learning_state, loss = self._train_step(self.learning_state, batch, training_random_key)
             loss_value = float(loss)
             self._info.training_losses.append(loss_value)
             self._info.iteration += 1
@@ -192,15 +171,9 @@ class LearningProcess(Generic[Model]):
                 and validate_every is not None
                 and self._info.iteration % validate_every == 0
             ):
-                validation_random_key, random_key = split_random_key(
-                    random_key
-                )
-                validation_losses = self.evaluate_model(
-                    validation_data_loader, validation_random_key
-                )
-                self._info.validation_losses.append(
-                    float(jnp.mean(validation_losses))
-                )
+                validation_random_key, random_key = split_random_key(random_key)
+                validation_losses = self.evaluate_model(validation_data_loader, validation_random_key)
+                self._info.validation_losses.append(float(jnp.mean(validation_losses)))
 
         self._info.epoch += 1
 
@@ -214,15 +187,9 @@ class LearningProcess(Generic[Model]):
         progress_bar: bool = True,
     ) -> LearningProcessInfo:
         if validation_data_loader is not None and self._info.epoch == 0:
-            initial_validation_random_key, random_key = split_random_key(
-                random_key
-            )
-            initial_losses = self.evaluate_model(
-                validation_data_loader, initial_validation_random_key
-            )
-            self._info.validation_losses.append(
-                float(jnp.mean(initial_losses))
-            )
+            initial_validation_random_key, random_key = split_random_key(random_key)
+            initial_losses = self.evaluate_model(validation_data_loader, initial_validation_random_key)
+            self._info.validation_losses.append(float(jnp.mean(initial_losses)))
 
         for _ in range(num_epochs):
             epoch_random_key, random_key = split_random_key(random_key)

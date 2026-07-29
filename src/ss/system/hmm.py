@@ -20,9 +20,7 @@ from ._system import System
 
 
 type TransitionMatrix = Float[Array, "discrete_state_dim discrete_state_dim"]
-type EmissionMatrix = Float[
-    Array, "discrete_state_dim discrete_observation_dim"
-]
+type EmissionMatrix = Float[Array, "discrete_state_dim discrete_observation_dim"]
 
 
 class HiddenMarkovModel(System):
@@ -41,14 +39,11 @@ class HiddenMarkovModel(System):
         super().__check_init__()
         transition_shape = self.transition_matrix.shape
         assert transition_shape[0] == transition_shape[1], (
-            f"transition_matrix must be square "
-            f"({transition_shape[0]}, {transition_shape[0]}), "
-            f"got {transition_shape}"
+            f"transition_matrix must be square ({transition_shape[0]}, {transition_shape[0]}), got {transition_shape}"
         )
         emission_shape = self.emission_matrix.shape
         assert emission_shape[0] == transition_shape[0], (
-            f"emission_matrix must have {transition_shape[0]} rows, "
-            f"got shape {emission_shape}"
+            f"emission_matrix must have {transition_shape[0]} rows, got shape {emission_shape}"
         )
 
     @property
@@ -67,14 +62,10 @@ class HiddenMarkovModel(System):
     def emission_matrix(self) -> EmissionMatrix:
         return self.emission.value()
 
-    def state_one_hot(
-        self, state: Int[Array, "batch_size discrete_state_dim"]
-    ) -> Array:
+    def state_one_hot(self, state: Int[Array, "batch_size discrete_state_dim"]) -> Array:
         return jax.nn.one_hot(state, self.discrete_state_dim)
 
-    def observation_one_hot(
-        self, observation: Int[Array, "batch_size discrete_observation_dim"]
-    ) -> Array:
+    def observation_one_hot(self, observation: Int[Array, "batch_size discrete_observation_dim"]) -> Array:
         return jax.nn.one_hot(observation, self.discrete_observation_dim)
 
     def with_transition_matrix(
@@ -83,8 +74,7 @@ class HiddenMarkovModel(System):
     ) -> HiddenMarkovModel:
         expected_shape = self.transition_matrix.shape
         assert transition_matrix.shape == expected_shape, (
-            f"transition_matrix must have shape {expected_shape}, "
-            f"got {transition_matrix.shape}"
+            f"transition_matrix must have shape {expected_shape}, got {transition_matrix.shape}"
         )
         return eqx.tree_at(
             lambda model: model.transition,
@@ -97,8 +87,7 @@ class HiddenMarkovModel(System):
         emission_matrix: EmissionMatrix,
     ) -> HiddenMarkovModel:
         assert emission_matrix.shape == self.emission_matrix.shape, (
-            f"emission_matrix must have shape {self.emission_matrix.shape}, "
-            f"got {emission_matrix.shape}"
+            f"emission_matrix must have shape {self.emission_matrix.shape}, got {emission_matrix.shape}"
         )
         return eqx.tree_at(
             lambda model: model.emission,
@@ -109,20 +98,15 @@ class HiddenMarkovModel(System):
     def initial_state(
         self,
         random_key: PRNGKeyArray | None = None,
-        initial_distribution: Array
-        | None = None,  # FIXME: parameter overscoped.
+        initial_distribution: Array | None = None,  # FIXME: parameter overscoped.
     ) -> Int[Array, "batch_size state_dim"]:
         if random_key is None:
             random_key = jax.random.PRNGKey(42)
         if initial_distribution is None:
-            initial_distribution = (
-                jnp.ones(self.discrete_state_dim) / self.discrete_state_dim
-            )
+            initial_distribution = jnp.ones(self.discrete_state_dim) / self.discrete_state_dim
 
         logits = jnp.log(initial_distribution)
-        return jax.random.categorical(
-            random_key, logits, shape=(self.batch_size, 1)
-        )
+        return jax.random.categorical(random_key, logits, shape=(self.batch_size, 1))
 
     def process(
         self,

@@ -11,9 +11,7 @@ from ss.system import HiddenMarkovModel, simulate
 from ss.utility.parameter.probability import ProbabilityParameter
 
 if __name__ == "__main__":
-    print(
-        "=== Discrete State Dynamic System Simulation: Hidden Markov Model ==="
-    )
+    print("=== Discrete State Dynamic System Simulation: Hidden Markov Model ===")
 
     transition = jnp.array([[0.7, 0.3], [0.4, 0.6]])
     emission = jnp.array([[0.8, 0.2], [0.2, 0.8]])
@@ -35,9 +33,7 @@ if __name__ == "__main__":
 
     initial_state = system.initial_state(random_key)
 
-    times, states, observations, _ = simulate(
-        system, 0, time_horizon, initial_state, random_key
-    )
+    times, states, observations, _ = simulate(system, 0, time_horizon, initial_state, random_key)
 
     print("times:", times.shape)
     print("states:", states.shape)
@@ -51,9 +47,7 @@ if __name__ == "__main__":
     initial_state_key, random_key = jax.random.split(random_key)
     init_states = systems.initial_state(initial_state_key)
 
-    batch_times, batch_states, batch_observations, _ = simulate(
-        systems, 0, time_horizon, init_states, random_key
-    )
+    batch_times, batch_states, batch_observations, _ = simulate(systems, 0, time_horizon, init_states, random_key)
 
     print("batch_times shape:", batch_times.shape)
     print("batch_states shape:", batch_states.shape)

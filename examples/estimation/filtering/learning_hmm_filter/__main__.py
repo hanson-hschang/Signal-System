@@ -19,18 +19,14 @@ from ss.utility.parameter.probability import ProbabilityParameter
 
 
 # random initialize transition and emission matrices (rows are distributions)
-def random_stochastic_matrix(
-    n_rows: int, n_cols: int, random_key: PRNGKeyArray
-) -> Array:
+def random_stochastic_matrix(n_rows: int, n_cols: int, random_key: PRNGKeyArray) -> Array:
     # sample each row from a symmetric Dirichlet
     keys = jax.random.split(random_key, n_rows)
     rows = [jax.random.dirichlet(k, jnp.ones(n_cols)) for k in keys]
     return jnp.stack(rows)
 
 
-def cross_entropy_loss(
-    model: HmmFilter, batch: Array, random_key: PRNGKeyArray | None
-) -> Array:
+def cross_entropy_loss(model: HmmFilter, batch: Array, random_key: PRNGKeyArray | None) -> Array:
     """Compute the cross-entropy loss between the predicted and true
     observation distributions for a batch of sequences.
 
@@ -43,27 +39,19 @@ def cross_entropy_loss(
     Returns:
         The average cross-entropy loss over the batch.
     """
-    assert random_key is not None, (
-        "random_key must be provided for loss computation"
-    )
+    assert random_key is not None, "random_key must be provided for loss computation"
 
     sequence_length_plus_one, batch_size, observation_dim = batch.shape
-    assert batch_size == model.batch_size, (
-        f"batch size {batch_size} must match filter.batch_size {model.batch_size}"
-    )
+    assert batch_size == model.batch_size, f"batch size {batch_size} must match filter.batch_size {model.batch_size}"
     input_observations = batch[:-1, :, :]
     target_observations = batch[1:, :, :]
 
-    initial_belief = jax.random.dirichlet(
-        random_key, alpha=jnp.ones(model.state_dim), shape=(batch_size,)
-    )
+    initial_belief = jax.random.dirichlet(random_key, alpha=jnp.ones(model.state_dim), shape=(batch_size,))
 
     beliefs = filtering(model, 0.0, initial_belief, input_observations)[1]
 
     # Compute the predicted observation distributions
-    predicted_observation_distributions = jnp.einsum(
-        "tbs,so->tbo", beliefs, model.emission_matrix
-    )
+    predicted_observation_distributions = jnp.einsum("tbs,so->tbo", beliefs, model.emission_matrix)
     # TODO: Refactor to compute cross-entropy (-sum(targets * log(probs))).
     # Passing log(probs) into softmax_cross_entropy works mathematically, but
     # it causes redundant exp/log operations under the hood.
@@ -71,17 +59,13 @@ def cross_entropy_loss(
     pseudo_logits = jnp.log(predicted_observation_distributions)
 
     # Compute the cross-entropy loss
-    losses = optax.losses.softmax_cross_entropy(
-        pseudo_logits, target_observations
-    )
+    losses = optax.losses.softmax_cross_entropy(pseudo_logits, target_observations)
 
     return jnp.mean(losses)
 
 
 if __name__ == "__main__":
-    print(
-        "=== Discrete State Dynamic System Simulation: Hidden Markov Model ==="
-    )
+    print("=== Discrete State Dynamic System Simulation: Hidden Markov Model ===")
 
     random_key = jax.random.PRNGKey(0)
     key_sys, key_sim = jax.random.split(random_key)
@@ -104,9 +88,7 @@ if __name__ == "__main__":
 
     initial_state = system.initial_state(random_key)
 
-    times, states, observations, _ = simulate(
-        system, 0, time_horizon, initial_state, random_key
-    )
+    times, states, observations, _ = simulate(system, 0, time_horizon, initial_state, random_key)
 
     print(states)
     print(observations)
@@ -126,9 +108,7 @@ if __name__ == "__main__":
     print(f"filter: {filter}")
     print(filter.transition_matrix)
 
-    learning_process = LearningProcess[HmmFilter](
-        filter, cross_entropy_loss, optax.adam(1e-2)
-    )
+    learning_process = LearningProcess[HmmFilter](filter, cross_entropy_loss, optax.adam(1e-2))
 
     learning_process.train_one_epoch(
         # (time, batch, observation_dim)

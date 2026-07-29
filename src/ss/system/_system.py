@@ -25,12 +25,8 @@ class System(eqx.Module):
     def __check_init__(self) -> None:
         assert self.time_step >= 0, f"time_step {self.time_step} must be >= 0"
         assert self.state_dim > 0, f"state_dim {self.state_dim} must be > 0"
-        assert self.observation_dim > 0, (
-            f"observation_dim {self.observation_dim} must be > 0"
-        )
-        assert self.control_dim >= 0, (
-            f"control_dim {self.control_dim} must be >= 0"
-        )
+        assert self.observation_dim > 0, f"observation_dim {self.observation_dim} must be > 0"
+        assert self.control_dim >= 0, f"control_dim {self.control_dim} must be >= 0"
         assert self.batch_size > 0, f"batch_size {self.batch_size} must be > 0"
 
     def duplicate(self, *, batch_size: int | None = None) -> Self:
@@ -46,9 +42,7 @@ class System(eqx.Module):
         return duplicate
 
     @abstractmethod
-    def initial_state(
-        self, random_key: PRNGKeyArray | None = None
-    ) -> Float[Array, "batch_size state_dim"]:
+    def initial_state(self, random_key: PRNGKeyArray | None = None) -> Float[Array, "batch_size state_dim"]:
         pass
 
     @abstractmethod
@@ -73,26 +67,20 @@ class System(eqx.Module):
 
 class ContinuousTimeSystem(System):
     process_noise_covariance: Float[Array, "state_dim state_dim"]
-    observation_noise_covariance: Float[
-        Array, "observation_dim observation_dim"
-    ]
+    observation_noise_covariance: Float[Array, "observation_dim observation_dim"]
 
     def __check_init__(self) -> None:
         super().__check_init__()
         s = (self.state_dim, self.state_dim)
         o = (self.observation_dim, self.observation_dim)
         assert self.process_noise_covariance.shape == s, (
-            f"process_noise_covariance must have shape {s}, got "
-            f"{self.process_noise_covariance.shape}"
+            f"process_noise_covariance must have shape {s}, got {self.process_noise_covariance.shape}"
         )
         assert self.observation_noise_covariance.shape == o, (
-            f"observation_noise_covariance must have shape {o}, got "
-            f"{self.observation_noise_covariance.shape}"
+            f"observation_noise_covariance must have shape {o}, got {self.observation_noise_covariance.shape}"
         )
 
-    def _process_noise(
-        self, time: float, state: Array, random_key: PRNGKeyArray
-    ) -> Array:
+    def _process_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
         cov = self.process_noise_covariance * jnp.sqrt(self.time_step)
         # multivariate_normal requires positive-definite covariance; when
         # covariance is identically zero (no noise requested) skip sampling
@@ -100,21 +88,15 @@ class ContinuousTimeSystem(System):
         return jax.lax.cond(
             jnp.all(cov == 0),
             lambda: jnp.zeros(self.state_dim),
-            lambda: jax.random.multivariate_normal(
-                random_key, jnp.zeros(self.state_dim), cov
-            ),
+            lambda: jax.random.multivariate_normal(random_key, jnp.zeros(self.state_dim), cov),
         )
 
-    def _observation_noise(
-        self, time: float, state: Array, random_key: PRNGKeyArray
-    ) -> Array:
+    def _observation_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
         cov = self.observation_noise_covariance * jnp.sqrt(self.time_step)
         return jax.lax.cond(
             jnp.all(cov == 0),
             lambda: jnp.zeros(self.observation_dim),
-            lambda: jax.random.multivariate_normal(
-                random_key, jnp.zeros(self.observation_dim), cov
-            ),
+            lambda: jax.random.multivariate_normal(random_key, jnp.zeros(self.observation_dim), cov),
         )
 
 
@@ -164,16 +146,13 @@ def simulate(
         ``(times, states, observations, controls)`` with leading time axis of
         length ``number_of_steps``. ``controls`` is ``None`` if no controller.
     """
-    assert number_of_steps > 0, (
-        f"number_of_steps {number_of_steps} must be > 0"
-    )
+    assert number_of_steps > 0, f"number_of_steps {number_of_steps} must be > 0"
     if random_key is None:
         random_key = jax.random.PRNGKey(43)
 
     if controller is not None:
         assert system.batch_size == controller.batch_size, (
-            f"system.batch_size {system.batch_size} must match "
-            f"controller.batch_size {controller.batch_size}"
+            f"system.batch_size {system.batch_size} must match controller.batch_size {controller.batch_size}"
         )
         random_key, controller_key = jax.random.split(random_key)
         controller_state = controller.initial_state(controller_key)
@@ -189,20 +168,14 @@ def simulate(
     ) -> tuple[SimulateCarry, SimulateStep]:
         previous_time, previous_state, controller_state = carry
 
-        observe_key, process_key, controller_key = jax.random.split(
-            random_key, 3
-        )
+        observe_key, process_key, controller_key = jax.random.split(random_key, 3)
 
-        observation = system.observe(
-            previous_time, previous_state, observe_key
-        )
+        observation = system.observe(previous_time, previous_state, observe_key)
 
         if controller is None:
             control = None
             next_controller_state = None
-            next_time, state = system.process(
-                previous_time, previous_state, control, process_key
-            )
+            next_time, state = system.process(previous_time, previous_state, control, process_key)
         else:
             control, next_controller_state, _ = controller(
                 controller_state,
@@ -210,9 +183,7 @@ def simulate(
                 observation,
                 controller_key,
             )
-            next_time, state = system.process(
-                previous_time, previous_state, control, process_key
-            )
+            next_time, state = system.process(previous_time, previous_state, control, process_key)
 
         return (
             next_time,
