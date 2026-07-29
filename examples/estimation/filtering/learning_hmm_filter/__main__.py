@@ -102,7 +102,6 @@ if __name__ == "__main__":
     filter = HmmFilter(
         transition=ProbabilityParameter(transition_matrix),
         emission=ProbabilityParameter(emission_matrix),
-        state_dim=2,
     )
     print("=== filtering ===")
     print(f"filter: {filter}")
