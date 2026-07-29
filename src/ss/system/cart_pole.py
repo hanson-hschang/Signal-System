@@ -29,9 +29,7 @@ class CartPoleSystem(System):
         assert self.gravity >= 0, "gravity must be >= 0"
         assert self.batch_size > 0, "batch_size must be > 0"
 
-    def initial_state(
-        self, random_key: PRNGKeyArray | None = None
-    ) -> Float[Array, "batch_size state_dim"]:
+    def initial_state(self, random_key: PRNGKeyArray | None = None) -> Float[Array, "batch_size state_dim"]:
         """Initialize near the unstable upright equilibrium."""
         state = jnp.broadcast_to(
             jnp.zeros(self.state_dim),
@@ -42,9 +40,7 @@ class CartPoleSystem(System):
 
         # NOTE: deviation is arbitrary for demonstration purpose.
         standard_deviation = jnp.array([0.05, 0.02, 0.05, 0.02])
-        return state + standard_deviation * jax.random.normal(
-            random_key, shape=(self.batch_size, self.state_dim)
-        )
+        return state + standard_deviation * jax.random.normal(random_key, shape=(self.batch_size, self.state_dim))
 
     def observe(
         self,
@@ -87,34 +83,22 @@ class CartPoleSystem(System):
         pole_angular_velocity = state[..., 3]
 
         total_mass = self.cart_mass + self.pole_mass
-        adjusted_mass = self.cart_mass + (
-            self.pole_mass * jnp.sin(pole_angle) ** 2
-        )
+        adjusted_mass = self.cart_mass + (self.pole_mass * jnp.sin(pole_angle) ** 2)
         pole_mass_length = self.pole_mass * self.pole_length
 
-        common_numerator = (
-            pole_mass_length * jnp.sin(pole_angle) * pole_angular_velocity**2
-        )
+        common_numerator = pole_mass_length * jnp.sin(pole_angle) * pole_angular_velocity**2
         angular_acceleration_numerator = total_mass * self.gravity * jnp.sin(
             pole_angle
-        ) - pole_mass_length * pole_angular_velocity**2 * jnp.sin(
-            pole_angle
-        ) * jnp.cos(pole_angle)
+        ) - pole_mass_length * pole_angular_velocity**2 * jnp.sin(pole_angle) * jnp.cos(pole_angle)
         # NOTE: branching for control case
         if control is not None:
             force = control[..., 0]
             common_numerator += force
             angular_acceleration_numerator -= force * jnp.cos(pole_angle)
 
-        pole_angular_acceleration = angular_acceleration_numerator / (
-            adjusted_mass * self.pole_length
-        )
+        pole_angular_acceleration = angular_acceleration_numerator / (adjusted_mass * self.pole_length)
         cart_acceleration = (
-            common_numerator
-            - self.pole_mass
-            * self.gravity
-            * jnp.sin(pole_angle)
-            * jnp.cos(pole_angle)
+            common_numerator - self.pole_mass * self.gravity * jnp.sin(pole_angle) * jnp.cos(pole_angle)
         ) / adjusted_mass
 
         return jnp.stack(

@@ -15,12 +15,8 @@ from .post_processing import (
 
 
 @click.command()
-@click.option(
-    "--duration", type=click.FloatRange(min=0, min_open=True), default=5.0
-)
-@click.option(
-    "--time-step", type=click.FloatRange(min=0, min_open=True), default=0.02
-)
+@click.option("--duration", type=click.FloatRange(min=0, min_open=True), default=5.0)
+@click.option("--time-step", type=click.FloatRange(min=0, min_open=True), default=0.02)
 @click.option("--horizon", type=click.IntRange(min=1), default=60)
 @click.option("--num-rollouts", type=click.IntRange(min=1), default=1024)
 @click.option("--batch-size", type=click.IntRange(min=1), default=1)
@@ -93,9 +89,7 @@ def main(
             costs,
             save_dir / "mppi_cart_pole_plot.png",
         )
-        render_animation(
-            times, states, system.pole_length, save_dir / "mppi_cart_pole.mp4"
-        )
+        render_animation(times, states, system.pole_length, save_dir / "mppi_cart_pole.mp4")
         click.echo(f"Saved MPPI results to {save_dir}")
 
 

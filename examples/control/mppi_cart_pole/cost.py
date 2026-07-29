@@ -13,9 +13,7 @@ class CostWeights(eqx.Module):
 
     def state_cost(self, state: Array) -> Array:
         """Quadratic state cost about the upright origin."""
-        angle_error = jnp.arctan2(
-            jnp.sin(state[..., 2]), jnp.cos(state[..., 2])
-        )
+        angle_error = jnp.arctan2(jnp.sin(state[..., 2]), jnp.cos(state[..., 2]))
         return (
             self.cart_position * state[..., 0] ** 2
             + self.cart_velocity * state[..., 1] ** 2

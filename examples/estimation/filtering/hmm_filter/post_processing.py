@@ -21,9 +21,7 @@ def plot_filtering(
     belief = beliefs[:, batch_index, :]
     state_dim = belief.shape[-1]
 
-    figure, axes = plt.subplots(
-        3, 1, figsize=(10, 7), sharex=True, constrained_layout=True
-    )
+    figure, axes = plt.subplots(3, 1, figsize=(10, 7), sharex=True, constrained_layout=True)
 
     axes[0].step(time, state, where="post", color="C0", linewidth=1.5)
     axes[0].set_ylabel("State")

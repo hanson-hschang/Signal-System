@@ -12,20 +12,16 @@ from jaxtyping import Array, Float, Shaped
 
 class Filter(eqx.Module):
     time_step: float = eqx.field(static=True)
-    state_dim: int = eqx.field(static=True)
-    observation_dim: int = eqx.field(static=True)
+    # state_dim: int = eqx.field(static=True)
+    # observation_dim: int = eqx.field(static=True)
     control_dim: int = eqx.field(static=True)
     batch_size: int = eqx.field(static=True)
 
     def __check_init__(self) -> None:
         assert self.time_step >= 0, f"time_step {self.time_step} must be >= 0"
-        assert self.state_dim > 0, f"state_dim {self.state_dim} must be > 0"
-        assert self.observation_dim > 0, (
-            f"observation_dim {self.observation_dim} must be > 0"
-        )
-        assert self.control_dim >= 0, (
-            f"control_dim {self.control_dim} must be >= 0"
-        )
+        # assert self.state_dim > 0, f"state_dim {self.state_dim} must be > 0"
+        # assert self.observation_dim > 0, f"observation_dim {self.observation_dim} must be > 0"
+        assert self.control_dim >= 0, f"control_dim {self.control_dim} must be >= 0"
         assert self.batch_size > 0, f"batch_size {self.batch_size} must be > 0"
 
     def duplicate(self, *, batch_size: int | None = None) -> Self:
@@ -127,7 +123,5 @@ def filtering(
         (initial_time, initial_belief),
         observations,
     )
-    times = initial_time + (jnp.arange(observations.shape[0]) + 1) * (
-        filter.time_step
-    )
+    times = initial_time + (jnp.arange(observations.shape[0]) + 1) * (filter.time_step)
     return times, beliefs

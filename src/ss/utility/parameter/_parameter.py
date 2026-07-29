@@ -11,9 +11,7 @@ from jaxtyping import Array, Float
 
 
 class Transformer(Protocol):
-    def forward(
-        self, raw_value: Float[Array, "..."]
-    ) -> Float[Array, "..."]: ...
+    def forward(self, raw_value: Float[Array, "..."]) -> Float[Array, "..."]: ...
     def inverse(self, value: Float[Array, "..."]) -> Float[Array, "..."]: ...
 
 

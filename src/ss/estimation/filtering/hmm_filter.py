@@ -16,33 +16,31 @@ class HmmFilter(Filter):
 
     transition: ProbabilityParameter
     emission: ProbabilityParameter
-    state_dim: int = eqx.field(static=True, kw_only=True)
+    # state_dim: int = eqx.field(static=True, kw_only=True)
     batch_size: int = eqx.field(static=True, default=1, kw_only=True)
 
     # NOTE: kw_only to enforce the user to explicitly write the dimension
     time_step: float = eqx.field(static=True, default=1.0, kw_only=True)
-    observation_dim: int = eqx.field(static=True, default=1, kw_only=True)
+    # observation_dim: int = eqx.field(static=True, default=1, kw_only=True)
     control_dim: int = eqx.field(static=True, default=0, kw_only=True)
 
     def __check_init__(self) -> None:
         super().__check_init__()
         transition_shape = self.transition_matrix.shape
         assert self.state_dim == transition_shape[0], (
-            f"{self.state_dim=} must match transition state dimension "
-            f"{transition_shape[0]}"
+            f"{self.state_dim=} must match transition state dimension {transition_shape[0]}"
         )
         emission_shape = self.emission_matrix.shape
         assert emission_shape[0] == transition_shape[0], (
-            f"emission_matrix must have {transition_shape[0]} rows, "
-            f"got shape {emission_shape}"
+            f"emission_matrix must have {transition_shape[0]} rows, got shape {emission_shape}"
         )
 
     @property
-    def discrete_state_dim(self) -> int:
+    def state_dim(self) -> int:
         return self.transition_matrix.shape[0]
 
     @property
-    def discrete_observation_dim(self) -> int:
+    def observation_dim(self) -> int:
         return self.emission_matrix.shape[1]
 
     @property
@@ -58,8 +56,7 @@ class HmmFilter(Filter):
         transition_matrix: Float[Array, "state_dim state_dim"],
     ) -> HmmFilter:
         assert transition_matrix.shape == self.transition_matrix.shape, (
-            "transition_matrix must have shape "
-            f"{self.transition_matrix.shape}, got {transition_matrix.shape}"
+            f"transition_matrix must have shape {self.transition_matrix.shape}, got {transition_matrix.shape}"
         )
         return eqx.tree_at(
             lambda model: model.transition,
@@ -72,8 +69,7 @@ class HmmFilter(Filter):
         emission_matrix: Float[Array, "state_dim observation_dim"],
     ) -> HmmFilter:
         assert emission_matrix.shape == self.emission_matrix.shape, (
-            f"emission_matrix must have shape {self.emission_matrix.shape}, "
-            f"got {emission_matrix.shape}"
+            f"emission_matrix must have shape {self.emission_matrix.shape}, got {emission_matrix.shape}"
         )
         return eqx.tree_at(
             lambda model: model.emission,
