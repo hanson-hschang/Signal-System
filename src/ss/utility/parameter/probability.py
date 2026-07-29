@@ -14,12 +14,12 @@ class SoftmaxTransformer(eqx.Module):
     """
 
     @staticmethod
-    def forward(self, raw_value: Array) -> Array:
+    def forward(raw_value: Array) -> Array:
         return jax.nn.softmax(raw_value, axis=-1)
 
     @staticmethod
     @partial(jax.jit, static_argnames=("log_zero_offset",))
-    def inverse(self, value: Array, log_zero_offset: float = 20) -> Array:
+    def inverse(value: Array, log_zero_offset: float = 20) -> Array:
         # TODO: There should be a better way to handle the zero entries in the
         # softmax output. The current implementation computes the log of the
         # minimum non-zero value and subtracts a fixed offset to get a "safe"
@@ -40,4 +40,4 @@ class ProbabilityParameter(Parameter[SoftmaxTransformer]):
     """
 
     def __init__(self, value: Array) -> None:
-        super().__init__(value=value, transformer=SoftmaxTransformer())
+        super().__init__(value=jnp.asarray(value), transformer=SoftmaxTransformer())
