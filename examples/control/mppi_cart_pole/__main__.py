@@ -22,7 +22,7 @@ from .post_processing import (
     "--time-step", type=click.FloatRange(min=0, min_open=True), default=0.02
 )
 @click.option("--horizon", type=click.IntRange(min=1), default=60)
-@click.option("--num-samples", type=click.IntRange(min=1), default=1024)
+@click.option("--num-rollouts", type=click.IntRange(min=1), default=1024)
 @click.option("--batch-size", type=click.IntRange(min=1), default=1)
 @click.option(
     "--temperature",
@@ -45,7 +45,7 @@ def main(
     duration: float,
     time_step: float,
     horizon: int,
-    num_samples: int,
+    num_rollouts: int,
     batch_size: int,
     temperature: float,
     noise_sigma: float,
@@ -67,7 +67,7 @@ def main(
         running_cost=weights.running_cost,
         terminal_cost=weights.terminal_cost,
         horizon=horizon,
-        num_samples=num_samples,
+        num_rollouts=num_rollouts,
         temperature=temperature,
         noise_sigma=noise_sigma,
         control_limit=control_limit,

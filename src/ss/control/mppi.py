@@ -11,11 +11,11 @@ from ._control import Controller
 
 type RolloutCarry = tuple[
     Float[Array, "batch_size"],  # times
-    Float[Array, "batch_size num_samples state_dim"],  # states
-    Float[Array, "batch_size num_samples"],  # accumulated costs
+    Float[Array, "batch_size num_rollouts state_dim"],  # states
+    Float[Array, "batch_size num_rollouts"],  # accumulated costs
 ]
 type RolloutInputs = tuple[
-    Float[Array, "batch_size num_samples control_dim"],  # controls
+    Float[Array, "batch_size num_rollouts control_dim"],  # controls
     PRNGKeyArray,  # random key
 ]
 
@@ -36,18 +36,18 @@ class MPPIController(Controller):
 
     running_cost: Callable[
         [
-            Float[Array, "num_samples state_dim"],  # state
-            Float[Array, "num_samples control_dim"],  # control
+            Float[Array, "num_rollouts state_dim"],  # state
+            Float[Array, "num_rollouts control_dim"],  # control
         ],
-        Float[Array, "num_samples"],  # cost
+        Float[Array, "num_rollouts"],  # cost
     ] = eqx.field(static=True)
     terminal_cost: Callable[
-        [Float[Array, "num_samples state_dim"]],  # state
-        Float[Array, "num_samples"],  # cost
+        [Float[Array, "num_rollouts state_dim"]],  # state
+        Float[Array, "num_rollouts"],  # cost
     ] = eqx.field(static=True)
 
     horizon: int = eqx.field(static=True, default=60)
-    num_samples: int = eqx.field(static=True, default=1024)
+    num_rollouts: int = eqx.field(static=True, default=1024)
     temperature: float = eqx.field(static=True, default=2.0)
     noise_sigma: float = eqx.field(static=True, default=10.0)
     control_limit: float = eqx.field(static=True, default=40.0)
@@ -57,11 +57,11 @@ class MPPIController(Controller):
         object.__setattr__(
             self,
             "rollout_system",
-            self.rollout_system.duplicate(batch_size=self.num_samples),
+            self.rollout_system.duplicate(batch_size=self.num_rollouts),
         )
         assert self.rollout_system.control_dim == self.control_dim
         assert self.horizon > 0
-        assert self.num_samples > 0
+        assert self.num_rollouts > 0
         assert self.temperature > 0
         assert self.noise_sigma > 0
         assert self.control_limit > 0
@@ -85,12 +85,13 @@ class MPPIController(Controller):
         MPPIDiagnostics,  # diagnostics
     ]:
         noise_key, rollout_key = jax.random.split(random_key)
+        # Time-major for scan: (horizon, batch_size, num_rollouts, ...)
         noise = self.noise_sigma * jax.random.normal(
             noise_key,
             (
                 self.horizon,
                 self.batch_size,
-                self.num_samples,
+                self.num_rollouts,
                 self.control_dim,
             ),
         )
@@ -107,14 +108,14 @@ class MPPIController(Controller):
             observation[:, None, :],
             (
                 self.batch_size,
-                self.num_samples,
+                self.num_rollouts,
                 observation.shape[-1],
             ),
         )
         rollout_times = jnp.full((self.batch_size,), time)
         rollout_keys = jax.random.split(
             rollout_key,
-            (self.horizon, self.batch_size, self.num_samples),
+            (self.horizon, self.batch_size, self.num_rollouts),
         )
 
         def rollout_step(
@@ -139,7 +140,7 @@ class MPPIController(Controller):
             (
                 rollout_times,
                 rollout_states,
-                jnp.zeros((self.batch_size, self.num_samples)),
+                jnp.zeros((self.batch_size, self.num_rollouts)),
             ),
             (sampled_controls, rollout_keys),
         )
