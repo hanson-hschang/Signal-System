@@ -9,11 +9,12 @@ from ss.system import System
 
 from ._control import Controller
 
-type RolloutCarry = tuple[
-    Float[Array, "batch_size"],  # times
-    Float[Array, "batch_size num_rollouts state_dim"],  # states
-    Float[Array, "batch_size num_rollouts"],  # accumulated costs
-]
+class RolloutCarry(eqx.Module):
+    times: Float[Array, "batch_size"]
+    states: Float[Array, "batch_size num_rollouts state_dim"]
+    costs: Float[Array, "batch_size num_rollouts"]
+
+
 type RolloutInputs = tuple[
     Float[Array, "batch_size num_rollouts control_dim"],  # controls
     PRNGKeyArray,  # random key
@@ -118,27 +119,28 @@ class MPPIController(Controller):
             carry: RolloutCarry,
             inputs: RolloutInputs,
         ) -> tuple[RolloutCarry, None]:
-            times, states, total_cost = carry
             controls, process_keys = inputs
             next_times, next_states = jax.vmap(self.rollout_system.process)(
-                times,
-                states,
+                carry.times,
+                carry.states,
                 controls,
                 process_keys,
             )
-            total_cost += self.rollout_system.time_step * jax.vmap(self.running_cost)(next_states, controls)
-            return (next_times, next_states, total_cost), None
+            next_costs = carry.costs + self.rollout_system.time_step * jax.vmap(self.running_cost)(
+                next_states, controls
+            )
+            return RolloutCarry(next_times, next_states, next_costs), None
 
-        (_, final_states, costs), _ = jax.lax.scan(
+        final_carry, _ = jax.lax.scan(
             rollout_step,
-            (
+            RolloutCarry(
                 rollout_times,
                 rollout_states,
                 jnp.zeros((self.batch_size, self.num_rollouts)),
             ),
             (sampled_controls, rollout_keys),
         )
-        costs += jax.vmap(self.terminal_cost)(final_states)
+        costs = final_carry.costs + jax.vmap(self.terminal_cost)(final_carry.states)
         minimum_cost = jnp.min(costs, axis=-1)
         mean_cost = jnp.mean(costs, axis=-1)
         weights = jax.nn.softmax(
