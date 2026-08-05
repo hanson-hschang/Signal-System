@@ -102,11 +102,12 @@ class ContinuousTimeSystem(System):
 
 SystemT = TypeVar("SystemT", bound=System)
 
-type SimulateCarry = tuple[
-    float,  # time
-    Shaped[Array, "batch_size ..."],  # system state
-    ControllerState | None,  # controller state
-]
+class SimulateCarry(eqx.Module):
+    time: float
+    state: Shaped[Array, "batch_size ..."]
+    controller_state: ControllerState | None
+
+
 type SimulateStep = tuple[
     float,  # time
     Shaped[Array, "batch_size ..."],  # state
@@ -166,34 +167,33 @@ def simulate(
         carry: SimulateCarry,
         random_key: PRNGKeyArray,
     ) -> tuple[SimulateCarry, SimulateStep]:
-        previous_time, previous_state, controller_state = carry
-
         observe_key, process_key, controller_key = jax.random.split(random_key, 3)
 
-        observation = system.observe(previous_time, previous_state, observe_key)
+        observation = system.observe(carry.time, carry.state, observe_key)
 
         if controller is None:
             control = None
             next_controller_state = None
-            next_time, state = system.process(previous_time, previous_state, control, process_key)
+            next_time, state = system.process(carry.time, carry.state, control, process_key)
         else:
             control, next_controller_state, _ = controller(
-                controller_state,
-                previous_time,
+                carry.controller_state,
+                carry.time,
                 observation,
                 controller_key,
             )
-            next_time, state = system.process(previous_time, previous_state, control, process_key)
+            next_time, state = system.process(carry.time, carry.state, control, process_key)
 
-        return (
+        return SimulateCarry(next_time, state, next_controller_state), (
             next_time,
             state,
-            next_controller_state,
-        ), (next_time, state, observation, control)
+            observation,
+            control,
+        )
 
     _, (times, states, observations, controls) = jax.lax.scan(
         body,
-        (initial_time, initial_state, controller_state),
+        SimulateCarry(initial_time, initial_state, controller_state),
         keys,
     )
 
