@@ -1,3 +1,26 @@
-from ._estimation import Estimator, EstimatorCallback
+"""Lazy re-exports -- see ss/__init__.py for rationale."""
 
-__all__ = ["Estimator", "EstimatorCallback"]
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
+
+_EXPORTS: dict[str, str] = {}
+
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name: str) -> Any:
+    module_name = _EXPORTS.get(name)
+    if module_name is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import importlib
+
+    module = importlib.import_module(f".{module_name}", __name__)
+    value = getattr(module, name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return __all__

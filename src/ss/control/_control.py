@@ -1,51 +1,35 @@
-import numpy as np
-from numba import njit
-from numpy.typing import NDArray
+from abc import abstractmethod
 
-from ss.utility.assertion import is_positive_integer
-from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
+import equinox as eqx
+from jaxtyping import Array, Float, PRNGKeyArray, PyTree
+
+type ControllerState = PyTree[Array]
+type Diagnostics = PyTree[Array]
 
 
-class Controller:
-    def __init__(
+class Controller(eqx.Module):
+    """Base class for batched stateful controllers."""
+
+    control_dim: int = eqx.field(static=True)
+    batch_size: int = eqx.field(static=True)
+
+    def __check_init__(self) -> None:
+        assert self.control_dim > 0, "control_dim must be > 0"
+        assert self.batch_size > 0, "batch_size must be > 0"
+
+    def initial_state(self, random_key: PRNGKeyArray | None = None) -> ControllerState:
+        return ()
+
+    @abstractmethod
+    def __call__(
         self,
-        control_dim: int,
-        batch_size: int = 1,
-    ) -> None:
-        assert is_positive_integer(control_dim), (
-            f"{control_dim = } must be a positive integer"
-        )
-        assert is_positive_integer(batch_size), (
-            f"{batch_size = } must be a positive integer"
-        )
-
-        self._control_dim = int(control_dim)
-        self._batch_size = int(batch_size)
-        self._control = np.zeros(
-            (self._batch_size, self._control_dim),
-            dtype=np.float64,
-        )
-
-    control_dim = ReadOnlyDescriptor[int]()
-    batch_size = ReadOnlyDescriptor[int]()
-    control = BatchNDArrayDescriptor(
-        "_batch_size",
-        "_control_dim",
-    )
-
-    def compute_control(self) -> None:
-        self._update(
-            self._control,
-            self._compute_control(),
-        )
-
-    @staticmethod
-    @njit(cache=True)  # type: ignore
-    def _update(
-        array: NDArray[np.float64],
-        process: NDArray[np.float64],
-    ) -> None:
-        array[...] = process
-
-    def _compute_control(self) -> NDArray[np.float64]:
-        return np.zeros_like(self._control)
+        controller_state: ControllerState,
+        time: Float[Array, ""],
+        observation: Float[Array, "batch_size observation_dim"],
+        random_key: PRNGKeyArray,
+    ) -> tuple[
+        Float[Array, "batch_size control_dim"],
+        ControllerState,
+        Diagnostics,
+    ]:
+        raise NotImplementedError

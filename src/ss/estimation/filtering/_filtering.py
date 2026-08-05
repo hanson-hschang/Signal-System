@@ -1,113 +1,127 @@
-from collections.abc import Callable
+from __future__ import annotations
 
-import numpy as np
-from numpy.typing import ArrayLike
+from abc import abstractmethod
+from copy import copy
+from typing import Self, TypeVar
 
-from ss.estimation import Estimator
+import equinox as eqx
+import jax
+from jaxtyping import Array, Float, Shaped
 
 
-class DualFilter(Estimator):
-    def __init__(
+class Filter(eqx.Module):
+    time_step: float = eqx.field(static=True)
+    # state_dim: int = eqx.field(static=True)
+    # observation_dim: int = eqx.field(static=True)
+    control_dim: int = eqx.field(static=True)
+    batch_size: int = eqx.field(static=True)
+
+    def __check_init__(self) -> None:
+        assert self.time_step >= 0, f"time_step {self.time_step} must be >= 0"
+        # assert self.state_dim > 0, f"state_dim {self.state_dim} must be > 0"
+        # assert self.observation_dim > 0, f"observation_dim {self.observation_dim} must be > 0"
+        assert self.control_dim >= 0, f"control_dim {self.control_dim} must be >= 0"
+        assert self.batch_size > 0, f"batch_size {self.batch_size} must be > 0"
+
+    def duplicate(self, *, batch_size: int | None = None) -> Self:
+        """Return an immutable copy configured for a new batch size."""
+        if batch_size is None:
+            batch_size = self.batch_size
+        assert batch_size > 0, f"batch_size {batch_size} must be > 0"
+        duplicate = copy(self)
+        object.__setattr__(duplicate, "batch_size", batch_size)
+        return duplicate
+
+    @abstractmethod
+    def update(
         self,
-        state_dim: int,
-        observation_dim: int,
-        history_horizon: int,
-        initial_distribution: ArrayLike | None = None,
-        estimation_model: Callable | None = None,
-        batch_size: int = 1,
-    ) -> None:
-        super().__init__(
-            state_dim=state_dim,
-            observation_dim=observation_dim,
-            history_horizon=history_horizon,
-            estimation_model=estimation_model,
-            batch_size=batch_size,
-        )
+        time: float,
+        prior: Float[Array, "batch_size state_dim"],
+        observation: Float[Array, "batch_size observation_dim"],
+    ) -> Float[Array, "batch_size state_dim"]:
+        """Return filtered posterior given prior and observation.
 
-        self._initial_distribution = np.array(
-            (
-                np.ones(self._state_dim) / self._state_dim
-                if initial_distribution is None
-                else initial_distribution
-            ),
-            dtype=np.float64,
-        )
-        assert (self._initial_distribution.ndim == 1) and (
-            self._initial_distribution.shape[0] == self._state_dim
-        ), (
-            f"initial_distribution must be in the "
-            f"shape of {(self._state_dim,) = }. "
-            f"initial_distribution given has the shape of "
-            f"{self._initial_distribution.shape}."
-        )
-
-    def reset(self) -> None:
-        super().reset()
-        self._estimated_state[:, :] = self._initial_distribution[np.newaxis, :]
-        # for i in range(self._batch_size):
-        #     self._estimated_state[i, :] = self._initial_distribution.copy()
-        # self._observation_history[:, :, :] = 0.0
-
-    def duplicate(self, batch_size: int) -> "DualFilter":
+        This is the only required filtering kernel. Some filters naturally
+        combine update and estimation into one operation; those filters
+        can keep the default identity implementation of :meth:`estimate`.
         """
-        Create multiple filters based on the current filter.
 
-        Parameters
-        ----------
-        batch_size: int
-            The number of systems to be created.
-
-        Returns
-        -------
-        filter: Filter
-            The created multi-filter.
-        """
-        return self.__class__(
-            state_dim=self._state_dim,
-            observation_dim=self._observation_dim,
-            history_horizon=self._history_horizon,
-            initial_distribution=self._initial_distribution,
-            estimation_model=self._estimation_model,
-            batch_size=batch_size,
-        )
-
-
-class Filter(DualFilter):
-    def __init__(
+    def estimate(
         self,
-        state_dim: int,
-        observation_dim: int,
-        initial_distribution: ArrayLike | None = None,
-        estimation_model: Callable | None = None,
-        batch_size: int = 1,
-    ) -> None:
-        super().__init__(
-            state_dim=state_dim,
-            observation_dim=observation_dim,
-            history_horizon=1,
-            initial_distribution=initial_distribution,
-            estimation_model=estimation_model,
-            batch_size=batch_size,
-        )
+        time: float,
+        posterior: Float[Array, "batch_size state_dim"],
+    ) -> Float[Array, "batch_size state_dim"]:
+        """Estimate next-step prior from posterior.
 
-    def duplicate(self, batch_size: int) -> "Filter":
+        Why this is not abstract:
+            Not every filter has a separate estimation step. For update-only
+            filters (or filters that fold dynamics into :meth:`update`),
+            forcing an `estimate` override only adds boilerplate identity code.
+
+        When to override:
+            Override this method when your filter has explicit transition
+            dynamics, e.g. a Chapman-Kolmogorov step for HMMs or model-based
+            temporal propagation.
+
+        Default behavior:
+            Identity map, so ``prior_{t+1} = posterior_t``.
         """
-        Create multiple filters based on the current filter.
+        return posterior
 
-        Parameters
-        ----------
-        batch_size: int
-            The number of systems to be created.
 
-        Returns
-        -------
-        filter: Filter
-            The created multi-filter.
-        """
-        return self.__class__(
-            state_dim=self._state_dim,
-            observation_dim=self._observation_dim,
-            initial_distribution=self._initial_distribution,
-            estimation_model=self._estimation_model,
-            batch_size=batch_size,
-        )
+FilterT = TypeVar("FilterT", bound=Filter)
+
+
+class FilteringCarry(eqx.Module):
+    time: float
+    prior: Float[Array, "batch_size state_dim"]
+
+
+type FilteringStep = tuple[
+    float,  # time
+    Float[Array, "batch_size state_dim"],  # filtered posterior
+]
+
+
+def filtering(
+    filter: FilterT,
+    initial_time: float,
+    initial_belief: Float[Array, "batch_size state_dim"],
+    observations: Shaped[Array, "time batch_size observation_dim"],
+) -> tuple[
+    Float[Array, "time"],  # times
+    Float[Array, "time batch_size state_dim"],  # beliefs
+]:
+    """Run filtering over a time-leading observation sequence.
+
+    Layout matches ``simulate`` / ``lax.scan``: time axis first, then batch.
+    Returns filtered beliefs ``p(x_t | y_{1:t})``.
+
+    Args:
+        filter: The filter to use for the filtering process.
+        initial_time: Time before the first observation.
+        initial_belief: Prior before the first observation,
+            shape ``(batch_size, state_dim)``.
+        observations: Observations with shape
+            ``(time, batch_size, observation_dim)``.
+
+    Returns:
+        ``(times, beliefs)`` with leading time axis matching ``observations``.
+        ``times`` are the timestamps after each update step.
+    """
+
+    def step(
+        carry: FilteringCarry,
+        observation: Float[Array, "batch_size observation_dim"],
+    ) -> tuple[FilteringCarry, FilteringStep]:
+        posterior = filter.update(carry.time, carry.prior, observation)
+        next_prior = filter.estimate(carry.time, posterior)
+        next_time = carry.time + filter.time_step
+        return FilteringCarry(next_time, next_prior), (next_time, posterior)
+
+    _, (times, beliefs) = jax.lax.scan(
+        step,
+        FilteringCarry(initial_time, initial_belief),
+        observations,
+    )
+    return jax.numpy.asarray(times), beliefs

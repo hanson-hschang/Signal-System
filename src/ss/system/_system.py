@@ -1,167 +1,201 @@
-from pathlib import Path
-from typing import Generic, TypeVar
+"""Framework for simulating continuous and discrete-time systems."""
 
-import numpy as np
-from numba import njit
-from numpy.typing import NDArray
+from __future__ import annotations
 
-from ss.utility.assertion import is_nonnegative_integer, is_positive_integer
-from ss.utility.callback import Callback
-from ss.utility.descriptor import BatchNDArrayDescriptor, ReadOnlyDescriptor
+from abc import abstractmethod
+from copy import copy
+from typing import TYPE_CHECKING, TypeVar, Self
+
+import equinox as eqx
+import jax
+import jax.numpy as jnp
+from jaxtyping import Array, Float, PRNGKeyArray, Shaped
+
+if TYPE_CHECKING:
+    from ss.control._control import Controller, ControllerState
 
 
-class System:
-    def __init__(
+class System(eqx.Module):
+    time_step: float = eqx.field(static=True)
+    state_dim: int = eqx.field(static=True)
+    observation_dim: int = eqx.field(static=True)
+    control_dim: int = eqx.field(static=True)
+    batch_size: int = eqx.field(static=True)
+
+    def __check_init__(self) -> None:
+        assert self.time_step >= 0, f"time_step {self.time_step} must be >= 0"
+        assert self.state_dim > 0, f"state_dim {self.state_dim} must be > 0"
+        assert self.observation_dim > 0, f"observation_dim {self.observation_dim} must be > 0"
+        assert self.control_dim >= 0, f"control_dim {self.control_dim} must be >= 0"
+        assert self.batch_size > 0, f"batch_size {self.batch_size} must be > 0"
+
+    def duplicate(self, *, batch_size: int | None = None) -> Self:
+        """Return an immutable copy configured for a new batch size."""
+        # TODO: This is temporary duplication for different batch size.
+        # Mostly used for testing and demonstration, but may need to change the
+        # syntax in the future.
+        if batch_size is None:
+            batch_size = self.batch_size
+        assert batch_size > 0, f"batch_size {batch_size} must be > 0"
+        duplicate = copy(self)
+        object.__setattr__(duplicate, "batch_size", batch_size)
+        return duplicate
+
+    @abstractmethod
+    def initial_state(self, random_key: PRNGKeyArray | None = None) -> Float[Array, "batch_size state_dim"]:
+        pass
+
+    @abstractmethod
+    def process(
         self,
-        state_dim: int,
-        observation_dim: int,
-        control_dim: int = 0,
-        batch_size: int = 1,
-    ) -> None:
-        assert is_positive_integer(state_dim), (
-            f"state_dim {state_dim} must be a positive integer"
-        )
-        assert is_positive_integer(observation_dim), (
-            f"observation_dim {observation_dim} must be a positive integer"
-        )
-        assert is_nonnegative_integer(control_dim), (
-            f"control_dim {control_dim} must be a non-negative integer"
-        )
-        assert is_positive_integer(batch_size), (
-            f"batch_size {batch_size} must be a positive integer"
-        )
+        time: float,
+        state: Float[Array, "batch_size state_dim"],
+        control: Float[Array, "batch_size control_dim"] | None,
+        random_key: PRNGKeyArray,
+    ) -> tuple[float, Float[Array, "batch_size state_dim"]]:
+        pass
 
-        self._state_dim = int(state_dim)
-        self._observation_dim = int(observation_dim)
-        self._control_dim = int(control_dim)
-        self._batch_size = int(batch_size)
-        self._state = np.zeros((self._batch_size, self._state_dim))
-        self._observation = np.zeros((self._batch_size, self._observation_dim))
-        self._control = np.zeros((self._batch_size, self._control_dim))
-
-    state_dim = ReadOnlyDescriptor[int]()
-    observation_dim = ReadOnlyDescriptor[int]()
-    control_dim = ReadOnlyDescriptor[int]()
-    batch_size = ReadOnlyDescriptor[int]()
-    state = BatchNDArrayDescriptor("_batch_size", "_state_dim")
-    observation = BatchNDArrayDescriptor("_batch_size", "_observation_dim")
-    control = BatchNDArrayDescriptor("_batch_size", "_control_dim")
-
-    def duplicate(self, batch_size: int) -> "System":
-        """
-        Create multiple systems based on the current system.
-
-        Parameters
-        ----------
-        batch_size: int
-            The number of systems to be created.
-
-        Returns
-        -------
-        system: System
-            The created multi-system.
-        """
-        return self.__class__(
-            state_dim=self._state_dim,
-            observation_dim=self._observation_dim,
-            control_dim=self._control_dim,
-            batch_size=batch_size,
-        )
-
-    def process(self, time: int | float) -> int | float:
-        """
-        Update the state of each system by one time step based on
-        the current state and control (if existed).
-
-        Parameters
-        ----------
-        `time: Union[int, float]`
-            The current time.
-
-        Returns
-        -------
-        `time: Union[int, float]`
-            The updated time.
-        """
-        self._update(
-            self._state,
-            self._compute_state_process(),
-            self._compute_process_noise(),
-        )
-        return time
-
-    def observe(self) -> NDArray:
-        """
-        Make observation of each system based on the current state.
-
-        Returns
-        -------
-        `observation: ArrayLike[float]`
-            The observation vector of systems. Shape of the array is
-            `(batch_size, observation_dim)`.
-        """
-        self._update(
-            self._observation,
-            self._compute_observation_process(),
-            self._compute_observation_noise(),
-        )
-        # observation: NDArray = (
-        #     self._observation[0]
-        #     if self._batch_size == 1
-        #     else self._observation
-        # )
-        return self.observation
-
-    @staticmethod
-    @njit(cache=True)  # type: ignore
-    def _update(
-        array: NDArray,
-        process: NDArray,
-        noise: NDArray,
-    ) -> None:
-        array[:, :] = process + noise
-
-    def _compute_process_noise(self) -> NDArray:
-        return np.zeros_like(self._state)
-
-    def _compute_observation_noise(self) -> NDArray:
-        return np.zeros_like(self._observation)
-
-    def _compute_state_process(self) -> NDArray:
-        return self._state
-
-    def _compute_observation_process(self) -> NDArray:
-        return np.zeros_like(self._observation)
-
-
-S = TypeVar("S", bound="System")
-
-
-class SystemCallback(Callback, Generic[S]):
-    def __init__(
+    @abstractmethod
+    def observe(
         self,
-        step_skip: int,
-        system: S,
-    ) -> None:
-        assert issubclass(type(system), System), (
-            f"system must be a subclass of {System.__name__}"
-        )
-        self._system: S = system
-        super().__init__(step_skip)
+        time: float,
+        state: Float[Array, "batch_size state_dim"],
+        random_key: PRNGKeyArray,
+    ) -> Float[Array, "batch_size observation_dim"]:
+        pass
 
-    def _record(self, time: float) -> None:
-        super()._record(time)
-        self._callback_params["state"].append(self._system.state.copy())
-        self._callback_params["control"].append(self._system.control.copy())
-        self._callback_params["observation"].append(
-            self._system.observe().copy()
+
+class ContinuousTimeSystem(System):
+    process_noise_covariance: Float[Array, "state_dim state_dim"]
+    observation_noise_covariance: Float[Array, "observation_dim observation_dim"]
+
+    def __check_init__(self) -> None:
+        super().__check_init__()
+        s = (self.state_dim, self.state_dim)
+        o = (self.observation_dim, self.observation_dim)
+        assert self.process_noise_covariance.shape == s, (
+            f"process_noise_covariance must have shape {s}, got {self.process_noise_covariance.shape}"
+        )
+        assert self.observation_noise_covariance.shape == o, (
+            f"observation_noise_covariance must have shape {o}, got {self.observation_noise_covariance.shape}"
         )
 
-    def save(self, filename: str | Path) -> None:
-        self.add_meta_info(
-            state_dim=self._system.state_dim,
-            observation_dim=self._system.observation_dim,
-            control_dim=self._system.control_dim,
-            batch_size=self._system.batch_size,
+    def _process_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+        cov = self.process_noise_covariance * jnp.sqrt(self.time_step)
+        # multivariate_normal requires positive-definite covariance; when
+        # covariance is identically zero (no noise requested) skip sampling
+        # entirely rather than producing NaN.
+        return jax.lax.cond(
+            jnp.all(cov == 0),
+            lambda: jnp.zeros(self.state_dim),
+            lambda: jax.random.multivariate_normal(random_key, jnp.zeros(self.state_dim), cov),
         )
-        super().save(filename)
+
+    def _observation_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+        cov = self.observation_noise_covariance * jnp.sqrt(self.time_step)
+        return jax.lax.cond(
+            jnp.all(cov == 0),
+            lambda: jnp.zeros(self.observation_dim),
+            lambda: jax.random.multivariate_normal(random_key, jnp.zeros(self.observation_dim), cov),
+        )
+
+
+SystemT = TypeVar("SystemT", bound=System)
+
+
+class SimulateCarry(eqx.Module):
+    time: float
+    state: Shaped[Array, "batch_size ..."]
+    controller_state: ControllerState | None
+
+
+type SimulateStep = tuple[
+    float,  # time
+    Shaped[Array, "batch_size ..."],  # state
+    Shaped[Array, "batch_size observation_dim"],  # observation
+    Float[Array, "batch_size control_dim"] | None,  # control
+]
+
+
+def simulate(
+    system: SystemT,
+    initial_time: float,
+    number_of_steps: int,
+    initial_state: Shaped[Array, "batch_size ..."],
+    random_key: PRNGKeyArray | None = None,
+    controller: Controller | None = None,
+) -> tuple[
+    Float[Array, "time"],  # times
+    Shaped[Array, "time batch_size ..."],  # states
+    Shaped[Array, "time batch_size observation_dim"],  # observations
+    Float[Array, "time batch_size control_dim"] | None,  # controls
+]:
+    """Simulate batches with a time scan containing system steps.
+
+    Layout matches ``filtering`` / ``lax.scan``: time axis first, then batch.
+    Dim names come from ``SystemT`` (``batch_size``, ``observation_dim``,
+    ``control_dim``); state trailing dims vary by concrete system.
+
+    Args:
+        system: System to simulate.
+        initial_time: Time before the first step.
+        number_of_steps: Number of observe/process steps to run.
+        initial_state: Initial system state, shape ``(batch_size, ...)``.
+        random_key: PRNG key. If ``None``, a fixed default key is used.
+        controller: Optional controller applied each step.
+
+    Returns:
+        ``(times, states, observations, controls)`` with leading time axis of
+        length ``number_of_steps``. ``controls`` is ``None`` if no controller.
+    """
+    assert number_of_steps > 0, f"number_of_steps {number_of_steps} must be > 0"
+    if random_key is None:
+        random_key = jax.random.PRNGKey(43)
+
+    if controller is not None:
+        assert system.batch_size == controller.batch_size, (
+            f"system.batch_size {system.batch_size} must match controller.batch_size {controller.batch_size}"
+        )
+        random_key, controller_key = jax.random.split(random_key)
+        controller_state = controller.initial_state(controller_key)
+    else:
+        controller_state = None
+
+    keys = jax.random.split(random_key, number_of_steps)
+
+    @jax.jit
+    def step(
+        carry: SimulateCarry,
+        random_key: PRNGKeyArray,
+    ) -> tuple[SimulateCarry, SimulateStep]:
+        observe_key, process_key, controller_key = jax.random.split(random_key, 3)
+
+        observation = system.observe(carry.time, carry.state, observe_key)
+
+        if controller is None:
+            control = None
+            next_controller_state = None
+            next_time, state = system.process(carry.time, carry.state, control, process_key)
+        else:
+            control, next_controller_state, _ = controller(
+                carry.controller_state,
+                carry.time,
+                observation,
+                controller_key,
+            )
+            next_time, state = system.process(carry.time, carry.state, control, process_key)
+
+        return SimulateCarry(next_time, state, next_controller_state), (
+            next_time,
+            state,
+            observation,
+            control,
+        )
+
+    _, (times, states, observations, controls) = jax.lax.scan(
+        step,
+        SimulateCarry(initial_time, initial_state, controller_state),
+        keys,
+    )
+
+    return times, states, observations, controls

@@ -1,9 +1,8 @@
-# pytorch model files
-*.pt
-*.pth
-
 # data files
 *.hdf5
+*.mp4
+*.png
+*.swp
 
 # developer-specific files
 .vscode

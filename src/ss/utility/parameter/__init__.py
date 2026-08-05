@@ -1,15 +1,13 @@
-"""Lazy re-exports -- see ss/__init__.py for rationale."""
+"""Lazy subpackage access -- see ss/__init__.py for rationale."""
 
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ._filtering import Filter, filtering
-    from .hmm_filter import HmmFilter
+    from ._parameter import Transformer, Parameter
 
 _EXPORTS: dict[str, str] = {
-    "Filter": "_filtering",
-    "filtering": "_filtering",
-    "HmmFilter": "hmm_filter",
+    "Transformer": "_parameter",
+    "Parameter": "_parameter",
 }
 
 __all__ = list(_EXPORTS)

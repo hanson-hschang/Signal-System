@@ -38,45 +38,38 @@ install-build: ## 🏗️  Install build dependencies.
 .PHONY: install-pre-commit
 install-pre-commit: ## 🕵️  Install pre-commit hooks.
 	@echo "🕵️ Installing pre-commit hooks..."
-	uv run pre-commit install
+	uv run --no-sync pre-commit install
 
 # ==============================================================================
 # CODE QUALITY
 # ==============================================================================
-.PHONY: syntax
-syntax: ## 🔎 Check for syntax upgrades without changing files.
-	@echo "🔎 Checking for syntax upgrades..."
-	find $(PY_SOURCES) -name "*.py" -type f -print0 | xargs -0 -r uv run pyupgrade --py313-plus --exit-zero-even-if-changed
-
 .PHONY: linting
 linting: ## 🔎 Check for linting issues without changing files.
-	make syntax
 	@echo "🔎 Checking for linting issues..."
-	uv run ruff check $(PY_SOURCES)
+	uv run --no-sync ruff check $(PY_SOURCES)
 
 .PHONY: formatting
 formatting: ## ✨ Format and fix code automatically.
-	make syntax
 	@echo "✨ Formatting and fixing code..."
-	uv run ruff format $(PY_SOURCES)
-	uv run ruff check $(PY_SOURCES) --fix
+	uv run --no-sync ruff format $(PY_SOURCES)
+	uv run --no-sync ruff check $(PY_SOURCES) --fix
 
 .PHONY: typing
 typing: ## 🔬 Run static type checking with mypy.
 	@echo "🔬 Running static type checking..."
-	uv run mypy ${PY_SOURCES}
+	uv run --no-sync mypy ${PY_SOURCES}
 
 .PHONY: security
 security: ## 🛡️  Run security checks with bandit.
 	@echo "🛡️  Running security checks..."
-	uv run bandit -r src/ -f json -o bandit-report.json || true
-	uv run bandit -r src/
+	uv run --no-sync bandit -r src/ -f json -o bandit-report.json || true
+	uv run --no-sync bandit -r src/
 
 # ==============================================================================
 # TESTING
 # ==============================================================================
 # The base pytest command.
-PYTEST_CMD = uv run pytest --cov=src --cov-branch -c pyproject.toml
+PYTEST_CMD = uv run --no-sync pytest --cov=src --cov-branch -c pyproject.toml
 
 .PHONY: test
 test: ## ✅ Run tests and show coverage in the terminal.
