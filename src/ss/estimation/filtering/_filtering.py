@@ -6,7 +6,6 @@ from typing import Self, TypeVar
 
 import equinox as eqx
 import jax
-import jax.numpy as jnp
 from jaxtyping import Array, Float, Shaped
 
 
@@ -72,9 +71,14 @@ class Filter(eqx.Module):
 
 FilterT = TypeVar("FilterT", bound=Filter)
 
-type FilteringCarry = tuple[
+class FilteringCarry(eqx.Module):
+    time: float
+    prior: Float[Array, "batch_size state_dim"]
+
+
+type FilteringStep = tuple[
     float,  # time
-    Float[Array, "batch_size state_dim"],  # prior belief
+    Float[Array, "batch_size state_dim"],  # filtered posterior
 ]
 
 
@@ -108,20 +112,15 @@ def filtering(
     def step(
         carry: FilteringCarry,
         observation: Float[Array, "batch_size observation_dim"],
-    ) -> tuple[
-        FilteringCarry,
-        Float[Array, "batch_size state_dim"],  # filtered posterior
-    ]:
-        time, prior = carry
-        posterior = filter.update(time, prior, observation)
-        next_prior = filter.estimate(time, posterior)
-        next_time = time + filter.time_step
-        return (next_time, next_prior), posterior
+    ) -> tuple[FilteringCarry, FilteringStep]:
+        posterior = filter.update(carry.time, carry.prior, observation)
+        next_prior = filter.estimate(carry.time, posterior)
+        next_time = carry.time + filter.time_step
+        return FilteringCarry(next_time, next_prior), (next_time, posterior)
 
-    _, beliefs = jax.lax.scan(
+    _, (times, beliefs) = jax.lax.scan(
         step,
-        (initial_time, initial_belief),
+        FilteringCarry(initial_time, initial_belief),
         observations,
     )
-    times = initial_time + (jnp.arange(observations.shape[0]) + 1) * (filter.time_step)
     return times, beliefs
