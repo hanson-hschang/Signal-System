@@ -164,7 +164,7 @@ def simulate(
     keys = jax.random.split(random_key, number_of_steps)
 
     @jax.jit
-    def body(
+    def step(
         carry: SimulateCarry,
         random_key: PRNGKeyArray,
     ) -> tuple[SimulateCarry, SimulateStep]:
@@ -193,7 +193,7 @@ def simulate(
         )
 
     _, (times, states, observations, controls) = jax.lax.scan(
-        body,
+        step,
         SimulateCarry(initial_time, initial_state, controller_state),
         keys,
     )
