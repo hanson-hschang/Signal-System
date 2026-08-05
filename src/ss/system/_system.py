@@ -102,6 +102,7 @@ class ContinuousTimeSystem(System):
 
 SystemT = TypeVar("SystemT", bound=System)
 
+
 class SimulateCarry(eqx.Module):
     time: float
     state: Shaped[Array, "batch_size ..."]

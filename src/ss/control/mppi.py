@@ -9,6 +9,7 @@ from ss.system import System
 
 from ._control import Controller
 
+
 class RolloutCarry(eqx.Module):
     times: Float[Array, "batch_size"]
     states: Float[Array, "batch_size num_rollouts state_dim"]
