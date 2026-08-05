@@ -71,6 +71,7 @@ class Filter(eqx.Module):
 
 FilterT = TypeVar("FilterT", bound=Filter)
 
+
 class FilteringCarry(eqx.Module):
     time: float
     prior: Float[Array, "batch_size state_dim"]
@@ -123,4 +124,4 @@ def filtering(
         FilteringCarry(initial_time, initial_belief),
         observations,
     )
-    return times, beliefs
+    return jax.numpy.asarray(times), beliefs

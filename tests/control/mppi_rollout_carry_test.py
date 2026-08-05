@@ -33,8 +33,7 @@ class TestRolloutCarry:
             control_dim=system.control_dim,
             batch_size=system.batch_size,
             rollout_system=system,
-            running_cost=lambda state, control: jnp.sum(state**2, axis=-1)
-            + jnp.sum(control**2, axis=-1),
+            running_cost=lambda state, control: jnp.sum(state**2, axis=-1) + jnp.sum(control**2, axis=-1),
             terminal_cost=lambda state: jnp.sum(state**2, axis=-1),
             horizon=2,
             num_rollouts=4,
