@@ -12,7 +12,7 @@ import jax.numpy as jnp
 from jaxtyping import Array, Float, PRNGKeyArray, Shaped
 
 if TYPE_CHECKING:
-    from ss.control._control import Controller, ControllerState
+    from ss.control._control import Controller, ControllerState, Diagnostics
 
 
 class System(eqx.Module):
@@ -114,7 +114,18 @@ type SimulateStep = tuple[
     Shaped[Array, "batch_size ..."],  # state
     Shaped[Array, "batch_size observation_dim"],  # observation
     Float[Array, "batch_size control_dim"] | None,  # control
+    Diagnostics | None,  # controller diagnostics
 ]
+
+
+class SimulationResult(eqx.Module):
+    """Time-aligned system trajectory and per-step controller outputs."""
+
+    times: Float[Array, "state_time"]
+    states: Shaped[Array, "state_time batch_size ..."]
+    observations: Shaped[Array, "step_time batch_size observation_dim"]
+    controls: Float[Array, "step_time batch_size control_dim"] | None
+    controller_diagnostics: Diagnostics | None
 
 
 def simulate(
@@ -124,12 +135,7 @@ def simulate(
     initial_state: Shaped[Array, "batch_size ..."],
     random_key: PRNGKeyArray | None = None,
     controller: Controller | None = None,
-) -> tuple[
-    Float[Array, "time"],  # times
-    Shaped[Array, "time batch_size ..."],  # states
-    Shaped[Array, "time batch_size observation_dim"],  # observations
-    Float[Array, "time batch_size control_dim"] | None,  # controls
-]:
+) -> SimulationResult:
     """Simulate batches with a time scan containing system steps.
 
     Layout matches ``filtering`` / ``lax.scan``: time axis first, then batch.
@@ -145,8 +151,9 @@ def simulate(
         controller: Optional controller applied each step.
 
     Returns:
-        ``(times, states, observations, controls)`` with leading time axis of
-        length ``number_of_steps``. ``controls`` is ``None`` if no controller.
+        A result whose ``times`` and ``states`` include the initial and final
+        samples. Observations, controls, and diagnostics describe each
+        transition and therefore contain ``number_of_steps`` samples.
     """
     assert number_of_steps > 0, f"number_of_steps {number_of_steps} must be > 0"
     if random_key is None:
@@ -175,9 +182,10 @@ def simulate(
         if controller is None:
             control = None
             next_controller_state = None
+            diagnostics = None
             next_time, state = system.process(carry.time, carry.state, control, process_key)
         else:
-            control, next_controller_state, _ = controller(
+            control, next_controller_state, diagnostics = controller(
                 carry.controller_state,
                 carry.time,
                 observation,
@@ -186,16 +194,26 @@ def simulate(
             next_time, state = system.process(carry.time, carry.state, control, process_key)
 
         return SimulateCarry(next_time, state, next_controller_state), (
-            next_time,
-            state,
+            carry.time,
+            carry.state,
             observation,
             control,
+            diagnostics,
         )
 
-    _, (times, states, observations, controls) = jax.lax.scan(
+    final_carry, outputs = jax.lax.scan(
         step,
         SimulateCarry(initial_time, initial_state, controller_state),
         keys,
     )
+    times, states, observations, controls, diagnostics = outputs
+    times = jnp.concatenate((times, jnp.asarray(final_carry.time)[None]))
+    states = jnp.concatenate((states, final_carry.state[None]), axis=0)
 
-    return times, states, observations, controls
+    return SimulationResult(
+        times,
+        states,
+        observations,
+        controls,
+        diagnostics,
+    )
