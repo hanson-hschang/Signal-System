@@ -1,5 +1,6 @@
 # ruff: noqa: F722, F821
 
+from dataclasses import InitVar
 from enum import StrEnum
 
 import equinox as eqx
@@ -29,73 +30,104 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
     The deterministic matrices are obtained from a continuous model using an
     exact zero-order hold. Noise covariance arguments describe the discrete
     noise added once per simulation step.
+
+    ``observation_choice`` / ``control_choice`` are init-only; the resulting
+    matrices are stored on the module.
     """
 
-    number_of_connections: int = eqx.field(static=True)
-    mass: float = eqx.field(static=True)
-    spring_constant: float = eqx.field(static=True)
-    damping_coefficient: float = eqx.field(static=True)
-    initial_state_standard_deviation: float = eqx.field(static=True)
+    number_of_connections: int = eqx.field(static=True, default=1)
+    mass: float = eqx.field(static=True, default=1.0)
+    spring_constant: float = eqx.field(static=True, default=1.0)
+    damping_coefficient: float = eqx.field(static=True, default=1.0)
+    initial_state_standard_deviation: float = eqx.field(static=True, default=1.0)
 
-    continuous_state_matrix: Float[Array, "state_dim state_dim"]
-    continuous_control_matrix: Float[Array, "state_dim control_dim"]
-    observation_matrix: Float[Array, "observation_dim state_dim"]
-    discrete_state_matrix: Float[Array, "state_dim state_dim"]
-    discrete_control_matrix: Float[Array, "state_dim control_dim"]
+    observation_choice: InitVar[ObservationChoice] = ObservationChoice.LAST_POSITION
+    control_choice: InitVar[ControlChoice] = ControlChoice.NO_CONTROL
 
-    def __init__(
+    time_step: float = eqx.field(static=True, default=0.01)
+    state_dim: int = eqx.field(static=True, default=0)
+    observation_dim: int = eqx.field(static=True, default=0)
+    control_dim: int = eqx.field(static=True, default=0)
+    batch_size: int = eqx.field(static=True, default=1)
+
+    continuous_state_matrix: Float[Array, "state_dim state_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+    continuous_control_matrix: Float[Array, "state_dim control_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+    observation_matrix: Float[Array, "observation_dim state_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+    discrete_state_matrix: Float[Array, "state_dim state_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+    discrete_control_matrix: Float[Array, "state_dim control_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+    process_noise_covariance: Float[Array, "state_dim state_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+    observation_noise_covariance: Float[Array, "observation_dim observation_dim"] = eqx.field(
+        default=0.0,
+        converter=jnp.asarray,
+    )
+
+    def __post_init__(
         self,
-        number_of_connections: int = 1,
-        mass: float = 1.0,
-        spring_constant: float = 1.0,
-        damping_coefficient: float = 1.0,
-        time_step: float = 0.01,
-        observation_choice: ObservationChoice = (ObservationChoice.LAST_POSITION),
-        control_choice: ControlChoice = ControlChoice.NO_CONTROL,
-        process_noise_covariance: Array | None = None,
-        observation_noise_covariance: Array | None = None,
-        initial_state_standard_deviation: float = 1.0,
-        batch_size: int = 1,
+        observation_choice: ObservationChoice,
+        control_choice: ControlChoice,
     ) -> None:
-        assert number_of_connections > 0
-        assert mass > 0
-        assert spring_constant >= 0
-        assert damping_coefficient >= 0
-        assert time_step > 0
-        assert initial_state_standard_deviation >= 0
         assert isinstance(observation_choice, ObservationChoice)
         assert isinstance(control_choice, ControlChoice)
 
-        state_dim = 2 * number_of_connections
-        state_matrix = self._make_state_matrix(
-            number_of_connections,
-            mass,
-            spring_constant,
-            damping_coefficient,
+        continuous_state_matrix = self._make_state_matrix(
+            self.number_of_connections,
+            self.mass,
+            self.spring_constant,
+            self.damping_coefficient,
         )
-        control_matrix = self._make_control_matrix(number_of_connections, mass, control_choice)
-        observation_matrix = self._make_observation_matrix(number_of_connections, observation_choice)
-        discrete_state_matrix, discrete_control_matrix = self._discretize(state_matrix, control_matrix, time_step)
+        continuous_control_matrix = self._make_control_matrix(
+            self.number_of_connections,
+            self.mass,
+            control_choice,
+        )
+        observation_matrix = self._make_observation_matrix(
+            self.number_of_connections,
+            observation_choice,
+        )
+        state_dim, control_dim = continuous_control_matrix.shape
+        augmented = jnp.zeros((state_dim + control_dim, state_dim + control_dim))
+        augmented = augmented.at[:state_dim, :state_dim].set(continuous_state_matrix)
+        augmented = augmented.at[:state_dim, state_dim:].set(continuous_control_matrix)
+        exponential = jsp_linalg.expm(augmented * self.time_step)
 
-        self.time_step = time_step
-        self.state_dim = state_dim
-        self.observation_dim = observation_matrix.shape[0]
-        self.control_dim = control_matrix.shape[1]
-        self.batch_size = batch_size
-        self.number_of_connections = number_of_connections
-        self.mass = mass
-        self.spring_constant = spring_constant
-        self.damping_coefficient = damping_coefficient
-        self.initial_state_standard_deviation = initial_state_standard_deviation
-        self.continuous_state_matrix = state_matrix
-        self.continuous_control_matrix = control_matrix
+        self.state_dim = 2 * self.number_of_connections
+        self.observation_dim = int(observation_matrix.shape[0])
+        self.control_dim = int(control_dim)
+        self.continuous_state_matrix = continuous_state_matrix
+        self.continuous_control_matrix = continuous_control_matrix
         self.observation_matrix = observation_matrix
-        self.discrete_state_matrix = discrete_state_matrix
-        self.discrete_control_matrix = discrete_control_matrix
-        self.process_noise_covariance = self._covariance_or_zeros(process_noise_covariance, state_dim)
-        self.observation_noise_covariance = self._covariance_or_zeros(
-            observation_noise_covariance, self.observation_dim
-        )
+        self.discrete_state_matrix = exponential[:state_dim, :state_dim]
+        self.discrete_control_matrix = exponential[:state_dim, state_dim:]
+
+        process = jnp.asarray(self.process_noise_covariance)
+        if process.ndim == 0:
+            process = jnp.broadcast_to(process, (self.state_dim, self.state_dim))
+        self.process_noise_covariance = process
+        observation = jnp.asarray(self.observation_noise_covariance)
+        if observation.ndim == 0:
+            observation = jnp.broadcast_to(
+                observation,
+                (self.observation_dim, self.observation_dim),
+            )
+        self.observation_noise_covariance = observation
 
     def __check_init__(self) -> None:
         super().__check_init__()
@@ -104,6 +136,12 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         assert self.spring_constant >= 0
         assert self.damping_coefficient >= 0
         assert self.initial_state_standard_deviation >= 0
+        assert self.state_dim == 2 * self.number_of_connections
+        assert self.continuous_state_matrix.shape == (self.state_dim, self.state_dim)
+        assert self.continuous_control_matrix.shape == (self.state_dim, self.control_dim)
+        assert self.observation_matrix.shape == (self.observation_dim, self.state_dim)
+        assert self.discrete_state_matrix.shape == (self.state_dim, self.state_dim)
+        assert self.discrete_control_matrix.shape == (self.state_dim, self.control_dim)
 
     def initial_state(self, random_key: PRNGKeyArray | None = None) -> Float[Array, "batch_size state_dim"]:  # noqa: F722
         state = jnp.zeros((self.batch_size, self.state_dim))
@@ -117,7 +155,11 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         state: Float[Array, "... state_dim"],
         random_key: PRNGKeyArray,
     ) -> Float[Array, "... observation_dim"]:
-        return state @ self.observation_matrix.T + self._observation_noise(time, state, random_key)
+        return state @ self.observation_matrix.T + self._sample_noise(
+            random_key,
+            self.observation_noise_covariance,
+            state.shape[:-1],
+        )
 
     def process(
         self,
@@ -129,24 +171,12 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         next_state = state @ self.discrete_state_matrix.T
         if control is not None:
             next_state += control @ self.discrete_control_matrix.T
-        next_state += self._process_noise(time, state, random_key)
-        return time + self.time_step, next_state
-
-    def _process_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
-        del time
-        return self._sample_noise(
+        next_state += self._sample_noise(
             random_key,
             self.process_noise_covariance,
             state.shape[:-1],
         )
-
-    def _observation_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
-        del time
-        return self._sample_noise(
-            random_key,
-            self.observation_noise_covariance,
-            state.shape[:-1],
-        )
+        return time + self.time_step, next_state
 
     @staticmethod
     def _sample_noise(
@@ -165,12 +195,6 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
                 shape=batch_shape,
             ),
         )
-
-    @staticmethod
-    def _covariance_or_zeros(covariance: Array | None, dimension: int) -> Array:
-        if covariance is None:
-            return jnp.zeros((dimension, dimension))
-        return jnp.asarray(covariance)
 
     @staticmethod
     def _make_state_matrix(
@@ -192,30 +216,22 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
 
     @staticmethod
     def _make_control_matrix(count: int, mass: float, choice: ControlChoice) -> Array:
-        if choice == ControlChoice.ALL_FORCES:
-            return jnp.concatenate((jnp.zeros((count, count)), jnp.eye(count) / mass), axis=0)
-        if choice == ControlChoice.LAST_FORCE:
-            matrix = jnp.zeros((2 * count, 1))
-            return matrix.at[-1, 0].set(1 / mass)
-        return jnp.zeros((2 * count, 0))
+        match choice:
+            case ControlChoice.ALL_FORCES:
+                return jnp.concatenate((jnp.zeros((count, count)), jnp.eye(count) / mass), axis=0)
+            case ControlChoice.LAST_FORCE:
+                matrix = jnp.zeros((2 * count, 1))
+                return matrix.at[-1, 0].set(1 / mass)
+            case ControlChoice.NO_CONTROL:
+                return jnp.zeros((2 * count, 0))
 
     @staticmethod
     def _make_observation_matrix(count: int, choice: ObservationChoice) -> Array:
-        if choice == ObservationChoice.ALL_STATES:
-            return jnp.eye(2 * count)
-        if choice == ObservationChoice.ALL_POSITIONS:
-            return jnp.concatenate((jnp.eye(count), jnp.zeros((count, count))), axis=1)
-        matrix = jnp.zeros((1, 2 * count))
-        return matrix.at[0, count - 1].set(1.0)
-
-    @staticmethod
-    def _discretize(state_matrix: Array, control_matrix: Array, time_step: float) -> tuple[Array, Array]:
-        state_dim, control_dim = control_matrix.shape
-        augmented = jnp.zeros((state_dim + control_dim, state_dim + control_dim))
-        augmented = augmented.at[:state_dim, :state_dim].set(state_matrix)
-        augmented = augmented.at[:state_dim, state_dim:].set(control_matrix)
-        exponential = jsp_linalg.expm(augmented * time_step)
-        return (
-            exponential[:state_dim, :state_dim],
-            exponential[:state_dim, state_dim:],
-        )
+        match choice:
+            case ObservationChoice.ALL_STATES:
+                return jnp.eye(2 * count)
+            case ObservationChoice.ALL_POSITIONS:
+                return jnp.concatenate((jnp.eye(count), jnp.zeros((count, count))), axis=1)
+            case ObservationChoice.LAST_POSITION:
+                matrix = jnp.zeros((1, 2 * count))
+                return matrix.at[0, count - 1].set(1.0)
