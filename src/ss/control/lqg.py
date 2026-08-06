@@ -103,14 +103,10 @@ class LQGController(Controller):
         *,
         state_cost: Float[Array, "state_dim state_dim"],
         control_cost: Float[Array, "control_dim control_dim"],
-        process_noise_covariance: Float[Array, "state_dim state_dim"] | None = None,
-        observation_noise_covariance: Float[Array, "observation_dim observation_dim"] | None = None,
         riccati_iterations: int = 500,
     ) -> "LQGController":
-        if process_noise_covariance is None:
-            process_noise_covariance = system.process_noise_covariance
-        if observation_noise_covariance is None:
-            observation_noise_covariance = system.observation_noise_covariance
+        process_noise_covariance = system.process_noise_covariance
+        observation_noise_covariance = system.observation_noise_covariance
         return cls(
             control_dim=system.control_dim,
             batch_size=system.batch_size,
