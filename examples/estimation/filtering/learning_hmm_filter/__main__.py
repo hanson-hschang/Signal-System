@@ -88,10 +88,10 @@ if __name__ == "__main__":
 
     initial_state = system.initial_state(random_key)
 
-    times, states, observations, _ = simulate(system, 0, time_horizon, initial_state, random_key)
+    result = simulate(system, 0, time_horizon, initial_state, random_key)
 
-    print(states)
-    print(observations)
+    print(result.states)
+    print(result.observations)
 
     # random initialize filter parameters (independent of system)
     key_filter = jax.random.PRNGKey(0)
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     learning_process.train_one_epoch(
         # (time, batch, observation_dim)
-        training_data_loader=[observations for _ in range(10)],
+        training_data_loader=[result.observations for _ in range(10)],
         validation_data_loader=None,
         random_key=jax.random.PRNGKey(0),
     )

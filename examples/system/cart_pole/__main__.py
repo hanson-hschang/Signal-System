@@ -79,7 +79,7 @@ def main(
 
     initial_state = system.initial_state()
 
-    times, states, _, _ = simulate(
+    result = simulate(
         system,
         0.0,
         num_steps,
@@ -87,7 +87,7 @@ def main(
         random_key,
     )
 
-    print(f"final_state={states[-1]}")
+    print(f"final_state={result.states[-1]}")
 
     if save_dir is not None:
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -95,8 +95,8 @@ def main(
         plot_path = save_dir / "cart_pole_plot.png"
         animation_path = save_dir / "cart_pole_animation.mp4"
 
-        plot_simulation(times, states, save_path=plot_path)
-        render_animation(times, states, pole_length, animation_path)
+        plot_simulation(result.times, result.states, save_path=plot_path)
+        render_animation(result.times, result.states, pole_length, animation_path)
 
         click.echo(f"Saved plot to {plot_path}")
         click.echo(f"Saved animation to {animation_path}")

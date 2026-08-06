@@ -68,7 +68,7 @@ def main(
         noise_sigma=noise_sigma,
         control_limit=control_limit,
     )
-    times, states, _, controls = simulate(
+    result = simulate(
         system,
         0.0,
         num_steps,
@@ -76,20 +76,20 @@ def main(
         random_key,
         controller=controller,
     )
-    costs = weights.running_cost(states, controls)
-    click.echo(f"final_state={states[-1]}")
+    costs = weights.running_cost(result.states[:-1], result.controls)
+    click.echo(f"final_state={result.states[-1]}")
     click.echo(f"total_running_cost={jnp.sum(costs, axis=0) * time_step}")
 
     if save_dir is not None:
         save_dir.mkdir(parents=True, exist_ok=True)
         plot_simulation(
-            times,
-            states,
-            controls,
+            result.times[:-1],
+            result.states[:-1],
+            result.controls,
             costs,
             save_dir / "mppi_cart_pole_plot.png",
         )
-        render_animation(times, states, system.pole_length, save_dir / "mppi_cart_pole.mp4")
+        render_animation(result.times, result.states, system.pole_length, save_dir / "mppi_cart_pole.mp4")
         click.echo(f"Saved MPPI results to {save_dir}")
 
 
