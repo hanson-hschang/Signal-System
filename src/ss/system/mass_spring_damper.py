@@ -50,9 +50,7 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         spring_constant: float = 1.0,
         damping_coefficient: float = 1.0,
         time_step: float = 0.01,
-        observation_choice: ObservationChoice = (
-            ObservationChoice.LAST_POSITION
-        ),
+        observation_choice: ObservationChoice = (ObservationChoice.LAST_POSITION),
         control_choice: ControlChoice = ControlChoice.NO_CONTROL,
         process_noise_covariance: Array | None = None,
         observation_noise_covariance: Array | None = None,
@@ -75,15 +73,9 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
             spring_constant,
             damping_coefficient,
         )
-        control_matrix = self._make_control_matrix(
-            number_of_connections, mass, control_choice
-        )
-        observation_matrix = self._make_observation_matrix(
-            number_of_connections, observation_choice
-        )
-        discrete_state_matrix, discrete_control_matrix = self._discretize(
-            state_matrix, control_matrix, time_step
-        )
+        control_matrix = self._make_control_matrix(number_of_connections, mass, control_choice)
+        observation_matrix = self._make_observation_matrix(number_of_connections, observation_choice)
+        discrete_state_matrix, discrete_control_matrix = self._discretize(state_matrix, control_matrix, time_step)
 
         self.time_step = time_step
         self.state_dim = state_dim
@@ -94,17 +86,13 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         self.mass = mass
         self.spring_constant = spring_constant
         self.damping_coefficient = damping_coefficient
-        self.initial_state_standard_deviation = (
-            initial_state_standard_deviation
-        )
+        self.initial_state_standard_deviation = initial_state_standard_deviation
         self.continuous_state_matrix = state_matrix
         self.continuous_control_matrix = control_matrix
         self.observation_matrix = observation_matrix
         self.discrete_state_matrix = discrete_state_matrix
         self.discrete_control_matrix = discrete_control_matrix
-        self.process_noise_covariance = self._covariance_or_zeros(
-            process_noise_covariance, state_dim
-        )
+        self.process_noise_covariance = self._covariance_or_zeros(process_noise_covariance, state_dim)
         self.observation_noise_covariance = self._covariance_or_zeros(
             observation_noise_covariance, self.observation_dim
         )
@@ -117,76 +105,69 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         assert self.damping_coefficient >= 0
         assert self.initial_state_standard_deviation >= 0
 
-    def init_state(
-        self, random_key: PRNGKeyArray | None = None
-    ) -> Float[Array, "batch_size state_dim"]:  # noqa: F722
+    def initial_state(self, random_key: PRNGKeyArray | None = None) -> Float[Array, "batch_size state_dim"]:  # noqa: F722
         state = jnp.zeros((self.batch_size, self.state_dim))
         if random_key is None:
             return state
-        return (
-            state
-            + self.initial_state_standard_deviation
-            * jax.random.normal(random_key, state.shape)
-        )
+        return state + self.initial_state_standard_deviation * jax.random.normal(random_key, state.shape)
 
     def observe(
         self,
         time: float,
-        state: Float[Array, "state_dim"],
+        state: Float[Array, "... state_dim"],
         random_key: PRNGKeyArray,
-    ) -> Float[Array, "observation_dim"]:
-        return self.observation_matrix @ state + self._observation_noise(
-            time, state, random_key
-        )
+    ) -> Float[Array, "... observation_dim"]:
+        return state @ self.observation_matrix.T + self._observation_noise(time, state, random_key)
 
     def process(
         self,
         time: float,
-        state: Float[Array, "state_dim"],
+        state: Float[Array, "... state_dim"],
+        control: Float[Array, "... control_dim"] | None,
         random_key: PRNGKeyArray,
-        *,
-        control: Float[Array, "control_dim"] | None = None,
-    ) -> tuple[float, Float[Array, "state_dim"]]:
-        next_state = self.discrete_state_matrix @ state
+    ) -> tuple[float, Float[Array, "... state_dim"]]:
+        next_state = state @ self.discrete_state_matrix.T
         if control is not None:
-            next_state += self.discrete_control_matrix @ control
+            next_state += control @ self.discrete_control_matrix.T
         next_state += self._process_noise(time, state, random_key)
         return time + self.time_step, next_state
 
-    def _process_noise(
-        self, time: float, state: Array, random_key: PRNGKeyArray
-    ) -> Array:
-        del time, state
+    def _process_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+        del time
         return self._sample_noise(
-            random_key, self.process_noise_covariance, self.state_dim
+            random_key,
+            self.process_noise_covariance,
+            state.shape[:-1],
         )
 
-    def _observation_noise(
-        self, time: float, state: Array, random_key: PRNGKeyArray
-    ) -> Array:
-        del time, state
+    def _observation_noise(self, time: float, state: Array, random_key: PRNGKeyArray) -> Array:
+        del time
         return self._sample_noise(
             random_key,
             self.observation_noise_covariance,
-            self.observation_dim,
+            state.shape[:-1],
         )
 
     @staticmethod
     def _sample_noise(
-        random_key: PRNGKeyArray, covariance: Array, dimension: int
+        random_key: PRNGKeyArray,
+        covariance: Array,
+        batch_shape: tuple[int, ...],
     ) -> Array:
+        dimension = covariance.shape[0]
         return jax.lax.cond(
             jnp.all(covariance == 0),
-            lambda: jnp.zeros(dimension),
+            lambda: jnp.zeros((*batch_shape, dimension)),
             lambda: jax.random.multivariate_normal(
-                random_key, jnp.zeros(dimension), covariance
+                random_key,
+                jnp.zeros(dimension),
+                covariance,
+                shape=batch_shape,
             ),
         )
 
     @staticmethod
-    def _covariance_or_zeros(
-        covariance: Array | None, dimension: int
-    ) -> Array:
+    def _covariance_or_zeros(covariance: Array | None, dimension: int) -> Array:
         if covariance is None:
             return jnp.zeros((dimension, dimension))
         return jnp.asarray(covariance)
@@ -203,52 +184,34 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         for connection in range(1, count):
             indices = jnp.array([connection - 1, connection])
             coupling = jnp.array([[1.0, -1.0], [-1.0, 1.0]])
-            stiffness = stiffness.at[jnp.ix_(indices, indices)].add(
-                spring * coupling
-            )
-            damping_matrix = damping_matrix.at[jnp.ix_(indices, indices)].add(
-                damping * coupling
-            )
+            stiffness = stiffness.at[jnp.ix_(indices, indices)].add(spring * coupling)
+            damping_matrix = damping_matrix.at[jnp.ix_(indices, indices)].add(damping * coupling)
         zeros = jnp.zeros((count, count))
         identity = jnp.eye(count)
-        return jnp.block(
-            [[zeros, identity], [-stiffness / mass, -damping_matrix / mass]]
-        )
+        return jnp.block([[zeros, identity], [-stiffness / mass, -damping_matrix / mass]])
 
     @staticmethod
-    def _make_control_matrix(
-        count: int, mass: float, choice: ControlChoice
-    ) -> Array:
+    def _make_control_matrix(count: int, mass: float, choice: ControlChoice) -> Array:
         if choice == ControlChoice.ALL_FORCES:
-            return jnp.concatenate(
-                (jnp.zeros((count, count)), jnp.eye(count) / mass), axis=0
-            )
+            return jnp.concatenate((jnp.zeros((count, count)), jnp.eye(count) / mass), axis=0)
         if choice == ControlChoice.LAST_FORCE:
             matrix = jnp.zeros((2 * count, 1))
             return matrix.at[-1, 0].set(1 / mass)
         return jnp.zeros((2 * count, 0))
 
     @staticmethod
-    def _make_observation_matrix(
-        count: int, choice: ObservationChoice
-    ) -> Array:
+    def _make_observation_matrix(count: int, choice: ObservationChoice) -> Array:
         if choice == ObservationChoice.ALL_STATES:
             return jnp.eye(2 * count)
         if choice == ObservationChoice.ALL_POSITIONS:
-            return jnp.concatenate(
-                (jnp.eye(count), jnp.zeros((count, count))), axis=1
-            )
+            return jnp.concatenate((jnp.eye(count), jnp.zeros((count, count))), axis=1)
         matrix = jnp.zeros((1, 2 * count))
         return matrix.at[0, count - 1].set(1.0)
 
     @staticmethod
-    def _discretize(
-        state_matrix: Array, control_matrix: Array, time_step: float
-    ) -> tuple[Array, Array]:
+    def _discretize(state_matrix: Array, control_matrix: Array, time_step: float) -> tuple[Array, Array]:
         state_dim, control_dim = control_matrix.shape
-        augmented = jnp.zeros(
-            (state_dim + control_dim, state_dim + control_dim)
-        )
+        augmented = jnp.zeros((state_dim + control_dim, state_dim + control_dim))
         augmented = augmented.at[:state_dim, :state_dim].set(state_matrix)
         augmented = augmented.at[:state_dim, state_dim:].set(control_matrix)
         exponential = jsp_linalg.expm(augmented * time_step)
