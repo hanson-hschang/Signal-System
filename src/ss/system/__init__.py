@@ -11,6 +11,12 @@ if TYPE_CHECKING:
     )
     from .cart_pole import CartPoleSystem
     from .hmm import HiddenMarkovModel
+    from .mass_spring_damper import (
+        ControlChoice,
+        MassSpringDamperSystem,
+        ObservationChoice,
+    )
+    # from .discrete import HiddenMarkovModel
     # from .linear import (
     #     ContinuousTimeLinearSystem,
     #     DiscreteTimeLinearSystem,
@@ -27,6 +33,9 @@ _EXPORTS: dict[str, str] = {
     "simulate": "_system",
     "CartPoleSystem": "cart_pole",
     "HiddenMarkovModel": "hmm",
+    "ControlChoice": "mass_spring_damper",
+    "MassSpringDamperSystem": "mass_spring_damper",
+    "ObservationChoice": "mass_spring_damper",
     # "ContinuousTimeLinearSystem": "linear",
     # "DiscreteTimeLinearSystem": "linear",
     # "ContinuousTimeNonlinearSystem": "nonlinear",
