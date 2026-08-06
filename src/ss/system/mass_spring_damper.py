@@ -184,17 +184,35 @@ class MassSpringDamperSystem(ContinuousTimeSystem):
         covariance: Array,
         batch_shape: tuple[int, ...],
     ) -> Array:
+        """Sample Gaussian noise for a batch.
+
+        Supports both ``simulate`` (one key + ``shape=batch_shape``) and
+        vmapped rollouts (one key per batch element).
+        """
         dimension = covariance.shape[0]
-        return jax.lax.cond(
-            jnp.all(covariance == 0),
-            lambda: jnp.zeros((*batch_shape, dimension)),
-            lambda: jax.random.multivariate_normal(
-                random_key,
+        zero = jnp.zeros((*batch_shape, dimension))
+
+        def sample_one(key: PRNGKeyArray) -> Array:
+            return jax.random.multivariate_normal(
+                key,
                 jnp.zeros(dimension),
                 covariance,
-                shape=batch_shape,
-            ),
-        )
+            )
+
+        def sample() -> Array:
+            if random_key.ndim == 1:
+                return jax.random.multivariate_normal(
+                    random_key,
+                    jnp.zeros(dimension),
+                    covariance,
+                    shape=batch_shape,
+                )
+            sample_fn = sample_one
+            for _ in batch_shape:
+                sample_fn = jax.vmap(sample_fn)
+            return sample_fn(random_key)
+
+        return jax.lax.cond(jnp.all(covariance == 0), lambda: zero, sample)
 
     @staticmethod
     def _make_state_matrix(
