@@ -81,14 +81,14 @@ class TestLQGController:
             time_step=0.02,
             observation_choice=ObservationChoice.ALL_POSITIONS,
             control_choice=ControlChoice.ALL_FORCES,
+            process_noise_covariance=0.01 * jnp.eye(4),
+            observation_noise_covariance=0.02 * jnp.eye(2),
             batch_size=3,
         )
         controller = LQGController.from_system(
             system,
             state_cost=jnp.eye(system.state_dim),
             control_cost=0.1 * jnp.eye(system.control_dim),
-            process_noise_covariance=0.01 * jnp.eye(system.state_dim),
-            observation_noise_covariance=0.02 * jnp.eye(system.observation_dim),
         )
         initial_state = jnp.array(
             [
