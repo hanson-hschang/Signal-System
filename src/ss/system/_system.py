@@ -163,6 +163,9 @@ def simulate(
         assert system.batch_size == controller.batch_size, (
             f"system.batch_size {system.batch_size} must match controller.batch_size {controller.batch_size}"
         )
+        assert system.control_dim == controller.control_dim, (
+            f"system.control_dim {system.control_dim} must match controller.control_dim {controller.control_dim}"
+        )
         random_key, controller_key = jax.random.split(random_key)
         controller_state = controller.initial_state(controller_key)
     else:
