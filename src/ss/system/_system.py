@@ -117,6 +117,15 @@ type SimulateStep = tuple[
 ]
 
 
+class SimulationResult(eqx.Module):
+    """Time-aligned system trajectory and per-step controller outputs."""
+
+    times: Float[Array, "state_time"]
+    states: Shaped[Array, "state_time batch_size ..."]
+    observations: Shaped[Array, "step_time batch_size observation_dim"]
+    controls: Float[Array, "step_time batch_size control_dim"] | None
+
+
 def simulate(
     system: SystemT,
     initial_time: float,
@@ -124,12 +133,7 @@ def simulate(
     initial_state: Shaped[Array, "batch_size ..."],
     random_key: PRNGKeyArray | None = None,
     controller: Controller | None = None,
-) -> tuple[
-    Float[Array, "time"],  # times
-    Shaped[Array, "time batch_size ..."],  # states
-    Shaped[Array, "time batch_size observation_dim"],  # observations
-    Float[Array, "time batch_size control_dim"] | None,  # controls
-]:
+) -> SimulationResult:
     """Simulate batches with a time scan containing system steps.
 
     Layout matches ``filtering`` / ``lax.scan``: time axis first, then batch.
@@ -145,8 +149,9 @@ def simulate(
         controller: Optional controller applied each step.
 
     Returns:
-        ``(times, states, observations, controls)`` with leading time axis of
-        length ``number_of_steps``. ``controls`` is ``None`` if no controller.
+        A result whose ``times`` and ``states`` include the initial and final
+        samples. Observations and controls describe each transition and
+        therefore contain ``number_of_steps`` samples.
     """
     assert number_of_steps > 0, f"number_of_steps {number_of_steps} must be > 0"
     if random_key is None:
@@ -155,6 +160,9 @@ def simulate(
     if controller is not None:
         assert system.batch_size == controller.batch_size, (
             f"system.batch_size {system.batch_size} must match controller.batch_size {controller.batch_size}"
+        )
+        assert system.control_dim == controller.control_dim, (
+            f"system.control_dim {system.control_dim} must match controller.control_dim {controller.control_dim}"
         )
         random_key, controller_key = jax.random.split(random_key)
         controller_state = controller.initial_state(controller_key)
@@ -186,16 +194,24 @@ def simulate(
             next_time, state = system.process(carry.time, carry.state, control, process_key)
 
         return SimulateCarry(next_time, state, next_controller_state), (
-            next_time,
-            state,
+            carry.time,
+            carry.state,
             observation,
             control,
         )
 
-    _, (times, states, observations, controls) = jax.lax.scan(
+    final_carry, outputs = jax.lax.scan(
         step,
         SimulateCarry(initial_time, initial_state, controller_state),
         keys,
     )
+    times, states, observations, controls = outputs
+    times = jnp.concatenate((times, jnp.asarray(final_carry.time)[None]))
+    states = jnp.concatenate((states, final_carry.state[None]), axis=0)
 
-    return times, states, observations, controls
+    return SimulationResult(
+        times,
+        states,
+        observations,
+        controls,
+    )

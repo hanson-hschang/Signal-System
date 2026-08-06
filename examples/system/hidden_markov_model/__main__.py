@@ -33,11 +33,11 @@ if __name__ == "__main__":
 
     initial_state = system.initial_state(random_key)
 
-    times, states, observations, _ = simulate(system, 0, time_horizon, initial_state, random_key)
+    result = simulate(system, 0, time_horizon, initial_state, random_key)
 
-    print("times:", times.shape)
-    print("states:", states.shape)
-    print("observations:", observations.shape)
+    print("times:", result.times.shape)
+    print("states:", result.states.shape)
+    print("observations:", result.observations.shape)
 
     print("=== batched rollout ===")
     batch_size = 15
@@ -47,8 +47,8 @@ if __name__ == "__main__":
     initial_state_key, random_key = jax.random.split(random_key)
     init_states = systems.initial_state(initial_state_key)
 
-    batch_times, batch_states, batch_observations, _ = simulate(systems, 0, time_horizon, init_states, random_key)
+    batch_result = simulate(systems, 0, time_horizon, init_states, random_key)
 
-    print("batch_times shape:", batch_times.shape)
-    print("batch_states shape:", batch_states.shape)
-    print("batch_observations shape:", batch_observations.shape)
+    print("batch_times shape:", batch_result.times.shape)
+    print("batch_states shape:", batch_result.states.shape)
+    print("batch_observations shape:", batch_result.observations.shape)
