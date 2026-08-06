@@ -4,7 +4,7 @@ import click
 import jax
 import jax.numpy as jnp
 
-from ss.control import LQGController
+from ss.control import LQGController, QuadraticCost
 from ss.system import (
     MassSpringDamperSystem,
     ControlChoice,
@@ -12,7 +12,6 @@ from ss.system import (
     simulate,
 )
 
-from .cost import QuadraticCost
 from .post_processing import plot_simulation, render_animation
 
 
