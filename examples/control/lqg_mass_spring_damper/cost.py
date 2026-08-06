@@ -14,10 +14,6 @@ class QuadraticCost(eqx.Module):
         state: Float[Array, "*batch state_dim"],
         control: Float[Array, "*batch control_dim"],
     ) -> Float[Array, "*batch"]:
-        state_cost = jnp.einsum(
-            "...i,ij,...j->...", state, self.state_weight, state
-        )
-        control_cost = jnp.einsum(
-            "...i,ij,...j->...", control, self.control_weight, control
-        )
+        state_cost = jnp.einsum("...i,ij,...j->...", state, self.state_weight, state)
+        control_cost = jnp.einsum("...i,ij,...j->...", control, self.control_weight, control)
         return 0.5 * (state_cost + control_cost)

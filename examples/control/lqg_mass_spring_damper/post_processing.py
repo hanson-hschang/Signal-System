@@ -3,6 +3,7 @@ from pathlib import Path
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 from jaxtyping import Array
+from matplotlib.artist import Artist
 from matplotlib.animation import FFMpegWriter, FuncAnimation
 from matplotlib.patches import Circle
 
@@ -10,15 +11,14 @@ from matplotlib.patches import Circle
 def plot_simulation(
     times: Array,
     states: Array,
+    estimated_states: Array,
     controls: Array,
     running_costs: Array,
     save_path: Path,
 ) -> None:
     """Plot every batch member in a mass-spring-damper simulation."""
     number_of_connections = controls.shape[-1]
-    figure, axes = plt.subplots(
-        3, 1, figsize=(10, 9), sharex=True, constrained_layout=True
-    )
+    figure, axes = plt.subplots(3, 1, figsize=(10, 9), sharex=True, constrained_layout=True)
 
     for batch_index in range(states.shape[1]):
         for connection_index in range(number_of_connections):
@@ -29,6 +29,13 @@ def plot_simulation(
                 linewidth=1.2,
                 alpha=0.8,
                 label=label,
+            )
+            axes[0].plot(
+                times,
+                estimated_states[:, batch_index, connection_index],
+                linestyle="--",
+                linewidth=1.0,
+                alpha=0.8,
             )
             axes[1].plot(
                 times,
@@ -44,7 +51,7 @@ def plot_simulation(
             label=f"Run {batch_index + 1}",
         )
 
-    axes[0].set_title("Mass positions")
+    axes[0].set_title("Mass positions (solid) and Kalman estimates (dashed)")
     axes[0].set_ylabel("Position (m)")
     axes[1].set_title("Control forces")
     axes[1].set_ylabel("Force (N)")
@@ -72,10 +79,7 @@ def render_animation(
     """Render every batch member as a wall-connected horizontal chain."""
     number_of_connections = states.shape[-1] // 2
     equilibrium_positions = jnp.arange(1, number_of_connections + 1)
-    positions = (
-        states[:, :, :number_of_connections]
-        + equilibrium_positions[None, None, :]
-    )
+    positions = states[:, :, :number_of_connections] + equilibrium_positions[None, None, :]
     duration = times[-1] - times[0]
     frame_count = min(times.shape[0], max(2, round(float(duration) * fps)))
     frame_indices = jnp.linspace(0, times.shape[0] - 1, frame_count, dtype=int)
@@ -90,15 +94,11 @@ def render_animation(
     axis.set_xlabel("Horizontal position (m)")
     axis.set_ylabel("Simulation batch")
     axis.set_yticks(jnp.arange(states.shape[1]))
-    axis.set_yticklabels(
-        [f"Run {index + 1}" for index in range(states.shape[1])]
-    )
+    axis.set_yticklabels([f"Run {index + 1}" for index in range(states.shape[1])])
     axis.set_title("LQG mass-spring-damper simulation")
     axis.grid(alpha=0.25)
 
-    colors = plt.colormaps["tab10"](
-        jnp.linspace(0, 1, states.shape[1], endpoint=False)
-    )
+    colors = plt.colormaps["tab10"](jnp.linspace(0, 1, states.shape[1], endpoint=False))
     mechanisms = []
     for batch_index, color in enumerate(colors):
         vertical_position = float(batch_index)
@@ -124,18 +124,16 @@ def render_animation(
 
     time_label = axis.text(0.02, 0.95, "", transform=axis.transAxes)
 
-    def update(frame_index: int):
+    def update(frame_index: int) -> tuple[Artist, ...]:
         state_index = frame_indices[frame_index]
-        artists = []
+        artists: list[Artist] = []
         for batch_index, (spring, masses) in enumerate(mechanisms):
             mass_positions = positions[state_index, batch_index]
             spring.set_data(
                 jnp.concatenate((jnp.zeros(1), mass_positions)),
                 jnp.full(number_of_connections + 1, batch_index),
             )
-            for mass, horizontal_position in zip(
-                masses, mass_positions, strict=True
-            ):
+            for mass, horizontal_position in zip(masses, mass_positions, strict=True):
                 mass.center = (horizontal_position, batch_index)
             artists.extend((spring, *masses))
         time_label.set_text(f"t = {times[state_index]:.2f} s")
@@ -148,8 +146,6 @@ def render_animation(
         interval=1000 / fps,
         blit=True,
     )
-    writer = FFMpegWriter(
-        fps=fps, metadata={"title": "LQG mass-spring-damper simulation"}
-    )
+    writer = FFMpegWriter(fps=fps, metadata={"title": "LQG mass-spring-damper simulation"})
     animation.save(save_path, writer=writer, dpi=140)
     plt.close(figure)

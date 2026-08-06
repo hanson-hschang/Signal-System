@@ -4,7 +4,7 @@ import click
 import jax
 import jax.numpy as jnp
 
-from ss.control import LQGController
+from ss.control import LQGController, LQGDiagnostics
 from ss.system import (
     ControlChoice,
     MassSpringDamperSystem,
@@ -17,9 +17,7 @@ from .cost import QuadraticCost
 
 @click.command()
 @click.option("--number-of-connections", type=click.IntRange(min=1), default=2)
-@click.option(
-    "--duration", type=click.FloatRange(min=0, min_open=True), default=2.0
-)
+@click.option("--duration", type=click.FloatRange(min=0, min_open=True), default=2.0)
 @click.option(
     "--time-step",
     type=click.FloatRange(min=0, min_open=True),
@@ -63,37 +61,37 @@ def main(
 
     random_key = jax.random.PRNGKey(seed)
     initial_key, simulation_key = jax.random.split(random_key)
-    initial_state = system.init_state(initial_key)
-    random_keys = jax.random.split(simulation_key, num_steps)
-    times, states, _, controls = simulate(
+    initial_state = system.initial_state(initial_key)
+    result = simulate(
         system,
         0.0,
+        num_steps,
         initial_state,
-        random_keys,
+        simulation_key,
         controller,
     )
-    running_costs = cost.running_cost(states, controls)
+    assert result.controls is not None
+    assert isinstance(result.controller_diagnostics, LQGDiagnostics)
+    running_costs = cost.running_cost(result.states[:-1], result.controls)
 
-    click.echo(f"final_state={states[-1]}")
-    click.echo(
-        "total_running_cost="
-        f"{jnp.sum(running_costs, axis=0) * system.time_step}"
-    )
+    click.echo(f"final_state={result.states[-1]}")
+    click.echo(f"total_running_cost={jnp.sum(running_costs, axis=0) * system.time_step}")
 
     if save_dir is not None:
         from .post_processing import plot_simulation, render_animation
 
         save_dir.mkdir(parents=True, exist_ok=True)
         plot_simulation(
-            times,
-            states,
-            controls,
+            result.times[:-1],
+            result.states[:-1],
+            result.controller_diagnostics.estimated_state,
+            result.controls,
             running_costs,
             save_dir / "lqg_mass_spring_damper.png",
         )
         render_animation(
-            times,
-            states,
+            result.times,
+            result.states,
             save_dir / "lqg_mass_spring_damper.mp4",
         )
         click.echo(f"Saved LQG results to {save_dir}")
