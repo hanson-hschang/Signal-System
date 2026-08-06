@@ -4,15 +4,16 @@ import click
 import jax
 import jax.numpy as jnp
 
-from ss.control import LQGController, LQGDiagnostics
+from ss.control import LQGController
 from ss.system import (
-    ControlChoice,
     MassSpringDamperSystem,
+    ControlChoice,
     ObservationChoice,
     simulate,
 )
 
 from .cost import QuadraticCost
+from .post_processing import plot_simulation, render_animation
 
 
 @click.command()
@@ -49,6 +50,7 @@ def main(
         initial_state_standard_deviation=1.0,
         batch_size=batch_size,
     )
+
     cost = QuadraticCost(
         state_weight=jnp.eye(system.state_dim),
         control_weight=0.1 * jnp.eye(system.control_dim),
@@ -64,22 +66,18 @@ def main(
     initial_state = system.initial_state(initial_key)
     result = simulate(
         system,
-        0.0,
+        0.0,  # initial_time
         num_steps,
         initial_state,
         simulation_key,
         controller,
     )
-    assert result.controls is not None
-    assert isinstance(result.controller_diagnostics, LQGDiagnostics)
     running_costs = cost.running_cost(result.states[:-1], result.controls)
 
     click.echo(f"final_state={result.states[-1]}")
     click.echo(f"total_running_cost={jnp.sum(running_costs, axis=0) * system.time_step}")
 
     if save_dir is not None:
-        from .post_processing import plot_simulation, render_animation
-
         save_dir.mkdir(parents=True, exist_ok=True)
         plot_simulation(
             result.times[:-1],
