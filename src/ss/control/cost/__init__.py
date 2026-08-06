@@ -1,23 +1,14 @@
-"""Lazy control re-exports -- see ss/__init__.py for rationale."""
+"""Lazy cost re-exports."""
 
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ._control import Controller  # noqa: F401
-    from .cost import Cost, QuadraticCost  # noqa: F401
-    from .mppi import (  # noqa: F401
-        MPPIController,
-        MPPIControllerState,
-        MPPIDiagnostics,
-    )
+    from ._cost import Cost
+    from ._cost_quadratic import QuadraticCost
 
 _EXPORTS: dict[str, str] = {
-    "Controller": "_control",
-    "Cost": "cost",
-    "QuadraticCost": "cost",
-    "MPPIController": "mppi",
-    "MPPIControllerState": "mppi",
-    "MPPIDiagnostics": "mppi",
+    "Cost": "_cost",
+    "QuadraticCost": "_cost_quadratic",
 }
 
 __all__ = list(_EXPORTS)
