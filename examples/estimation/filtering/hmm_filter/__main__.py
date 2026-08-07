@@ -98,7 +98,7 @@ def main(
     )
 
     initial_state = system.initial_state()
-    times, states, observations, _ = simulate(system, 0.0, simulation_steps, initial_state, simulate_key)
+    result = simulate(system, 0.0, simulation_steps, initial_state, simulate_key)
 
     # Set HMM filter and apply filtering to get beliefs.
     filter = HmmFilter(
@@ -108,18 +108,24 @@ def main(
         batch_size=batch_size,
     )
     initial_belief = jnp.full((batch_size, filter.state_dim), 1.0 / state_dim)
-    _, beliefs = filtering(filter, 0.0, initial_belief, observations)
+    _, beliefs = filtering(filter, 0.0, initial_belief, result.observations)
 
     print(f"system: {system}")
     print(f"filter: {filter}")
-    print(f"states shape: {states.shape}")
-    print(f"observations shape: {observations.shape}")
+    print(f"states shape: {result.states.shape}")
+    print(f"observations shape: {result.observations.shape}")
     print(f"beliefs shape: {beliefs.shape}")
 
     if save_dir is not None:
         save_dir.mkdir(parents=True, exist_ok=True)
         save_path = save_dir / "hmm_filter_plot.png"
-        plot_filtering(times, states, observations, beliefs, save_path=save_path)
+        plot_filtering(
+            result.times[:-1],
+            result.states[:-1],
+            result.observations,
+            beliefs,
+            save_path=save_path,
+        )
 
 
 if __name__ == "__main__":

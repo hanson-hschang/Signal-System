@@ -5,11 +5,18 @@ from typing import Any, TYPE_CHECKING
 if TYPE_CHECKING:
     from ._system import (
         ContinuousTimeSystem,
+        SimulationResult,
         System,
         simulate,
     )
     from .cart_pole import CartPoleSystem
     from .hmm import HiddenMarkovModel
+    from .mass_spring_damper import (
+        ControlChoice,
+        MassSpringDamperSystem,
+        ObservationChoice,
+    )
+    # from .discrete import HiddenMarkovModel
     # from .linear import (
     #     ContinuousTimeLinearSystem,
     #     DiscreteTimeLinearSystem,
@@ -21,10 +28,14 @@ if TYPE_CHECKING:
 
 _EXPORTS: dict[str, str] = {
     "ContinuousTimeSystem": "_system",
+    "SimulationResult": "_system",
     "System": "_system",
     "simulate": "_system",
     "CartPoleSystem": "cart_pole",
     "HiddenMarkovModel": "hmm",
+    "ControlChoice": "mass_spring_damper",
+    "MassSpringDamperSystem": "mass_spring_damper",
+    "ObservationChoice": "mass_spring_damper",
     # "ContinuousTimeLinearSystem": "linear",
     # "DiscreteTimeLinearSystem": "linear",
     # "ContinuousTimeNonlinearSystem": "nonlinear",
