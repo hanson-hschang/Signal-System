@@ -8,7 +8,9 @@ from numpy.typing import ArrayLike, NDArray
 
 from ss.utility.assertion.validator import FilePathValidator
 from ss.utility.data import MetaData, MetaInfo, MetaInfoValueType
+from ss.utility.logging import Logging
 
+logger = Logging.get_logger(__name__)
 
 class Callback:
     FILE_EXTENSION = ".hdf5"
@@ -198,7 +200,14 @@ class Callback:
             filename, cls.FILE_EXTENSION
         ).get_filepath()
         with h5py.File(filepath, "r") as f:
-            callback = cls(cast(int, f.attrs["__step_skip__"]))
+            if "__step_skip__" not in f.attrs:
+                logger.warning(
+                    f"Missing '__step_skip__' attribute in callback file: {filename}. Defaulting to step_skip=1."
+                )
+                step_skip = 1 # Default to 1 if not specified
+            else:
+                step_skip = cast(int, f.attrs["__step_skip__"])
+            callback = cls(step_skip=step_skip)
             callback._load_meta_info(f)
             if MetaData.NAME in f:
                 callback._load_meta_data(cast(h5py.Group, f[MetaData.NAME]))
